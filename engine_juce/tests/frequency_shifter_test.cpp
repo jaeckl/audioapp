@@ -37,6 +37,10 @@ public:
             expect(slot.id == "shifter-default", "slot id should match");
             const auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.5f, 0.001f, "default ffxShift=0.5");
+            expectWithinAbsoluteError(inst.ffxFine, 0.5f, 0.001f, "default ffxFine=0.5");
+            expectWithinAbsoluteError(inst.ffxMix, 1.0f, 0.001f, "default ffxMix=1");
+            expectWithinAbsoluteError(inst.ffxTone, 1.0f, 0.001f, "default ffxTone=1");
+            expectWithinAbsoluteError(inst.ffxFeedback, 0.0f, 0.001f, "default ffxFeedback=0");
         }
 
         beginTest("shifter set parameter ffx shift");
@@ -71,7 +75,8 @@ public:
         {
             const auto params = registry.modulatableParams(
                 audioapp::device_types::kFrequencyShifter);
-            const std::vector<std::string> expected = {"gain", "pan", "ffxShift"};
+            const std::vector<std::string> expected = {
+                "gain", "pan", "ffxShift", "ffxFine", "ffxMix", "ffxTone", "ffxFeedback"};
             bool allFound = true;
             for (const auto& p : expected) {
                 if (std::find(params.begin(), params.end(), p) == params.end()) {
@@ -131,6 +136,21 @@ public:
                                        "ffxShift=0.0 → shiftHz=-2000");
         }
 
+        beginTest("shifter build playback node fine offset");
+        {
+            audioapp::DeviceSlot slot = registry.createDefault(
+                audioapp::device_types::kFrequencyShifter, "shifter-fine");
+            auto& inst = std::get<audioapp::FrequencyShifterModel>(slot.config.instance);
+            inst.ffxShift = 0.5f;
+            inst.ffxFine = 1.0f; // +50 Hz
+            audioapp::DeviceNodePlayback out;
+            registry.buildPlaybackNode(slot, audioapp::PlaybackBuildContext{}, out);
+            const auto& params = std::get<audioapp::FrequencyShifterParams>(out.params);
+            expectWithinAbsoluteError(params.shiftHz, 50.0f, 0.001f,
+                                       "ffxFine=1 → +50 Hz");
+            expectWithinAbsoluteError(params.mix, 1.0f, 0.001f, "default mix");
+        }
+
         beginTest("shifter build live instrument returns false");
         {
             audioapp::DeviceSlot slot = registry.createDefault(
@@ -146,6 +166,10 @@ public:
             audioapp::DeviceSlot slot = registry.createDefault(
                 audioapp::device_types::kFrequencyShifter, "shifter-roundtrip");
             std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxShift = 0.42f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxFine = 0.2f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxMix = 0.6f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxTone = 0.7f;
+            std::get<audioapp::FrequencyShifterModel>(slot.config.instance).ffxFeedback = 0.3f;
             std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).gain = 0.5f;
             std::get<audioapp::StereoOutputPanel>(slot.config.outputPanel).pan = 0.3f;
             slot.config.bypassed = true;
@@ -160,6 +184,10 @@ public:
             expect(restored.config.bypassed == slot.config.bypassed, "bypass roundtrip");
             const auto& inst = std::get<audioapp::FrequencyShifterModel>(restored.config.instance);
             expectWithinAbsoluteError(inst.ffxShift, 0.42f, 0.001f, "ffxShift roundtrip");
+            expectWithinAbsoluteError(inst.ffxFine, 0.2f, 0.001f, "ffxFine roundtrip");
+            expectWithinAbsoluteError(inst.ffxMix, 0.6f, 0.001f, "ffxMix roundtrip");
+            expectWithinAbsoluteError(inst.ffxTone, 0.7f, 0.001f, "ffxTone roundtrip");
+            expectWithinAbsoluteError(inst.ffxFeedback, 0.3f, 0.001f, "ffxFeedback roundtrip");
         }
 
         beginTest("shifter slot to var json shape");

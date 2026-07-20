@@ -45,6 +45,10 @@ DeviceParameterResult FrequencyShifterDeviceType::setParameter(DeviceSlot& slot,
         return result;
     switch (static_cast<FrequencyShifterParam>(id)) {
     case FrequencyShifterParam::Shift: instance.ffxShift = clamped; break;
+    case FrequencyShifterParam::Fine: instance.ffxFine = clamped; break;
+    case FrequencyShifterParam::Mix: instance.ffxMix = clamped; break;
+    case FrequencyShifterParam::Tone: instance.ffxTone = clamped; break;
+    case FrequencyShifterParam::Feedback: instance.ffxFeedback = clamped; break;
     default: return result;
     }
     result.handled = true;
@@ -59,7 +63,7 @@ bool FrequencyShifterDeviceType::setStringParameter(DeviceSlot&,
 }
 
 std::vector<std::string_view> FrequencyShifterDeviceType::modulatableParams() const {
-    return {"gain", "pan", "ffxShift"};
+    return {"gain", "pan", "ffxShift", "ffxFine", "ffxMix", "ffxTone", "ffxFeedback"};
 }
 
 void FrequencyShifterDeviceType::buildPlaybackNode(const DeviceSlot& slot,
@@ -79,6 +83,10 @@ juce::var FrequencyShifterDeviceType::slotToVar(const DeviceSlot& slot) const {
     auto* parameters = new juce::DynamicObject();
     const auto& inst = std::get<FrequencyShifterModel>(slot.config.instance);
     parameters->setProperty("ffxShift", static_cast<double>(inst.ffxShift));
+    parameters->setProperty("ffxFine", static_cast<double>(inst.ffxFine));
+    parameters->setProperty("ffxMix", static_cast<double>(inst.ffxMix));
+    parameters->setProperty("ffxTone", static_cast<double>(inst.ffxTone));
+    parameters->setProperty("ffxFeedback", static_cast<double>(inst.ffxFeedback));
 
     auto* meters = new juce::DynamicObject();
     meters->setProperty("gainReductionDb", 0.0);
@@ -119,7 +127,6 @@ DeviceSlot FrequencyShifterDeviceType::varToSlot(const juce::var& obj) const {
             sp.gain = static_cast<float>(static_cast<double>(panel->getProperty("gain")));
             sp.pan = static_cast<float>(static_cast<double>(panel->getProperty("pan")));
             slot.config.outputPanel = sp;
-
         }
 
         slot.config.bypassed = object->getProperty("bypass").isDouble()
@@ -144,6 +151,10 @@ DeviceSlot FrequencyShifterDeviceType::varToSlot(const juce::var& obj) const {
 
             FrequencyShifterModel inst;
             inst.ffxShift = readFloat("ffxShift", 0.5f);
+            inst.ffxFine = readFloat("ffxFine", 0.5f);
+            inst.ffxMix = readFloat("ffxMix", 1.0f);
+            inst.ffxTone = readFloat("ffxTone", 1.0f);
+            inst.ffxFeedback = readFloat("ffxFeedback", 0.0f);
             slot.config.instance = inst;
         }
     }
@@ -158,12 +169,20 @@ DeviceNodeKind FrequencyShifterDeviceType::kind() const noexcept { return Device
 
 uint16_t FrequencyShifterDeviceType::paramIdFromString(std::string_view name) const noexcept {
     if (name == "ffxShift") return static_cast<uint16_t>(FrequencyShifterParam::Shift);
+    if (name == "ffxFine") return static_cast<uint16_t>(FrequencyShifterParam::Fine);
+    if (name == "ffxMix") return static_cast<uint16_t>(FrequencyShifterParam::Mix);
+    if (name == "ffxTone") return static_cast<uint16_t>(FrequencyShifterParam::Tone);
+    if (name == "ffxFeedback") return static_cast<uint16_t>(FrequencyShifterParam::Feedback);
     return static_cast<uint16_t>(-1);
 }
 
 std::string_view FrequencyShifterDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<FrequencyShifterParam>(localId)) {
     case FrequencyShifterParam::Shift: return "ffxShift";
+    case FrequencyShifterParam::Fine: return "ffxFine";
+    case FrequencyShifterParam::Mix: return "ffxMix";
+    case FrequencyShifterParam::Tone: return "ffxTone";
+    case FrequencyShifterParam::Feedback: return "ffxFeedback";
     default: return "";
     }
 }
@@ -171,6 +190,10 @@ std::string_view FrequencyShifterDeviceType::paramIdToString(uint16_t localId) c
 std::span<const ParamDescriptor> FrequencyShifterDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(FrequencyShifterParam::Shift), "ffxShift", "Shift", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FrequencyShifterParam::Fine), "ffxFine", "Fine", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FrequencyShifterParam::Mix), "ffxMix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FrequencyShifterParam::Tone), "ffxTone", "Tone", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(FrequencyShifterParam::Feedback), "ffxFeedback", "Feedback", 0.0f, 0.0f, 1.0f, true, true},
     };
     return kParams;
 }

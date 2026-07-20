@@ -12,13 +12,14 @@ final class FrequencyShifterDefinition extends AudioEffectDefinition {
   @override
   DevicePickerMetadata get picker => const DevicePickerMetadata(
       name: 'Ring Mod',
-      description: 'Carrier · -2 kHz to +2 kHz',
+      description: 'Ring · Mix · Tone · Feedback',
       icon: Icons.swap_horiz,
       color: Color(0xFFC77DFF),
       category: 'Frequency Effects');
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 216, inputPanelWidth: 64, outputPanelWidth: 64);
+      // Empty input in engine — sideband hero + plate.
+      designWidth: 300, inputPanelWidth: 0, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       FrequencyShifterDeviceSnapshot.fromMap(map);

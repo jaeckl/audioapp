@@ -9,9 +9,17 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
     required super.meterGainReductionDb,
     required super.meterInputLevel,
     required this.ffxShift,
+    required this.ffxFine,
+    required this.ffxMix,
+    required this.ffxTone,
+    required this.ffxFeedback,
   }) : super(type: 'frequency_shifter');
 
   final double ffxShift;
+  final double ffxFine;
+  final double ffxMix;
+  final double ffxTone;
+  final double ffxFeedback;
 
   factory FrequencyShifterDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final params = map['parameters'] as Map<dynamic, dynamic>? ?? {};
@@ -26,6 +34,10 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
           (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       ffxShift: (params['ffxShift'] as num?)?.toDouble() ?? 0.5,
+      ffxFine: (params['ffxFine'] as num?)?.toDouble() ?? 0.5,
+      ffxMix: (params['ffxMix'] as num?)?.toDouble() ?? 1.0,
+      ffxTone: (params['ffxTone'] as num?)?.toDouble() ?? 1.0,
+      ffxFeedback: (params['ffxFeedback'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -39,6 +51,10 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
     double? meterGainReductionDb,
     double? meterInputLevel,
     double? ffxShift,
+    double? ffxFine,
+    double? ffxMix,
+    double? ffxTone,
+    double? ffxFeedback,
   }) {
     return FrequencyShifterDeviceSnapshot(
       id: id ?? this.id,
@@ -48,6 +64,10 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
       meterGainReductionDb: meterGainReductionDb ?? this.meterGainReductionDb,
       meterInputLevel: meterInputLevel ?? this.meterInputLevel,
       ffxShift: ffxShift ?? this.ffxShift,
+      ffxFine: ffxFine ?? this.ffxFine,
+      ffxMix: ffxMix ?? this.ffxMix,
+      ffxTone: ffxTone ?? this.ffxTone,
+      ffxFeedback: ffxFeedback ?? this.ffxFeedback,
     );
   }
 
@@ -59,6 +79,10 @@ class FrequencyShifterDeviceSnapshot extends FrequencyFxDeviceSnapshot {
       'pan' => copyWith(pan: value),
       'bypass' => copyWith(bypassed: value >= 0.5),
       'ffxShift' => copyWith(ffxShift: value.clamp(0.0, 1.0)),
+      'ffxFine' => copyWith(ffxFine: value.clamp(0.0, 1.0)),
+      'ffxMix' => copyWith(ffxMix: value.clamp(0.0, 1.0)),
+      'ffxTone' => copyWith(ffxTone: value.clamp(0.0, 1.0)),
+      'ffxFeedback' => copyWith(ffxFeedback: value.clamp(0.0, 1.0)),
       _ => this,
     };
   }

@@ -490,6 +490,10 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
                 : 0;
         };
         if (auto v = s("ffxShift", FrequencyShifterParam::Shift)) return v;
+        if (auto v = s("ffxFine", FrequencyShifterParam::Fine)) return v;
+        if (auto v = s("ffxMix", FrequencyShifterParam::Mix)) return v;
+        if (auto v = s("ffxTone", FrequencyShifterParam::Tone)) return v;
+        if (auto v = s("ffxFeedback", FrequencyShifterParam::Feedback)) return v;
         return 0;
     }
     case DeviceNodeKind::ResonatorBank: {
@@ -932,6 +936,10 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
     case DeviceNodeKind::FrequencyShifter: {
         switch (static_cast<FrequencyShifterParam>(rawId)) {
         case FrequencyShifterParam::Shift: return "ffxShift";
+        case FrequencyShifterParam::Fine: return "ffxFine";
+        case FrequencyShifterParam::Mix: return "ffxMix";
+        case FrequencyShifterParam::Tone: return "ffxTone";
+        case FrequencyShifterParam::Feedback: return "ffxFeedback";
         default: return "";
         }
     }
@@ -1185,8 +1193,12 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
     case DeviceNodeKind::FrequencyShifter: {
         static constexpr ParamDescriptor kParams[] = {
             {static_cast<uint16_t>(FrequencyShifterParam::Shift), "ffxShift", "Shift", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FrequencyShifterParam::Fine), "ffxFine", "Fine", 0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FrequencyShifterParam::Mix), "ffxMix", "Mix", 1.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FrequencyShifterParam::Tone), "ffxTone", "Tone", 1.0f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FrequencyShifterParam::Feedback), "ffxFeedback", "Feedback", 0.0f, 0.0f, 1.0f, true, true},
         };
-        countOut = 1;
+        countOut = 5;
         return kParams;
     }
     case DeviceNodeKind::ResonatorBank: {

@@ -351,6 +351,10 @@ enum class FourBandEqParam : uint16_t {
 
 enum class FrequencyShifterParam : uint16_t {
     Shift = 0,
+    Fine = 1,
+    Mix = 2,
+    Tone = 3,
+    Feedback = 4,
 };
 
 enum class ResonatorBankParam : uint16_t {

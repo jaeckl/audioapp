@@ -57,6 +57,7 @@ class DeviceStripCard extends StatelessWidget {
       deviceType == 'filter' ||
       deviceType == 'distortion' ||
       deviceType == 'four_band_eq' ||
+      deviceType == 'frequency_shifter' ||
       deviceType == 'phaser' ||
       deviceType == 'compressor' ||
       deviceType == 'limiter' ||
@@ -72,6 +73,7 @@ class DeviceStripCard extends StatelessWidget {
     final label = (deviceType == 'filter' ||
             deviceType == 'distortion' ||
             deviceType == 'four_band_eq' ||
+            deviceType == 'frequency_shifter' ||
             deviceType == 'phaser' ||
             deviceType == 'compressor' ||
             deviceType == 'limiter' ||

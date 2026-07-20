@@ -22,6 +22,7 @@ part 'frequency_fx_panels_private_four_band_eq_band_select.dart';
 part 'frequency_fx_panels_four_band_eq_device_strip.dart';
 part 'frequency_fx_panels_freq_shifter_device_panel.dart';
 part 'frequency_fx_panels_freq_shifter_device_strip.dart';
+part 'frequency_fx_panels_private_ring_mod_sideband_preview.dart';
 part 'frequency_fx_panels_private_placeholder_preview_painter.dart';
 // ─── File scope note (SRP 400-LOC exception) ─────────────────────────────────
 //
