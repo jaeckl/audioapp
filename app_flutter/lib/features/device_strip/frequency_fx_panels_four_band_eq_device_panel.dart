@@ -1,6 +1,6 @@
 part of 'frequency_fx_panels.dart';
 
-class FourBandEqDevicePanel extends StatelessWidget {
+class FourBandEqDevicePanel extends StatefulWidget {
   static const registeredDeviceTypes = ['four_band_eq'];
   const FourBandEqDevicePanel({
     super.key,
@@ -19,8 +19,18 @@ class FourBandEqDevicePanel extends StatelessWidget {
   static const accent = Color(0xFF78C091);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// 4-band EQ — compact card.
-  static const double designWidth = 216;
+  /// EQ archetype — full-bleed curve + band plate (not Phaser rails).
+  static const double designWidth = 280;
+
+  /// ~Butterworth 0.71 → (0.71 - 0.1) / 19.9.
+  static const double defaultQNorm = 0.03;
+
+  static const bandColors = <Color>[
+    Color(0xFF5BC0EB), // low shelf
+    Color(0xFF78C091), // low mid
+    Color(0xFFE8A54B), // high mid
+    Color(0xFFE85D4B), // high shelf
+  ];
 
   final FourBandEqDeviceSnapshot device;
   final FrequencyFxParameterChanged onParameterChanged;
@@ -34,13 +44,94 @@ class FourBandEqDevicePanel extends StatelessWidget {
   final ValueChanged<String>? onAutomateParameter;
 
   @override
+  State<FourBandEqDevicePanel> createState() => _FourBandEqDevicePanelState();
+}
+
+class _FourBandEqDevicePanelState extends State<FourBandEqDevicePanel> {
+  /// 0..3 — LS / LM / HM / HS
+  int _selectedBand = 0;
+
+  @override
   Widget build(BuildContext context) {
-    final previewBands = _buildPreviewBands(device);
-    return _freqFxSinglePage(
-      preview: FourBandEqPreview(bands: previewBands, accent: accent),
-      rows: [
-        _buildBandColumnsGrid(context, device),
-      ],
+    final device = widget.device;
+    final bands = _buildPreviewBands(device);
+    final bandIndex = _selectedBand + 1;
+    final (freqNorm, gainNorm, qNorm) = _readBandTriplet(device, bandIndex);
+    final freqId = 'ffxBand${bandIndex}Freq';
+    final gainId = 'ffxBand${bandIndex}Gain';
+    final qId = 'ffxBand${bandIndex}Q';
+    final bandAccent = FourBandEqDevicePanel.bandColors[_selectedBand];
+
+    return FilterSectionLayout(
+      modeSelector: _FourBandEqBandSelect(
+        selectedIndex: _selectedBand,
+        onSelected: (i) => setState(() => _selectedBand = i),
+      ),
+      preview: FourBandEqPreview(
+        bands: bands,
+        accent: FourBandEqDevicePanel.accent,
+        selectedBandIndex: _selectedBand,
+        bandColors: FourBandEqDevicePanel.bandColors,
+        onBandSelected: (i) => setState(() => _selectedBand = i),
+        onBandEdited: (i, freqNorm, gainNorm) {
+          final n = i + 1;
+          widget.onParameterChanged('ffxBand${n}Freq', freqNorm);
+          widget.onParameterChanged('ffxBand${n}Gain', gainNorm);
+        },
+      ),
+      controls: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _knob(
+            label: 'FREQ',
+            value: freqNorm,
+            paramId: freqId,
+            accent: bandAccent,
+            onParameterChanged: widget.onParameterChanged,
+            modulatedParams: widget.modulatedParams,
+            automatedParams: widget.automatedParams,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId,
+            onModulationAssign: widget.onModulationAssign,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationLinkTap,
+            onAutomateParameter: widget.onAutomateParameter,
+            displayValue: _formatHz(_normalizedToFrequency(freqNorm)),
+          ),
+          _knob(
+            label: 'GAIN',
+            value: gainNorm,
+            paramId: gainId,
+            accent: bandAccent,
+            onParameterChanged: widget.onParameterChanged,
+            modulatedParams: widget.modulatedParams,
+            automatedParams: widget.automatedParams,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId,
+            onModulationAssign: widget.onModulationAssign,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationLinkTap,
+            onAutomateParameter: widget.onAutomateParameter,
+            displayValue: _formatDb(_normalizedToDb(gainNorm)),
+          ),
+          _knob(
+            label: 'Q',
+            value: qNorm,
+            paramId: qId,
+            accent: bandAccent,
+            onParameterChanged: widget.onParameterChanged,
+            modulatedParams: widget.modulatedParams,
+            automatedParams: widget.automatedParams,
+            modulationAmounts: widget.modulationAmounts,
+            connectModeLfoId: widget.connectModeLfoId,
+            onModulationAssign: widget.onModulationAssign,
+            automationLinkActive: widget.automationLinkActive,
+            onAutomationLinkTap: widget.onAutomationLinkTap,
+            onAutomateParameter: widget.onAutomateParameter,
+            displayValue: _formatQ(_normalizedToQ(qNorm)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -70,146 +161,4 @@ class FourBandEqDevicePanel extends StatelessWidget {
           isShelf: true,
         ),
       ];
-
-  /// Renders the 4 EQ bands as 4 columns side-by-side. Each column has a
-  /// header label and 3 stacked `ValueDragBox`es (FREQ / GAIN / Q) — the
-  /// same compact shape as the Phase-Mod synth `Ratio` chip.
-  Widget _buildBandColumnsGrid(
-      BuildContext context, FourBandEqDeviceSnapshot dev) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var bandIndex = 1; bandIndex <= 4; bandIndex++) ...[
-          if (bandIndex > 1) const SizedBox(width: _freqFxColumnGap),
-          Expanded(child: _buildBandColumn(context, dev, bandIndex: bandIndex)),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildBandColumn(BuildContext context, FourBandEqDeviceSnapshot dev,
-      {required int bandIndex}) {
-    final (freqNorm, gainNorm, qNorm) = _readBandTriplet(dev, bandIndex);
-    final freqId = 'ffxBand' '$bandIndex' 'Freq';
-    final gainId = 'ffxBand' '$bandIndex' 'Gain';
-    final qId = 'ffxBand' '$bandIndex' 'Q';
-    final bandLabel = _bandLabel(bandIndex);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Column header (band label)
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text(
-            bandLabel,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: accent.withValues(alpha: 0.85),
-              fontSize: 9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.6,
-              height: 1.05,
-            ),
-          ),
-        ),
-        // FREQ row — drag/scroll changes freq; double-tap resets to neutral
-        // (centre of the log-frequency range, i.e. ≈ 1 kHz at norm 0.5).
-        ValueDragBox(
-          valueNorm: freqNorm,
-          // Quantised to log-spaced frequencies across the audible range.
-          // The values are display strings only — the panel's `onChanged`
-          // converts the index back to `[0,1]` and the engine converts to Hz.
-          values: const [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-          format: (n) => _formatHz(_normalizedToFrequency(n)),
-          accent: accent,
-          paramId: freqId,
-          modulatedParams: modulatedParams,
-          automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
-          onChanged: (v) => onParameterChanged(freqId, v),
-          resetIndex: 5, // ~ 1 kHz
-          dragPixelsPerStep: 14,
-          footerLabel: 'FREQ',
-        ),
-        const SizedBox(height: 4),
-        // GAIN row — discrete gain steps in dB. Double-tap resets to 0 dB
-        // (neutral, idx 4 of the 9 steps centred on 0 dB).
-        ValueDragBox(
-          valueNorm: gainNorm,
-          values: const [-24.0, -18.0, -12.0, -6.0, 0.0, 6.0, 12.0, 18.0, 24.0],
-          // Display uses _formatDb for consistency, but values are absolute dB.
-          format: (n) => _formatDb(_normalizedToDb(n)),
-          accent: accent,
-          paramId: gainId,
-          modulatedParams: modulatedParams,
-          automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
-          onChanged: (v) => onParameterChanged(gainId, v),
-          resetIndex: 4, // 0 dB
-          dragPixelsPerStep: 14,
-          footerLabel: 'GAIN',
-        ),
-        const SizedBox(height: 4),
-        // Q row — discrete Q values from 0.1 to 20.0.
-        ValueDragBox(
-          valueNorm: qNorm,
-          values: const [
-            0.10,
-            0.25,
-            0.50,
-            0.71,
-            1.00,
-            1.41,
-            2.00,
-            4.00,
-            8.00,
-            20.00
-          ],
-          // Display uses _formatQ for consistency, but values are absolute Q.
-          format: (n) => _formatQ(_normalizedToQ(n)),
-          accent: accent,
-          paramId: qId,
-          modulatedParams: modulatedParams,
-          automatedParams: automatedParams,
-          modulationAmounts: modulationAmounts,
-          connectModeLfoId: connectModeLfoId,
-          onModulationAssign: onModulationAssign,
-          automationLinkActive: automationLinkActive,
-          onAutomationLinkTap: onAutomationLinkTap,
-          onAutomateParameter: onAutomateParameter,
-          onChanged: (v) => onParameterChanged(qId, v),
-          resetIndex: 3, // Q ≈ 0.71 (Butterworth)
-          dragPixelsPerStep: 14,
-          footerLabel: 'Q',
-        ),
-      ],
-    );
-  }
-
-  static String _bandLabel(int bandIndex) {
-    switch (bandIndex) {
-      case 1:
-        return 'LOW SHELF';
-      case 2:
-        return 'LOW MID';
-      case 3:
-        return 'HIGH MID';
-      case 4:
-        return 'HIGH SHELF';
-      default:
-        return '';
-    }
-  }
 }

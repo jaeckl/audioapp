@@ -4,10 +4,10 @@ extension DeviceStripSlotStateBuildfourbandeqdeviceOperation
     on _DeviceStripSlotState {
   Widget _buildFourBandEqDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as FourBandEqDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Full-bleed response curve — skip DeviceStripViewport letterbox.
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: FourBandEqDeviceStrip(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,

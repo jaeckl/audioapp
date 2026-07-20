@@ -49,16 +49,16 @@ class FourBandEqDeviceSnapshot extends FrequencyFxDeviceSnapshot {
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       ffxBand1Freq: (params['ffxBand1Freq'] as num?)?.toDouble() ?? 0.15,
       ffxBand1Gain: (params['ffxBand1Gain'] as num?)?.toDouble() ?? 0.5,
-      ffxBand1Q: (params['ffxBand1Q'] as num?)?.toDouble() ?? 0.5,
+      ffxBand1Q: (params['ffxBand1Q'] as num?)?.toDouble() ?? 0.03,
       ffxBand2Freq: (params['ffxBand2Freq'] as num?)?.toDouble() ?? 0.35,
       ffxBand2Gain: (params['ffxBand2Gain'] as num?)?.toDouble() ?? 0.5,
-      ffxBand2Q: (params['ffxBand2Q'] as num?)?.toDouble() ?? 0.5,
+      ffxBand2Q: (params['ffxBand2Q'] as num?)?.toDouble() ?? 0.03,
       ffxBand3Freq: (params['ffxBand3Freq'] as num?)?.toDouble() ?? 0.6,
       ffxBand3Gain: (params['ffxBand3Gain'] as num?)?.toDouble() ?? 0.5,
-      ffxBand3Q: (params['ffxBand3Q'] as num?)?.toDouble() ?? 0.5,
+      ffxBand3Q: (params['ffxBand3Q'] as num?)?.toDouble() ?? 0.03,
       ffxBand4Freq: (params['ffxBand4Freq'] as num?)?.toDouble() ?? 0.85,
       ffxBand4Gain: (params['ffxBand4Gain'] as num?)?.toDouble() ?? 0.5,
-      ffxBand4Q: (params['ffxBand4Q'] as num?)?.toDouble() ?? 0.5,
+      ffxBand4Q: (params['ffxBand4Q'] as num?)?.toDouble() ?? 0.03,
     );
   }
 

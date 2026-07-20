@@ -25,16 +25,16 @@ struct FilterModel {
 struct FourBandEqModel {
     float ffxBand1Freq = 0.15f;    // low shelf freq
     float ffxBand1Gain = 0.5f;     // low shelf gain (mid = 0 dB)
-    float ffxBand1Q = 0.5f;        // low shelf Q
+    float ffxBand1Q = 0.03f;       // ~0.7 Butterworth (was 0.5 → Q≈10)
     float ffxBand2Freq = 0.35f;    // low-mid peak freq
     float ffxBand2Gain = 0.5f;     // low-mid peak gain
-    float ffxBand2Q = 0.5f;        // low-mid peak Q
+    float ffxBand2Q = 0.03f;
     float ffxBand3Freq = 0.6f;     // high-mid peak freq
     float ffxBand3Gain = 0.5f;     // high-mid peak gain
-    float ffxBand3Q = 0.5f;        // high-mid peak Q
+    float ffxBand3Q = 0.03f;
     float ffxBand4Freq = 0.85f;    // high shelf freq
     float ffxBand4Gain = 0.5f;     // high shelf gain
-    float ffxBand4Q = 0.5f;        // high shelf Q
+    float ffxBand4Q = 0.03f;
 
     FourBandEqParams toPlaybackParams() const {
         FourBandEqParams p;

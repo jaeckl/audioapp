@@ -18,7 +18,8 @@ final class FourBandEqDefinition extends AudioEffectDefinition {
       category: 'Frequency Effects');
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 216, inputPanelWidth: 64, outputPanelWidth: 64);
+      // Empty input in engine — no Dynamics IN. Curve + band plate.
+      designWidth: 280, inputPanelWidth: 0, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       FourBandEqDeviceSnapshot.fromMap(map);

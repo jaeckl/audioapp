@@ -8,35 +8,25 @@ import 'device_tab_bar.dart';
 import 'eq_preview.dart';
 import 'filter_preview.dart';
 import 'panels/compact_fx_layout.dart';
+import 'panels/device_panel_theme.dart';
 import 'panels/filter_mode_selector.dart';
 import 'panels/filter_section_layout.dart';
 import 'panels/filter_mode_icons.dart';
 import 'rotary_knob.dart';
-import 'value_drag_box.dart';
 import 'effective_parameter_binding.dart';
 
 part 'frequency_fx_panels_filter_device_panel.dart';
 part 'frequency_fx_panels_filter_device_strip.dart';
 part 'frequency_fx_panels_four_band_eq_device_panel.dart';
+part 'frequency_fx_panels_private_four_band_eq_band_select.dart';
 part 'frequency_fx_panels_four_band_eq_device_strip.dart';
 part 'frequency_fx_panels_freq_shifter_device_panel.dart';
 part 'frequency_fx_panels_freq_shifter_device_strip.dart';
 part 'frequency_fx_panels_private_placeholder_preview_painter.dart';
 // ─── File scope note (SRP 400-LOC exception) ─────────────────────────────────
 //
-// This file holds 6 widgets (3 panels + 3 strip wrappers) plus the shared
-// knob wrapper, the filter-mode icon-button row, and the EQ band column
-// helpers used by the 4-band EQ. The 400-LOC hard review trigger is exceeded
-// because the WP-6 contract (`docs/features/fx-frequency-suite/06-vertical-work-packages.md`)
-// explicitly mandates a single file for the panel family — splitting them
-// would scatter the device family across files and force WP-7 to import from
-// multiple paths for the device-strip routing.
-//
-// Layout (post-amendment #2):
-//   - Filter      : mode-icon row + 2 knobs (cutoff, resonance), centered.
-//   - 4-band EQ   : preview + 4 columns × 3 ValueDragBox rows
-//                   (freq / gain / Q, reusing the PM synth ratio box pattern).
-//   - Ring Mod    : unchanged — single Shift knob.
+// This file holds shared helpers + panel family parts. EQ is FilterSectionLayout
+// + selected-band knobs (not the old 12× ValueDragBox grid).
 
 typedef FrequencyFxParameterChanged = void Function(
     String parameterId, double value);
@@ -228,6 +218,6 @@ Widget _previewPlaceholder(IconData icon, String label, Color accent) {
     case 4:
       return (dev.ffxBand4Freq, dev.ffxBand4Gain, dev.ffxBand4Q);
     default:
-      return (0.5, 0.5, 0.5);
+      return (0.5, 0.5, FourBandEqDevicePanel.defaultQNorm);
   }
 }

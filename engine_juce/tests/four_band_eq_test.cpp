@@ -37,16 +37,16 @@ public:
             const auto& inst = std::get<audioapp::FourBandEqModel>(slot.config.instance);
             expectWithinAbsoluteError(inst.ffxBand1Freq, 0.15f, 0.001f, "default ffxBand1Freq");
             expectWithinAbsoluteError(inst.ffxBand1Gain, 0.5f, 0.001f, "default ffxBand1Gain");
-            expectWithinAbsoluteError(inst.ffxBand1Q, 0.5f, 0.001f, "default ffxBand1Q");
+            expectWithinAbsoluteError(inst.ffxBand1Q, 0.03f, 0.001f, "default ffxBand1Q");
             expectWithinAbsoluteError(inst.ffxBand2Freq, 0.35f, 0.001f, "default ffxBand2Freq");
             expectWithinAbsoluteError(inst.ffxBand2Gain, 0.5f, 0.001f, "default ffxBand2Gain");
-            expectWithinAbsoluteError(inst.ffxBand2Q, 0.5f, 0.001f, "default ffxBand2Q");
+            expectWithinAbsoluteError(inst.ffxBand2Q, 0.03f, 0.001f, "default ffxBand2Q");
             expectWithinAbsoluteError(inst.ffxBand3Freq, 0.6f, 0.001f, "default ffxBand3Freq");
             expectWithinAbsoluteError(inst.ffxBand3Gain, 0.5f, 0.001f, "default ffxBand3Gain");
-            expectWithinAbsoluteError(inst.ffxBand3Q, 0.5f, 0.001f, "default ffxBand3Q");
+            expectWithinAbsoluteError(inst.ffxBand3Q, 0.03f, 0.001f, "default ffxBand3Q");
             expectWithinAbsoluteError(inst.ffxBand4Freq, 0.85f, 0.001f, "default ffxBand4Freq");
             expectWithinAbsoluteError(inst.ffxBand4Gain, 0.5f, 0.001f, "default ffxBand4Gain");
-            expectWithinAbsoluteError(inst.ffxBand4Q, 0.5f, 0.001f, "default ffxBand4Q");
+            expectWithinAbsoluteError(inst.ffxBand4Q, 0.03f, 0.001f, "default ffxBand4Q");
         }
 
         beginTest("eq set parameter ffx band1 freq");
@@ -228,16 +228,16 @@ public:
             const auto& inst = std::get<audioapp::FourBandEqModel>(restored.config.instance);
             expectWithinAbsoluteError(inst.ffxBand1Freq, 0.15f, 0.001f, "default ffxBand1Freq");
             expectWithinAbsoluteError(inst.ffxBand1Gain, 0.5f, 0.001f, "default ffxBand1Gain");
-            expectWithinAbsoluteError(inst.ffxBand1Q, 0.5f, 0.001f, "default ffxBand1Q");
+            expectWithinAbsoluteError(inst.ffxBand1Q, 0.03f, 0.001f, "default ffxBand1Q");
             expectWithinAbsoluteError(inst.ffxBand2Freq, 0.35f, 0.001f, "default ffxBand2Freq");
             expectWithinAbsoluteError(inst.ffxBand2Gain, 0.5f, 0.001f, "default ffxBand2Gain");
-            expectWithinAbsoluteError(inst.ffxBand2Q, 0.5f, 0.001f, "default ffxBand2Q");
+            expectWithinAbsoluteError(inst.ffxBand2Q, 0.03f, 0.001f, "default ffxBand2Q");
             expectWithinAbsoluteError(inst.ffxBand3Freq, 0.6f, 0.001f, "default ffxBand3Freq");
             expectWithinAbsoluteError(inst.ffxBand3Gain, 0.5f, 0.001f, "default ffxBand3Gain");
-            expectWithinAbsoluteError(inst.ffxBand3Q, 0.5f, 0.001f, "default ffxBand3Q");
+            expectWithinAbsoluteError(inst.ffxBand3Q, 0.03f, 0.001f, "default ffxBand3Q");
             expectWithinAbsoluteError(inst.ffxBand4Freq, 0.85f, 0.001f, "default ffxBand4Freq");
             expectWithinAbsoluteError(inst.ffxBand4Gain, 0.5f, 0.001f, "default ffxBand4Gain");
-            expectWithinAbsoluteError(inst.ffxBand4Q, 0.5f, 0.001f, "default ffxBand4Q");
+            expectWithinAbsoluteError(inst.ffxBand4Q, 0.03f, 0.001f, "default ffxBand4Q");
         }
     }
 };

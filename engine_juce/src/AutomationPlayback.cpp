@@ -1166,18 +1166,18 @@ const ParamDescriptor* paramDescriptorsForKind(DeviceNodeKind kind, int& countOu
     }
     case DeviceNodeKind::FourBandEq: {
         static constexpr ParamDescriptor kParams[] = {
-            {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq",  0.4f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band1Freq), "ffxBand1Freq", "Low Freq",  0.15f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(FourBandEqParam::Band1Gain), "ffxBand1Gain", "Low Gain",  0.5f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band1Q),    "ffxBand1Q",    "Low Q",     0.3f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq",   0.5f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band1Q),    "ffxBand1Q",    "Low Q",     0.03f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band2Freq), "ffxBand2Freq", "LM Freq",   0.35f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(FourBandEqParam::Band2Gain), "ffxBand2Gain", "LM Gain",   0.5f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band2Q),    "ffxBand2Q",    "LM Q",      0.3f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq",   0.7f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band2Q),    "ffxBand2Q",    "LM Q",      0.03f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band3Freq), "ffxBand3Freq", "HM Freq",   0.6f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(FourBandEqParam::Band3Gain), "ffxBand3Gain", "HM Gain",   0.5f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band3Q),    "ffxBand3Q",    "HM Q",      0.3f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.8f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band3Q),    "ffxBand3Q",    "HM Q",      0.03f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band4Freq), "ffxBand4Freq", "High Freq", 0.85f, 0.0f, 1.0f, true, true},
             {static_cast<uint16_t>(FourBandEqParam::Band4Gain), "ffxBand4Gain", "High Gain", 0.5f, 0.0f, 1.0f, true, true},
-            {static_cast<uint16_t>(FourBandEqParam::Band4Q),    "ffxBand4Q",    "High Q",    0.3f, 0.0f, 1.0f, true, true},
+            {static_cast<uint16_t>(FourBandEqParam::Band4Q),    "ffxBand4Q",    "High Q",    0.03f, 0.0f, 1.0f, true, true},
         };
         countOut = 12;
         return kParams;
