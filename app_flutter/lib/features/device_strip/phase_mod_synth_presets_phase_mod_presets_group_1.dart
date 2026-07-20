@@ -1,6 +1,6 @@
 part of 'phase_mod_synth_presets.dart';
 
-final Map<String, dynamic> _phase_mod_presetsGroup1 = {
+final Map<String, Map<String, dynamic>> _phase_mod_presetsGroup1 = {
   'preset:pm-classic-ep': PhaseModSynthPresets._patch({
     'pmOp1Ratio': 0.0625,
     'pmOp1Level': 0.75,

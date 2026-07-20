@@ -13,6 +13,7 @@ import 'library_device_family.dart';
 import 'library_header.dart';
 import 'library_manifest.dart';
 import 'library_preset_preview_bar.dart';
+import 'library_preset_preview_notes.dart';
 import 'library_theme.dart';
 import 'user_device_preset_store.dart';
 

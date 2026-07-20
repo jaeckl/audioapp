@@ -9,6 +9,7 @@ class _ResultsPage extends StatelessWidget {
     required this.selectedTags,
     required this.onTagsChanged,
     required this.onSelect,
+    this.onPresetPreviewTap,
   });
 
   final Color accent;
@@ -18,6 +19,8 @@ class _ResultsPage extends StatelessWidget {
   final Set<String> selectedTags;
   final ValueChanged<Set<String>> onTagsChanged;
   final ValueChanged<LibraryDeviceBrowseItem> onSelect;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
+      onPresetPreviewTap;
 
   Future<void> _openTags(BuildContext context) async {
     final draft = Set<String>.from(selectedTags);
@@ -175,6 +178,16 @@ class _ResultsPage extends StatelessWidget {
                       accent: accent,
                       selected: item.id == selectedItemId,
                       onTap: () => onSelect(item),
+                      onPreview: switch (item) {
+                        final LibraryDevicePresetBrowseItem presetItem
+                            when FactoryPresetJson.supportsAudioPreview(
+                                  FactoryPresetJson.previewDeviceType(
+                                          presetItem.preset.id) ??
+                                      presetItem.preset.deviceType,
+                                ) =>
+                          () => onPresetPreviewTap?.call(presetItem.preset),
+                        _ => null,
+                      },
                     );
                   },
                 ),
@@ -190,12 +203,14 @@ class _DeviceBrowseTile extends StatelessWidget {
     required this.accent,
     required this.selected,
     required this.onTap,
+    this.onPreview,
   });
 
   final LibraryDeviceBrowseItem item;
   final Color accent;
   final bool selected;
   final VoidCallback onTap;
+  final VoidCallback? onPreview;
 
   @override
   Widget build(BuildContext context) {
@@ -262,15 +277,23 @@ class _DeviceBrowseTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                Text(
-                  isPreset ? 'PRESET' : 'DEVICE',
-                  style: TextStyle(
-                    color: accent.withValues(alpha: 0.9),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.6,
+                if (onPreview != null)
+                  IconButton(
+                    tooltip: 'Preview',
+                    onPressed: onPreview,
+                    icon: const Icon(Icons.play_arrow_rounded,
+                        color: Colors.white70),
+                  )
+                else
+                  Text(
+                    isPreset ? 'PRESET' : 'DEVICE',
+                    style: TextStyle(
+                      color: accent.withValues(alpha: 0.9),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                    ),
                   ),
-                ),
               ],
             ),
           ),

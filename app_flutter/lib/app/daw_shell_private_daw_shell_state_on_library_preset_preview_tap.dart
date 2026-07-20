@@ -5,6 +5,12 @@ extension DawShellStateOnlibrarypresetpreviewtapOperation on _DawShellState {
       {double startBeat = 0.0, bool loop = true}) async {
     final previewType =
         FactoryPresetJson.previewDeviceType(item.id) ?? item.deviceType;
+    if (!FactoryPresetJson.supportsAudioPreview(previewType)) {
+      debugPrint(
+          '[library preset] skip audio preview for $previewType (${item.id})');
+      return;
+    }
+
     final params = FactoryPresetJson.flatParamsForPreview(item.id) ??
         DevicePresetStore.find(item.deviceType, item.id)?.params;
     debugPrint(
@@ -16,45 +22,30 @@ extension DawShellStateOnlibrarypresetpreviewtapOperation on _DawShellState {
     }
 
     final track = _snapshot?.selectedTrack;
-    final notes = <MidiNoteSnapshot>[];
-    double maxBeat = 8.0;
-
-    if (track != null) {
-      for (final clip in track.midiClips) {
-        final clipEnd = clip.startBeat + clip.lengthBeats;
-        if (clipEnd > maxBeat) {
-          maxBeat = clipEnd;
-        }
-        for (final note in clip.notes) {
-          notes.add(MidiNoteSnapshot(
-            pitch: note.pitch,
-            startBeat: clip.startBeat + note.startBeat,
-            durationBeats: note.durationBeats,
-            velocity: note.velocity,
-          ));
-        }
-      }
-    }
-
-    if (notes.isEmpty) {
-      notes.add(const MidiNoteSnapshot(
-          pitch: 48, startBeat: 0.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(
-          pitch: 52, startBeat: 1.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(
-          pitch: 55, startBeat: 2.0, durationBeats: 1.0, velocity: 90.0));
-      notes.add(const MidiNoteSnapshot(
-          pitch: 60, startBeat: 3.0, durationBeats: 1.0, velocity: 90.0));
-      maxBeat = 4.0;
-    }
+    final loopEnd = _snapshot?.loopRegionEndBeat ?? 16.0;
+    // Arrangement MIDI first (scrub bar UX); demo arpeggio only if empty.
+    final notes = track == null
+        ? List<MidiNoteSnapshot>.from(libraryPresetDemoArpeggio)
+        : libraryPresetPreviewNotesFromClips(track.midiClips);
+    final arrangementLen = track == null
+        ? math.max(loopEnd, 4.0)
+        : libraryPresetPreviewLengthBeats(
+            track.midiClips,
+            loopRegionEndBeat: loopEnd,
+          );
+    final previewNotes =
+        notes.isEmpty ? libraryPresetDemoArpeggio : notes;
+    // Empty track: still run the arrangement/loop window (demo notes in bar 1).
+    final lengthBeats =
+        notes.isEmpty ? math.max(loopEnd, 4.0) : arrangementLen;
 
     final bpm = _snapshot?.bpm ?? 120;
     try {
       await widget.bridge.previewPreset(
         deviceType: previewType,
         params: params,
-        notes: notes,
-        lengthBeats: maxBeat,
+        notes: previewNotes,
+        lengthBeats: lengthBeats,
         bpm: bpm,
         startBeat: startBeat,
         loop: loop,

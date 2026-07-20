@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
@@ -6,47 +8,53 @@ import 'library_theme.dart';
 part 'library_preset_preview_bar_preset_preview_bar_state.dart';
 part 'library_preset_preview_bar_preset_timeline_painter.dart';
 part 'library_preset_preview_bar_clip_timeline_span.dart';
-part 'library_preset_preview_bar_clip_content_kind.dart';
 
-/// Mini arrangement viewport shown when a preset is selected.
-///
-/// Mirrors the selected track end-to-end (one row, all clip kinds on a single
-/// shared timeline). The visible 8-bar window slides across the full track so
-/// long tracks stay explorable — the user just scrubs (taps/drags) to pan, or
-/// taps a clip to jump there.
+/// Mini arrangement minimap for preset preview: MIDI notes + scrub + loop/stop.
 class PresetPreviewBar extends StatefulWidget {
   const PresetPreviewBar({
     super.key,
     required this.snapshot,
     required this.selectedTrackId,
-    required this.displayPlayhead,
+    required this.playheadBeat,
+    required this.onScrub,
     required this.onClipTap,
+    required this.loopEnabled,
+    required this.onLoopToggled,
+    required this.onStop,
+    this.previewPlaying = false,
+    this.accent = LibraryTheme.accent,
   });
 
   final ProjectSnapshot snapshot;
   final String? selectedTrackId;
-  final bool displayPlayhead;
-  final void Function(ClipTimelineSpan clip) onClipTap;
+  final double playheadBeat;
+  final ValueChanged<double> onScrub;
+  final void Function(PresetPreviewClipSpan clip) onClipTap;
+  final bool loopEnabled;
+  final ValueChanged<bool> onLoopToggled;
+  final VoidCallback onStop;
+  final bool previewPlaying;
+  final Color accent;
 
   @override
   State<PresetPreviewBar> createState() => _PresetPreviewBarState();
 }
 
-/// Paints the preset preview bar timeline background + clip spans.
-/// Builds [ClipTimelineSpan] list for a track by combining MIDI/sample/
-/// automation clips into a flat list sorted by startBeat.
-List<ClipTimelineSpan> buildClipTimeline(TrackSnapshot track) {
-  final spans = <ClipTimelineSpan>[];
+List<PresetPreviewClipSpan> buildClipTimeline(TrackSnapshot track) {
+  final spans = <PresetPreviewClipSpan>[];
   for (final clip in track.midiClips) {
-    spans.add(ClipTimelineSpan(
+    spans.add(PresetPreviewClipSpan(
       name: '[MIDI] ${track.name}',
       kind: ClipContentKind.midi,
       startBeat: clip.startBeat,
       lengthBeats: clip.lengthBeats,
+      notes: clip.notes,
+      loopContent: clip.loopContent,
+      contentLengthBeats: clip.loopContentLengthBeats,
     ));
   }
   for (final clip in track.sampleClips) {
-    spans.add(ClipTimelineSpan(
+    spans.add(PresetPreviewClipSpan(
       name: clip.sampleId.isNotEmpty ? clip.sampleId : '[Sample]',
       kind: ClipContentKind.sample,
       startBeat: clip.startBeat,
@@ -54,7 +62,7 @@ List<ClipTimelineSpan> buildClipTimeline(TrackSnapshot track) {
     ));
   }
   for (final clip in track.automationClips) {
-    spans.add(ClipTimelineSpan(
+    spans.add(PresetPreviewClipSpan(
       name: '${clip.deviceId} ${clip.paramId}',
       kind: ClipContentKind.automation,
       startBeat: clip.startBeat,
@@ -65,8 +73,26 @@ List<ClipTimelineSpan> buildClipTimeline(TrackSnapshot track) {
   return spans;
 }
 
-/// A single visible span of a clip on the preset preview timeline.
-///
-/// Renders the item's name, a colored accent matching its kind, and the clip's
-/// actual waveform/summary preview when available.
-/// The kind of content a clip timeline span represents.
+double trackTimelineEndBeats(
+  TrackSnapshot track, {
+  required double loopRegionEndBeat,
+}) {
+  var maxEnd = loopRegionEndBeat > 4.0 ? loopRegionEndBeat : 4.0;
+  void consider(double end) {
+    if (end > maxEnd) maxEnd = end;
+  }
+
+  for (final c in track.midiClips) {
+    consider(c.startBeat + c.lengthBeats);
+    for (final n in c.notes) {
+      consider(c.startBeat + n.startBeat + n.durationBeats);
+    }
+  }
+  for (final c in track.sampleClips) {
+    consider(c.startBeat + c.lengthBeats);
+  }
+  for (final c in track.automationClips) {
+    consider(c.startBeat + c.lengthBeats);
+  }
+  return maxEnd;
+}

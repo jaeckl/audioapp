@@ -76,7 +76,7 @@
     {
       "id": "preset:sampler-warm",
       "title": "Warm sampler",
-      "subtitle": "Punchy kit · short env",
+      "subtitle": "Punchy kit \u00b7 short env",
       "deviceType": "simple_sampler",
       "tags": [
         "keys",
@@ -120,7 +120,7 @@
     {
       "id": "preset:synth-init",
       "title": "Init synth",
-      "subtitle": "Saw · open filter",
+      "subtitle": "Saw \u00b7 open filter",
       "deviceType": "subtractive_synth",
       "tags": [
         "init",
@@ -131,7 +131,7 @@
     {
       "id": "preset:synth-pad-warm",
       "title": "Warm pad",
-      "subtitle": "Unison saws · slow swell",
+      "subtitle": "Unison saws \u00b7 slow swell",
       "deviceType": "subtractive_synth",
       "tags": [
         "pad",
@@ -142,7 +142,7 @@
     {
       "id": "preset:synth-pad-glass",
       "title": "Glass pad",
-      "subtitle": "Airy sine stack · bright",
+      "subtitle": "Airy sine stack \u00b7 bright",
       "deviceType": "subtractive_synth",
       "tags": [
         "pad",
@@ -153,7 +153,7 @@
     {
       "id": "preset:synth-pad-choir",
       "title": "Choir pad",
-      "subtitle": "Wide unison · legato",
+      "subtitle": "Wide unison \u00b7 legato",
       "deviceType": "subtractive_synth",
       "tags": [
         "pad",
@@ -164,7 +164,7 @@
     {
       "id": "preset:synth-pad-dark",
       "title": "Dark pad",
-      "subtitle": "Low filter · subtle noise",
+      "subtitle": "Low filter \u00b7 subtle noise",
       "deviceType": "subtractive_synth",
       "tags": [
         "pad",
@@ -175,7 +175,7 @@
     {
       "id": "preset:synth-pad-lofi",
       "title": "Lo-fi pad",
-      "subtitle": "Dusty · filtered warmth",
+      "subtitle": "Dusty \u00b7 filtered warmth",
       "deviceType": "subtractive_synth",
       "tags": [
         "pad",
@@ -186,7 +186,7 @@
     {
       "id": "preset:synth-pluck",
       "title": "Pluck",
-      "subtitle": "Short amp · filter sweep",
+      "subtitle": "Short amp \u00b7 filter sweep",
       "deviceType": "subtractive_synth",
       "tags": [
         "pluck",
@@ -208,7 +208,7 @@
     {
       "id": "preset:synth-bass-sub-foundation",
       "title": "Sub foundation",
-      "subtitle": "Sine sub · LP24 · mono",
+      "subtitle": "Sine sub \u00b7 LP24 \u00b7 mono",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -219,7 +219,7 @@
     {
       "id": "preset:synth-bass-punch",
       "title": "Punch bass",
-      "subtitle": "Square stack · snappy filter",
+      "subtitle": "Square stack \u00b7 snappy filter",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -241,7 +241,7 @@
     {
       "id": "preset:synth-bass-warehouse",
       "title": "Warehouse bass",
-      "subtitle": "AM mix · filter FM",
+      "subtitle": "AM mix \u00b7 filter FM",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -252,7 +252,7 @@
     {
       "id": "preset:synth-bass-acid",
       "title": "Acid bass",
-      "subtitle": "Sync · resonant sweep",
+      "subtitle": "Sync \u00b7 resonant sweep",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -263,7 +263,7 @@
     {
       "id": "preset:synth-bass-wobble-classic",
       "title": "Classic wobble",
-      "subtitle": "Dubstep · 1/4 filter LFO",
+      "subtitle": "Dubstep \u00b7 1/4 filter LFO",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -276,7 +276,7 @@
     {
       "id": "preset:synth-bass-wobble-fast",
       "title": "Fast wobble",
-      "subtitle": "1/16 tri · resonant bass",
+      "subtitle": "1/16 tri \u00b7 resonant bass",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -289,7 +289,7 @@
     {
       "id": "preset:synth-bass-wobble-dub",
       "title": "Dub wobble",
-      "subtitle": "Square LFO · driven LP24",
+      "subtitle": "Square LFO \u00b7 driven LP24",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -302,7 +302,7 @@
     {
       "id": "preset:synth-bass-wobble-growl",
       "title": "Growl wobble",
-      "subtitle": "Dual LFO · FM + cutoff",
+      "subtitle": "Dual LFO \u00b7 FM + cutoff",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
@@ -314,12 +314,1172 @@
     {
       "id": "preset:synth-bass-wobble-talk",
       "title": "Talk wobble",
-      "subtitle": "Slow LFO · legato filter",
+      "subtitle": "Slow LFO \u00b7 legato filter",
       "deviceType": "subtractive_synth",
       "tags": [
         "bass",
         "wobble",
         "groovy",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-sub-foundation",
+      "title": "Sub Foundation",
+      "subtitle": "Clean sine sub bed",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "sub",
+        "clean",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-808-boom",
+      "title": "808 Boom",
+      "subtitle": "Long boom with glue + grit",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "808",
+        "trap",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-acid-303",
+      "title": "Acid 303",
+      "subtitle": "Resonant squelch + drive",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "acid",
+        "techno",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-reese-growl",
+      "title": "Reese Growl",
+      "subtitle": "Wide growl \u00b7 LFO + chorus",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "reese",
+        "dnb",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-dub-wobble",
+      "title": "Dub Wobble",
+      "subtitle": "Quarter-note filter wobble",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "dubstep",
+        "wobble",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-warehouse",
+      "title": "Warehouse",
+      "subtitle": "Punchy techno body",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "techno",
+        "warehouse",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-moog-funk",
+      "title": "Moog Funk",
+      "subtitle": "Warm glide funk line",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "funk",
+        "glide",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-neuro-dnb",
+      "title": "Neuro DnB",
+      "subtitle": "Aggressive neuro stack",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "dnb",
+        "neuro",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-trap-slide",
+      "title": "Trap Slide",
+      "subtitle": "Sliding 808 with squash",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "trap",
+        "slide",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-ambient-pad",
+      "title": "Ambient Pad Bass",
+      "subtitle": "Soft evolving low pad",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "ambient",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-disco-octave",
+      "title": "Disco Octave",
+      "subtitle": "Bright octave disco bass",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "disco",
+        "octave",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-synthwave",
+      "title": "Synthwave Bass",
+      "subtitle": "Chorus + phaser night drive",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "synthwave",
+        "retro",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-industrial",
+      "title": "Industrial Dirt",
+      "subtitle": "Crush + distortion assault",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "industrial",
+        "dirty",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-jazz-upright",
+      "title": "Jazz Upright",
+      "subtitle": "Soft fingered upright vibe",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "jazz",
+        "acoustic",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-boom-bap",
+      "title": "Boom Bap",
+      "subtitle": "Short punchy hip-hop",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "hiphop",
+        "boom-bap",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-minimal-pulse",
+      "title": "Minimal Pulse",
+      "subtitle": "Square LFO techno pulse",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "minimal",
+        "techno",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-psy-roll",
+      "title": "Psy Roll",
+      "subtitle": "Fast rolling psytrance",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "psytrance",
+        "roll",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-uk-garage",
+      "title": "UK Garage",
+      "subtitle": "Warm garage bounce",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "garage",
+        "uk",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-metallic-ring",
+      "title": "Metallic Ring",
+      "subtitle": "Ring-mod metallic edge",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "metallic",
+        "ring",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-soft-sine",
+      "title": "Soft Sine",
+      "subtitle": "Gentle sine sub + glue",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "sub",
+        "soft",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-sub-floor",
+      "title": "Layer Sub Floor",
+      "subtitle": "Pure sub for stacks",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "sub",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-mid-growl",
+      "title": "Layer Mid Growl",
+      "subtitle": "HP growl over a sub",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "growl",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-high-bite",
+      "title": "Layer High Bite",
+      "subtitle": "Octave sparkle layer",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "bright",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-click",
+      "title": "Layer Click",
+      "subtitle": "Noise attack transient",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "click",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-air-chorus",
+      "title": "Layer Air Chorus",
+      "subtitle": "Airy chorus top",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "air",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-grit",
+      "title": "Layer Grit",
+      "subtitle": "Mid dirt over clean sub",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "dirt",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-wobble-mid",
+      "title": "Layer Wobble Mid",
+      "subtitle": "Wobble without boom",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "wobble",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-reese-spread",
+      "title": "Layer Reese Spread",
+      "subtitle": "Wide mid reese",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "reese",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-talk",
+      "title": "Layer Talk",
+      "subtitle": "Talking mid formant",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "talk",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-soft-pad",
+      "title": "Layer Soft Pad",
+      "subtitle": "Pad wash over bass",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-future-pluck",
+      "title": "Future Pluck",
+      "subtitle": "Bright future-bass pluck",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "future",
+        "pluck",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-drill-slide",
+      "title": "Drill Slide",
+      "subtitle": "Aggressive sliding drill",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "drill",
+        "slide",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-lofi-tape",
+      "title": "Lo-fi Tape",
+      "subtitle": "Crunchy tape bass",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "lofi",
+        "tape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-reggae-drop",
+      "title": "Reggae Drop",
+      "subtitle": "Warm one-drop body",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "reggae",
+        "dub",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-house-pluck",
+      "title": "House Pluck",
+      "subtitle": "Short filtered house",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "house",
+        "pluck",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-break-rumble",
+      "title": "Break Rumble",
+      "subtitle": "Breakbeat mid rumble",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "breaks",
+        "rumble",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-melodic-mid",
+      "title": "Melodic Mid",
+      "subtitle": "Playable mid-bass lines",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "melodic",
+        "layer",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-hollow",
+      "title": "Layer Hollow",
+      "subtitle": "Scooped sub for growl stacks",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "hollow",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-pump",
+      "title": "Layer Pump",
+      "subtitle": "Short body for sidechain",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "pump",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:bass-layer-ring-spark",
+      "title": "Layer Ring Spark",
+      "subtitle": "Ring-mod sparkle over sub",
+      "deviceType": "bass_synth",
+      "tags": [
+        "bass",
+        "layer",
+        "ring",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-classic-ep",
+      "title": "Classic EP",
+      "subtitle": "Electric piano tine",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "ep",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-digi-bell",
+      "title": "Digi Bell",
+      "subtitle": "Bright digital bell",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fm-brass",
+      "title": "FM Brass",
+      "subtitle": "Classic FM brass stab",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "brass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-crystal-pad",
+      "title": "Crystal Pad",
+      "subtitle": "Shimmering crystal wash",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-deep-bass",
+      "title": "Deep Bass",
+      "subtitle": "Low mono foundation",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fm-bass",
+      "title": "FM Bass",
+      "subtitle": "Punchy FM bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-resonant-bass",
+      "title": "Resonant Bass",
+      "subtitle": "Squelchy resonant mono",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-sub-808",
+      "title": "Sub 808",
+      "subtitle": "Pure decaying sub",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "808",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-sync",
+      "title": "Sync Lead",
+      "subtitle": "Bright sync-style lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-wire",
+      "title": "Wire Lead",
+      "subtitle": "Thin cutting wire",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-aggressive",
+      "title": "Aggressive Lead",
+      "subtitle": "Harsh feedback lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-wobble",
+      "title": "Wobble Lead",
+      "subtitle": "LFO wobble lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-warm",
+      "title": "Warm Pad",
+      "subtitle": "Soft warm pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-glass",
+      "title": "Glass Pad",
+      "subtitle": "Wide glassy pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-dark",
+      "title": "Dark Pad",
+      "subtitle": "Low dark pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-atmosphere",
+      "title": "Atmosphere",
+      "subtitle": "Slow ambient cloud",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-noise",
+      "title": "Noise FX",
+      "subtitle": "Noise texture hit",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-riser",
+      "title": "Riser",
+      "subtitle": "Filter riser FX",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-stab",
+      "title": "Stab",
+      "subtitle": "Short chord stab",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "keys",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-harmonic-perc",
+      "title": "Harmonic Perc",
+      "subtitle": "Tuned perc hit",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "perc",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-tubular",
+      "title": "Tubular Bell",
+      "subtitle": "Long tubular bell",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-church",
+      "title": "Church Bell",
+      "subtitle": "Deep church bell",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-gamelan",
+      "title": "Gamelan",
+      "subtitle": "Inharmonic gamelan",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-ice",
+      "title": "Ice Bell",
+      "subtitle": "Cold ice chime",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-chime",
+      "title": "Chime",
+      "subtitle": "Short bright chime",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bell-metal",
+      "title": "Metal Bell",
+      "subtitle": "Metallic bell hit",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bell",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-choir",
+      "title": "Choir Pad",
+      "subtitle": "Wide choir-ish pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-shimmer",
+      "title": "Shimmer Pad",
+      "subtitle": "Shimmering pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-pad-soft",
+      "title": "Soft Pad",
+      "subtitle": "Gentle soft pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "pad",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-drone",
+      "title": "Drone Scape",
+      "subtitle": "Endless low drone",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-wind",
+      "title": "Wind Scape",
+      "subtitle": "Noise wind texture",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-underwater",
+      "title": "Underwater",
+      "subtitle": "Muffled underwater",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-alien",
+      "title": "Alien Scape",
+      "subtitle": "Weird alien motion",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-space",
+      "title": "Space Scape",
+      "subtitle": "Vast space wash",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-frozen",
+      "title": "Frozen Scape",
+      "subtitle": "Slow frozen pad",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-scape-aurora",
+      "title": "Aurora",
+      "subtitle": "Shifting aurora wash",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "scape",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-soft",
+      "title": "Soft Lead",
+      "subtitle": "Gentle expressive lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-flute",
+      "title": "Flute Lead",
+      "subtitle": "Breath-like flute",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-scream",
+      "title": "Scream Lead",
+      "subtitle": "Harsh scream lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-acid",
+      "title": "Acid Lead",
+      "subtitle": "Resonant acid mono",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-lead-fifth",
+      "title": "Fifth Lead",
+      "subtitle": "Stacked fifth lead",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "lead",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bass-growl",
+      "title": "Growl Bass",
+      "subtitle": "Growling LFO bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bass-rubber",
+      "title": "Rubber Bass",
+      "subtitle": "Bouncy rubber bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bass-dirty",
+      "title": "Dirty Bass",
+      "subtitle": "Dirty distorted bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bass-pluck",
+      "title": "Pluck Bass",
+      "subtitle": "Short pluck bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-bass-reese",
+      "title": "Reese Bass",
+      "subtitle": "Detuned reese bass",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "bass",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-marimba",
+      "title": "Marimba",
+      "subtitle": "Woody marimba",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "perc",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-harp",
+      "title": "Harp",
+      "subtitle": "Plucked harp",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-pluck",
+      "title": "Pluck",
+      "subtitle": "Bright synth pluck",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-vibes",
+      "title": "Vibes",
+      "subtitle": "Vibrato vibraphone",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-organ",
+      "title": "Organ",
+      "subtitle": "Drawbar-ish organ",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-impact",
+      "title": "Impact",
+      "subtitle": "Heavy impact hit",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-downer",
+      "title": "Downer",
+      "subtitle": "Falling downer FX",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-glitch",
+      "title": "Glitch",
+      "subtitle": "Broken glitch texture",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-laser",
+      "title": "Laser",
+      "subtitle": "Laser zap",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-sweep",
+      "title": "Sweep",
+      "subtitle": "Filter sweep FX",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-metal-hit",
+      "title": "Metal Hit",
+      "subtitle": "Metallic hit",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-whoosh",
+      "title": "Whoosh",
+      "subtitle": "Noise whoosh",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-fx-sparkle",
+      "title": "Sparkle",
+      "subtitle": "High sparkle dust",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "fx",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-keys-ep-soft",
+      "title": "Soft EP",
+      "subtitle": "Soft electric piano",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "keys",
+        "ep",
+        "factory"
+      ]
+    },
+    {
+      "id": "preset:pm-brass-soft",
+      "title": "Soft Brass",
+      "subtitle": "Soft brass section",
+      "deviceType": "phase_mod_synth",
+      "tags": [
+        "phase_mod",
+        "brass",
         "factory"
       ]
     },
@@ -337,7 +1497,7 @@
     {
       "id": "preset:synth-lead-sync",
       "title": "Sync lead",
-      "subtitle": "Hard sync · cutting",
+      "subtitle": "Hard sync \u00b7 cutting",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -348,7 +1508,7 @@
     {
       "id": "preset:synth-lead-silk",
       "title": "Silk lead",
-      "subtitle": "Soft sine · slow attack",
+      "subtitle": "Soft sine \u00b7 slow attack",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -359,7 +1519,7 @@
     {
       "id": "preset:synth-lead-wide",
       "title": "Wide lead",
-      "subtitle": "Unison saws · glide",
+      "subtitle": "Unison saws \u00b7 glide",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -370,7 +1530,7 @@
     {
       "id": "preset:synth-lead-bite",
       "title": "Bite lead",
-      "subtitle": "Square · filter drive",
+      "subtitle": "Square \u00b7 filter drive",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -381,7 +1541,7 @@
     {
       "id": "preset:synth-lead-wobble",
       "title": "Wobble lead",
-      "subtitle": "1/8 square · filter motion",
+      "subtitle": "1/8 square \u00b7 filter motion",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -393,7 +1553,7 @@
     {
       "id": "preset:synth-lead-siren",
       "title": "Siren lead",
-      "subtitle": "Sync · sweeping LFO",
+      "subtitle": "Sync \u00b7 sweeping LFO",
       "deviceType": "subtractive_synth",
       "tags": [
         "lead",
@@ -406,7 +1566,7 @@
     {
       "id": "preset:synth-fx-riser-noise",
       "title": "Noise riser",
-      "subtitle": "LFO sweep · build FX",
+      "subtitle": "LFO sweep \u00b7 build FX",
       "deviceType": "subtractive_synth",
       "tags": [
         "fx",
@@ -417,8 +1577,8 @@
     },
     {
       "id": "preset:808-kick",
-      "title": "808 · Kick",
-      "subtitle": "808 family · Kick",
+      "title": "808 \u00b7 Kick",
+      "subtitle": "808 family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -430,8 +1590,8 @@
     },
     {
       "id": "preset:808-snare",
-      "title": "808 · Snare",
-      "subtitle": "808 family · Snare",
+      "title": "808 \u00b7 Snare",
+      "subtitle": "808 family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -443,8 +1603,8 @@
     },
     {
       "id": "preset:808-clap",
-      "title": "808 · Clap",
-      "subtitle": "808 family · Clap",
+      "title": "808 \u00b7 Clap",
+      "subtitle": "808 family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -456,8 +1616,8 @@
     },
     {
       "id": "preset:808-chh",
-      "title": "808 · Closed Hat",
-      "subtitle": "808 family · Closed Hat",
+      "title": "808 \u00b7 Closed Hat",
+      "subtitle": "808 family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -469,8 +1629,8 @@
     },
     {
       "id": "preset:808-ohh",
-      "title": "808 · Open Hat",
-      "subtitle": "808 family · Open Hat",
+      "title": "808 \u00b7 Open Hat",
+      "subtitle": "808 family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -482,8 +1642,8 @@
     },
     {
       "id": "preset:808-rim",
-      "title": "808 · Rim",
-      "subtitle": "808 family · Rim",
+      "title": "808 \u00b7 Rim",
+      "subtitle": "808 family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -495,8 +1655,8 @@
     },
     {
       "id": "preset:808-tomlo",
-      "title": "808 · Tom Lo",
-      "subtitle": "808 family · Tom Lo",
+      "title": "808 \u00b7 Tom Lo",
+      "subtitle": "808 family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -508,8 +1668,8 @@
     },
     {
       "id": "preset:808-tommid",
-      "title": "808 · Tom Mid",
-      "subtitle": "808 family · Tom Mid",
+      "title": "808 \u00b7 Tom Mid",
+      "subtitle": "808 family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -521,8 +1681,8 @@
     },
     {
       "id": "preset:808-tomhi",
-      "title": "808 · Tom Hi",
-      "subtitle": "808 family · Tom Hi",
+      "title": "808 \u00b7 Tom Hi",
+      "subtitle": "808 family \u00b7 Tom Hi",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -534,8 +1694,8 @@
     },
     {
       "id": "preset:808-crash",
-      "title": "808 · Crash",
-      "subtitle": "808 family · Crash",
+      "title": "808 \u00b7 Crash",
+      "subtitle": "808 family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -547,8 +1707,8 @@
     },
     {
       "id": "preset:909-kick",
-      "title": "909 · Kick",
-      "subtitle": "909 family · Kick",
+      "title": "909 \u00b7 Kick",
+      "subtitle": "909 family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -560,8 +1720,8 @@
     },
     {
       "id": "preset:909-snare",
-      "title": "909 · Snare",
-      "subtitle": "909 family · Snare",
+      "title": "909 \u00b7 Snare",
+      "subtitle": "909 family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -573,8 +1733,8 @@
     },
     {
       "id": "preset:909-clap",
-      "title": "909 · Clap",
-      "subtitle": "909 family · Clap",
+      "title": "909 \u00b7 Clap",
+      "subtitle": "909 family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -586,8 +1746,8 @@
     },
     {
       "id": "preset:909-chh",
-      "title": "909 · Closed Hat",
-      "subtitle": "909 family · Closed Hat",
+      "title": "909 \u00b7 Closed Hat",
+      "subtitle": "909 family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -599,8 +1759,8 @@
     },
     {
       "id": "preset:909-ohh",
-      "title": "909 · Open Hat",
-      "subtitle": "909 family · Open Hat",
+      "title": "909 \u00b7 Open Hat",
+      "subtitle": "909 family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -612,8 +1772,8 @@
     },
     {
       "id": "preset:909-rim",
-      "title": "909 · Rim",
-      "subtitle": "909 family · Rim",
+      "title": "909 \u00b7 Rim",
+      "subtitle": "909 family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -625,8 +1785,8 @@
     },
     {
       "id": "preset:909-tomlo",
-      "title": "909 · Tom Lo",
-      "subtitle": "909 family · Tom Lo",
+      "title": "909 \u00b7 Tom Lo",
+      "subtitle": "909 family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -638,8 +1798,8 @@
     },
     {
       "id": "preset:909-tommid",
-      "title": "909 · Tom Mid",
-      "subtitle": "909 family · Tom Mid",
+      "title": "909 \u00b7 Tom Mid",
+      "subtitle": "909 family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -651,8 +1811,8 @@
     },
     {
       "id": "preset:909-tomhi",
-      "title": "909 · Tom Hi",
-      "subtitle": "909 family · Tom Hi",
+      "title": "909 \u00b7 Tom Hi",
+      "subtitle": "909 family \u00b7 Tom Hi",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -664,8 +1824,8 @@
     },
     {
       "id": "preset:909-ride",
-      "title": "909 · Ride",
-      "subtitle": "909 family · Ride",
+      "title": "909 \u00b7 Ride",
+      "subtitle": "909 family \u00b7 Ride",
       "deviceType": "ride_generator",
       "tags": [
         "factory",
@@ -677,8 +1837,8 @@
     },
     {
       "id": "preset:909-crash",
-      "title": "909 · Crash",
-      "subtitle": "909 family · Crash",
+      "title": "909 \u00b7 Crash",
+      "subtitle": "909 family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -690,8 +1850,8 @@
     },
     {
       "id": "preset:electro-kick",
-      "title": "Electro · Kick",
-      "subtitle": "Electro family · Kick",
+      "title": "Electro \u00b7 Kick",
+      "subtitle": "Electro family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -701,8 +1861,8 @@
     },
     {
       "id": "preset:electro-snare",
-      "title": "Electro · Snare",
-      "subtitle": "Electro family · Snare",
+      "title": "Electro \u00b7 Snare",
+      "subtitle": "Electro family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -712,8 +1872,8 @@
     },
     {
       "id": "preset:electro-clap",
-      "title": "Electro · Clap",
-      "subtitle": "Electro family · Clap",
+      "title": "Electro \u00b7 Clap",
+      "subtitle": "Electro family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -723,8 +1883,8 @@
     },
     {
       "id": "preset:electro-chh",
-      "title": "Electro · Closed Hat",
-      "subtitle": "Electro family · Closed Hat",
+      "title": "Electro \u00b7 Closed Hat",
+      "subtitle": "Electro family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -734,8 +1894,8 @@
     },
     {
       "id": "preset:electro-ohh",
-      "title": "Electro · Open Hat",
-      "subtitle": "Electro family · Open Hat",
+      "title": "Electro \u00b7 Open Hat",
+      "subtitle": "Electro family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -745,8 +1905,8 @@
     },
     {
       "id": "preset:electro-rim",
-      "title": "Electro · Rim",
-      "subtitle": "Electro family · Rim",
+      "title": "Electro \u00b7 Rim",
+      "subtitle": "Electro family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -756,8 +1916,8 @@
     },
     {
       "id": "preset:electro-tommid",
-      "title": "Electro · Tom Mid",
-      "subtitle": "Electro family · Tom Mid",
+      "title": "Electro \u00b7 Tom Mid",
+      "subtitle": "Electro family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -767,8 +1927,8 @@
     },
     {
       "id": "preset:electro-crash",
-      "title": "Electro · Crash",
-      "subtitle": "Electro family · Crash",
+      "title": "Electro \u00b7 Crash",
+      "subtitle": "Electro family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -778,8 +1938,8 @@
     },
     {
       "id": "preset:trap-kick",
-      "title": "Trap · Kick",
-      "subtitle": "Trap family · Kick",
+      "title": "Trap \u00b7 Kick",
+      "subtitle": "Trap family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -789,8 +1949,8 @@
     },
     {
       "id": "preset:trap-snare",
-      "title": "Trap · Snare",
-      "subtitle": "Trap family · Snare",
+      "title": "Trap \u00b7 Snare",
+      "subtitle": "Trap family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -800,8 +1960,8 @@
     },
     {
       "id": "preset:trap-clap",
-      "title": "Trap · Clap",
-      "subtitle": "Trap family · Clap",
+      "title": "Trap \u00b7 Clap",
+      "subtitle": "Trap family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -811,8 +1971,8 @@
     },
     {
       "id": "preset:trap-chh",
-      "title": "Trap · Closed Hat",
-      "subtitle": "Trap family · Closed Hat",
+      "title": "Trap \u00b7 Closed Hat",
+      "subtitle": "Trap family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -822,8 +1982,8 @@
     },
     {
       "id": "preset:trap-ohh",
-      "title": "Trap · Open Hat",
-      "subtitle": "Trap family · Open Hat",
+      "title": "Trap \u00b7 Open Hat",
+      "subtitle": "Trap family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -833,8 +1993,8 @@
     },
     {
       "id": "preset:trap-rim",
-      "title": "Trap · Rim",
-      "subtitle": "Trap family · Rim",
+      "title": "Trap \u00b7 Rim",
+      "subtitle": "Trap family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -844,8 +2004,8 @@
     },
     {
       "id": "preset:trap-tomlo",
-      "title": "Trap · Tom Lo",
-      "subtitle": "Trap family · Tom Lo",
+      "title": "Trap \u00b7 Tom Lo",
+      "subtitle": "Trap family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -855,8 +2015,8 @@
     },
     {
       "id": "preset:boombap-kick",
-      "title": "Boom Bap · Kick",
-      "subtitle": "Boom Bap family · Kick",
+      "title": "Boom Bap \u00b7 Kick",
+      "subtitle": "Boom Bap family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -868,8 +2028,8 @@
     },
     {
       "id": "preset:boombap-snare",
-      "title": "Boom Bap · Snare",
-      "subtitle": "Boom Bap family · Snare",
+      "title": "Boom Bap \u00b7 Snare",
+      "subtitle": "Boom Bap family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -881,8 +2041,8 @@
     },
     {
       "id": "preset:boombap-rim",
-      "title": "Boom Bap · Rim",
-      "subtitle": "Boom Bap family · Rim",
+      "title": "Boom Bap \u00b7 Rim",
+      "subtitle": "Boom Bap family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -894,8 +2054,8 @@
     },
     {
       "id": "preset:boombap-chh",
-      "title": "Boom Bap · Closed Hat",
-      "subtitle": "Boom Bap family · Closed Hat",
+      "title": "Boom Bap \u00b7 Closed Hat",
+      "subtitle": "Boom Bap family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -907,8 +2067,8 @@
     },
     {
       "id": "preset:boombap-ohh",
-      "title": "Boom Bap · Open Hat",
-      "subtitle": "Boom Bap family · Open Hat",
+      "title": "Boom Bap \u00b7 Open Hat",
+      "subtitle": "Boom Bap family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -920,8 +2080,8 @@
     },
     {
       "id": "preset:boombap-tomlo",
-      "title": "Boom Bap · Tom Lo",
-      "subtitle": "Boom Bap family · Tom Lo",
+      "title": "Boom Bap \u00b7 Tom Lo",
+      "subtitle": "Boom Bap family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -933,8 +2093,8 @@
     },
     {
       "id": "preset:boombap-tommid",
-      "title": "Boom Bap · Tom Mid",
-      "subtitle": "Boom Bap family · Tom Mid",
+      "title": "Boom Bap \u00b7 Tom Mid",
+      "subtitle": "Boom Bap family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -946,8 +2106,8 @@
     },
     {
       "id": "preset:house-kick",
-      "title": "House · Kick",
-      "subtitle": "House family · Kick",
+      "title": "House \u00b7 Kick",
+      "subtitle": "House family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -957,8 +2117,8 @@
     },
     {
       "id": "preset:house-snare",
-      "title": "House · Snare",
-      "subtitle": "House family · Snare",
+      "title": "House \u00b7 Snare",
+      "subtitle": "House family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -968,8 +2128,8 @@
     },
     {
       "id": "preset:house-clap",
-      "title": "House · Clap",
-      "subtitle": "House family · Clap",
+      "title": "House \u00b7 Clap",
+      "subtitle": "House family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -979,8 +2139,8 @@
     },
     {
       "id": "preset:house-chh",
-      "title": "House · Closed Hat",
-      "subtitle": "House family · Closed Hat",
+      "title": "House \u00b7 Closed Hat",
+      "subtitle": "House family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -990,8 +2150,8 @@
     },
     {
       "id": "preset:house-ohh",
-      "title": "House · Open Hat",
-      "subtitle": "House family · Open Hat",
+      "title": "House \u00b7 Open Hat",
+      "subtitle": "House family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1001,8 +2161,8 @@
     },
     {
       "id": "preset:house-ride",
-      "title": "House · Ride",
-      "subtitle": "House family · Ride",
+      "title": "House \u00b7 Ride",
+      "subtitle": "House family \u00b7 Ride",
       "deviceType": "ride_generator",
       "tags": [
         "factory",
@@ -1012,8 +2172,8 @@
     },
     {
       "id": "preset:house-crash",
-      "title": "House · Crash",
-      "subtitle": "House family · Crash",
+      "title": "House \u00b7 Crash",
+      "subtitle": "House family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1023,8 +2183,8 @@
     },
     {
       "id": "preset:techno-kick",
-      "title": "Techno · Kick",
-      "subtitle": "Techno family · Kick",
+      "title": "Techno \u00b7 Kick",
+      "subtitle": "Techno family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1035,8 +2195,8 @@
     },
     {
       "id": "preset:techno-snare",
-      "title": "Techno · Snare",
-      "subtitle": "Techno family · Snare",
+      "title": "Techno \u00b7 Snare",
+      "subtitle": "Techno family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1047,8 +2207,8 @@
     },
     {
       "id": "preset:techno-chh",
-      "title": "Techno · Closed Hat",
-      "subtitle": "Techno family · Closed Hat",
+      "title": "Techno \u00b7 Closed Hat",
+      "subtitle": "Techno family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1059,8 +2219,8 @@
     },
     {
       "id": "preset:techno-ohh",
-      "title": "Techno · Open Hat",
-      "subtitle": "Techno family · Open Hat",
+      "title": "Techno \u00b7 Open Hat",
+      "subtitle": "Techno family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1071,8 +2231,8 @@
     },
     {
       "id": "preset:techno-rim",
-      "title": "Techno · Rim",
-      "subtitle": "Techno family · Rim",
+      "title": "Techno \u00b7 Rim",
+      "subtitle": "Techno family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1083,8 +2243,8 @@
     },
     {
       "id": "preset:techno-ride",
-      "title": "Techno · Ride",
-      "subtitle": "Techno family · Ride",
+      "title": "Techno \u00b7 Ride",
+      "subtitle": "Techno family \u00b7 Ride",
       "deviceType": "ride_generator",
       "tags": [
         "factory",
@@ -1095,8 +2255,8 @@
     },
     {
       "id": "preset:techno-crash",
-      "title": "Techno · Crash",
-      "subtitle": "Techno family · Crash",
+      "title": "Techno \u00b7 Crash",
+      "subtitle": "Techno family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1107,8 +2267,8 @@
     },
     {
       "id": "preset:pop-kick",
-      "title": "Pop · Kick",
-      "subtitle": "Pop family · Kick",
+      "title": "Pop \u00b7 Kick",
+      "subtitle": "Pop family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1119,8 +2279,8 @@
     },
     {
       "id": "preset:pop-snare",
-      "title": "Pop · Snare",
-      "subtitle": "Pop family · Snare",
+      "title": "Pop \u00b7 Snare",
+      "subtitle": "Pop family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1131,8 +2291,8 @@
     },
     {
       "id": "preset:pop-clap",
-      "title": "Pop · Clap",
-      "subtitle": "Pop family · Clap",
+      "title": "Pop \u00b7 Clap",
+      "subtitle": "Pop family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -1143,8 +2303,8 @@
     },
     {
       "id": "preset:pop-chh",
-      "title": "Pop · Closed Hat",
-      "subtitle": "Pop family · Closed Hat",
+      "title": "Pop \u00b7 Closed Hat",
+      "subtitle": "Pop family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1155,8 +2315,8 @@
     },
     {
       "id": "preset:pop-ohh",
-      "title": "Pop · Open Hat",
-      "subtitle": "Pop family · Open Hat",
+      "title": "Pop \u00b7 Open Hat",
+      "subtitle": "Pop family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1167,8 +2327,8 @@
     },
     {
       "id": "preset:pop-rim",
-      "title": "Pop · Rim",
-      "subtitle": "Pop family · Rim",
+      "title": "Pop \u00b7 Rim",
+      "subtitle": "Pop family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1179,8 +2339,8 @@
     },
     {
       "id": "preset:pop-tommid",
-      "title": "Pop · Tom Mid",
-      "subtitle": "Pop family · Tom Mid",
+      "title": "Pop \u00b7 Tom Mid",
+      "subtitle": "Pop family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1191,8 +2351,8 @@
     },
     {
       "id": "preset:pop-crash",
-      "title": "Pop · Crash",
-      "subtitle": "Pop family · Crash",
+      "title": "Pop \u00b7 Crash",
+      "subtitle": "Pop family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1203,8 +2363,8 @@
     },
     {
       "id": "preset:rnb-kick",
-      "title": "R&B · Kick",
-      "subtitle": "R&B family · Kick",
+      "title": "R&B \u00b7 Kick",
+      "subtitle": "R&B family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1214,8 +2374,8 @@
     },
     {
       "id": "preset:rnb-snare",
-      "title": "R&B · Snare",
-      "subtitle": "R&B family · Snare",
+      "title": "R&B \u00b7 Snare",
+      "subtitle": "R&B family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1225,8 +2385,8 @@
     },
     {
       "id": "preset:rnb-rim",
-      "title": "R&B · Rim",
-      "subtitle": "R&B family · Rim",
+      "title": "R&B \u00b7 Rim",
+      "subtitle": "R&B family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1236,8 +2396,8 @@
     },
     {
       "id": "preset:rnb-chh",
-      "title": "R&B · Closed Hat",
-      "subtitle": "R&B family · Closed Hat",
+      "title": "R&B \u00b7 Closed Hat",
+      "subtitle": "R&B family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1247,8 +2407,8 @@
     },
     {
       "id": "preset:rnb-ohh",
-      "title": "R&B · Open Hat",
-      "subtitle": "R&B family · Open Hat",
+      "title": "R&B \u00b7 Open Hat",
+      "subtitle": "R&B family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1258,8 +2418,8 @@
     },
     {
       "id": "preset:rnb-clap",
-      "title": "R&B · Clap",
-      "subtitle": "R&B family · Clap",
+      "title": "R&B \u00b7 Clap",
+      "subtitle": "R&B family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -1269,8 +2429,8 @@
     },
     {
       "id": "preset:rnb-tomlo",
-      "title": "R&B · Tom Lo",
-      "subtitle": "R&B family · Tom Lo",
+      "title": "R&B \u00b7 Tom Lo",
+      "subtitle": "R&B family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1280,8 +2440,8 @@
     },
     {
       "id": "preset:reggae-kick",
-      "title": "Reggae · Kick",
-      "subtitle": "Reggae family · Kick",
+      "title": "Reggae \u00b7 Kick",
+      "subtitle": "Reggae family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1291,8 +2451,8 @@
     },
     {
       "id": "preset:reggae-snare",
-      "title": "Reggae · Snare",
-      "subtitle": "Reggae family · Snare",
+      "title": "Reggae \u00b7 Snare",
+      "subtitle": "Reggae family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1302,8 +2462,8 @@
     },
     {
       "id": "preset:reggae-rim",
-      "title": "Reggae · Rim",
-      "subtitle": "Reggae family · Rim",
+      "title": "Reggae \u00b7 Rim",
+      "subtitle": "Reggae family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1313,8 +2473,8 @@
     },
     {
       "id": "preset:reggae-chh",
-      "title": "Reggae · Closed Hat",
-      "subtitle": "Reggae family · Closed Hat",
+      "title": "Reggae \u00b7 Closed Hat",
+      "subtitle": "Reggae family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1324,8 +2484,8 @@
     },
     {
       "id": "preset:reggae-ohh",
-      "title": "Reggae · Open Hat",
-      "subtitle": "Reggae family · Open Hat",
+      "title": "Reggae \u00b7 Open Hat",
+      "subtitle": "Reggae family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1335,8 +2495,8 @@
     },
     {
       "id": "preset:rock-kick",
-      "title": "Rock · Kick",
-      "subtitle": "Rock family · Kick",
+      "title": "Rock \u00b7 Kick",
+      "subtitle": "Rock family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1346,8 +2506,8 @@
     },
     {
       "id": "preset:rock-snare",
-      "title": "Rock · Snare",
-      "subtitle": "Rock family · Snare",
+      "title": "Rock \u00b7 Snare",
+      "subtitle": "Rock family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1357,8 +2517,8 @@
     },
     {
       "id": "preset:rock-rim",
-      "title": "Rock · Rim",
-      "subtitle": "Rock family · Rim",
+      "title": "Rock \u00b7 Rim",
+      "subtitle": "Rock family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1368,8 +2528,8 @@
     },
     {
       "id": "preset:rock-chh",
-      "title": "Rock · Closed Hat",
-      "subtitle": "Rock family · Closed Hat",
+      "title": "Rock \u00b7 Closed Hat",
+      "subtitle": "Rock family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1379,8 +2539,8 @@
     },
     {
       "id": "preset:rock-ohh",
-      "title": "Rock · Open Hat",
-      "subtitle": "Rock family · Open Hat",
+      "title": "Rock \u00b7 Open Hat",
+      "subtitle": "Rock family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1390,8 +2550,8 @@
     },
     {
       "id": "preset:rock-tomlo",
-      "title": "Rock · Tom Lo",
-      "subtitle": "Rock family · Tom Lo",
+      "title": "Rock \u00b7 Tom Lo",
+      "subtitle": "Rock family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1401,8 +2561,8 @@
     },
     {
       "id": "preset:rock-tommid",
-      "title": "Rock · Tom Mid",
-      "subtitle": "Rock family · Tom Mid",
+      "title": "Rock \u00b7 Tom Mid",
+      "subtitle": "Rock family \u00b7 Tom Mid",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1412,8 +2572,8 @@
     },
     {
       "id": "preset:rock-tomhi",
-      "title": "Rock · Tom Hi",
-      "subtitle": "Rock family · Tom Hi",
+      "title": "Rock \u00b7 Tom Hi",
+      "subtitle": "Rock family \u00b7 Tom Hi",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1423,8 +2583,8 @@
     },
     {
       "id": "preset:rock-ride",
-      "title": "Rock · Ride",
-      "subtitle": "Rock family · Ride",
+      "title": "Rock \u00b7 Ride",
+      "subtitle": "Rock family \u00b7 Ride",
       "deviceType": "ride_generator",
       "tags": [
         "factory",
@@ -1434,8 +2594,8 @@
     },
     {
       "id": "preset:rock-crash",
-      "title": "Rock · Crash",
-      "subtitle": "Rock family · Crash",
+      "title": "Rock \u00b7 Crash",
+      "subtitle": "Rock family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1445,8 +2605,8 @@
     },
     {
       "id": "preset:breakbeat-kick",
-      "title": "Breakbeat · Kick",
-      "subtitle": "Breakbeat family · Kick",
+      "title": "Breakbeat \u00b7 Kick",
+      "subtitle": "Breakbeat family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1456,8 +2616,8 @@
     },
     {
       "id": "preset:breakbeat-snare",
-      "title": "Breakbeat · Snare",
-      "subtitle": "Breakbeat family · Snare",
+      "title": "Breakbeat \u00b7 Snare",
+      "subtitle": "Breakbeat family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1467,8 +2627,8 @@
     },
     {
       "id": "preset:breakbeat-rim",
-      "title": "Breakbeat · Rim",
-      "subtitle": "Breakbeat family · Rim",
+      "title": "Breakbeat \u00b7 Rim",
+      "subtitle": "Breakbeat family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1478,8 +2638,8 @@
     },
     {
       "id": "preset:breakbeat-chh",
-      "title": "Breakbeat · Closed Hat",
-      "subtitle": "Breakbeat family · Closed Hat",
+      "title": "Breakbeat \u00b7 Closed Hat",
+      "subtitle": "Breakbeat family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1489,8 +2649,8 @@
     },
     {
       "id": "preset:breakbeat-ohh",
-      "title": "Breakbeat · Open Hat",
-      "subtitle": "Breakbeat family · Open Hat",
+      "title": "Breakbeat \u00b7 Open Hat",
+      "subtitle": "Breakbeat family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1500,8 +2660,8 @@
     },
     {
       "id": "preset:breakbeat-tomlo",
-      "title": "Breakbeat · Tom Lo",
-      "subtitle": "Breakbeat family · Tom Lo",
+      "title": "Breakbeat \u00b7 Tom Lo",
+      "subtitle": "Breakbeat family \u00b7 Tom Lo",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1511,8 +2671,8 @@
     },
     {
       "id": "preset:breakbeat-tomhi",
-      "title": "Breakbeat · Tom Hi",
-      "subtitle": "Breakbeat family · Tom Hi",
+      "title": "Breakbeat \u00b7 Tom Hi",
+      "subtitle": "Breakbeat family \u00b7 Tom Hi",
       "deviceType": "tom_generator",
       "tags": [
         "factory",
@@ -1522,8 +2682,8 @@
     },
     {
       "id": "preset:breakbeat-crash",
-      "title": "Breakbeat · Crash",
-      "subtitle": "Breakbeat family · Crash",
+      "title": "Breakbeat \u00b7 Crash",
+      "subtitle": "Breakbeat family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1533,8 +2693,8 @@
     },
     {
       "id": "preset:disco-kick",
-      "title": "Disco · Kick",
-      "subtitle": "Disco family · Kick",
+      "title": "Disco \u00b7 Kick",
+      "subtitle": "Disco family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1545,8 +2705,8 @@
     },
     {
       "id": "preset:disco-snare",
-      "title": "Disco · Snare",
-      "subtitle": "Disco family · Snare",
+      "title": "Disco \u00b7 Snare",
+      "subtitle": "Disco family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1557,8 +2717,8 @@
     },
     {
       "id": "preset:disco-clap",
-      "title": "Disco · Clap",
-      "subtitle": "Disco family · Clap",
+      "title": "Disco \u00b7 Clap",
+      "subtitle": "Disco family \u00b7 Clap",
       "deviceType": "clap_generator",
       "tags": [
         "factory",
@@ -1569,8 +2729,8 @@
     },
     {
       "id": "preset:disco-chh",
-      "title": "Disco · Closed Hat",
-      "subtitle": "Disco family · Closed Hat",
+      "title": "Disco \u00b7 Closed Hat",
+      "subtitle": "Disco family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1581,8 +2741,8 @@
     },
     {
       "id": "preset:disco-ohh",
-      "title": "Disco · Open Hat",
-      "subtitle": "Disco family · Open Hat",
+      "title": "Disco \u00b7 Open Hat",
+      "subtitle": "Disco family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1593,8 +2753,8 @@
     },
     {
       "id": "preset:disco-ride",
-      "title": "Disco · Ride",
-      "subtitle": "Disco family · Ride",
+      "title": "Disco \u00b7 Ride",
+      "subtitle": "Disco family \u00b7 Ride",
       "deviceType": "ride_generator",
       "tags": [
         "factory",
@@ -1605,8 +2765,8 @@
     },
     {
       "id": "preset:dnb-kick",
-      "title": "DnB · Kick",
-      "subtitle": "DnB family · Kick",
+      "title": "DnB \u00b7 Kick",
+      "subtitle": "DnB family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1616,8 +2776,8 @@
     },
     {
       "id": "preset:dnb-snare",
-      "title": "DnB · Snare",
-      "subtitle": "DnB family · Snare",
+      "title": "DnB \u00b7 Snare",
+      "subtitle": "DnB family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1627,8 +2787,8 @@
     },
     {
       "id": "preset:dnb-chh",
-      "title": "DnB · Closed Hat",
-      "subtitle": "DnB family · Closed Hat",
+      "title": "DnB \u00b7 Closed Hat",
+      "subtitle": "DnB family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1638,8 +2798,8 @@
     },
     {
       "id": "preset:dnb-ohh",
-      "title": "DnB · Open Hat",
-      "subtitle": "DnB family · Open Hat",
+      "title": "DnB \u00b7 Open Hat",
+      "subtitle": "DnB family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1649,8 +2809,8 @@
     },
     {
       "id": "preset:dnb-rim",
-      "title": "DnB · Rim",
-      "subtitle": "DnB family · Rim",
+      "title": "DnB \u00b7 Rim",
+      "subtitle": "DnB family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1660,8 +2820,8 @@
     },
     {
       "id": "preset:dnb-crash",
-      "title": "DnB · Crash",
-      "subtitle": "DnB family · Crash",
+      "title": "DnB \u00b7 Crash",
+      "subtitle": "DnB family \u00b7 Crash",
       "deviceType": "crash_generator",
       "tags": [
         "factory",
@@ -1671,8 +2831,8 @@
     },
     {
       "id": "preset:ambient-kick",
-      "title": "Ambient · Kick",
-      "subtitle": "Ambient family · Kick",
+      "title": "Ambient \u00b7 Kick",
+      "subtitle": "Ambient family \u00b7 Kick",
       "deviceType": "kick_generator",
       "tags": [
         "factory",
@@ -1682,8 +2842,8 @@
     },
     {
       "id": "preset:ambient-snare",
-      "title": "Ambient · Snare",
-      "subtitle": "Ambient family · Snare",
+      "title": "Ambient \u00b7 Snare",
+      "subtitle": "Ambient family \u00b7 Snare",
       "deviceType": "snare_generator",
       "tags": [
         "factory",
@@ -1693,8 +2853,8 @@
     },
     {
       "id": "preset:ambient-chh",
-      "title": "Ambient · Closed Hat",
-      "subtitle": "Ambient family · Closed Hat",
+      "title": "Ambient \u00b7 Closed Hat",
+      "subtitle": "Ambient family \u00b7 Closed Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1704,8 +2864,8 @@
     },
     {
       "id": "preset:ambient-ohh",
-      "title": "Ambient · Open Hat",
-      "subtitle": "Ambient family · Open Hat",
+      "title": "Ambient \u00b7 Open Hat",
+      "subtitle": "Ambient family \u00b7 Open Hat",
       "deviceType": "hihat_generator",
       "tags": [
         "factory",
@@ -1715,8 +2875,8 @@
     },
     {
       "id": "preset:ambient-rim",
-      "title": "Ambient · Rim",
-      "subtitle": "Ambient family · Rim",
+      "title": "Ambient \u00b7 Rim",
+      "subtitle": "Ambient family \u00b7 Rim",
       "deviceType": "rimshot_generator",
       "tags": [
         "factory",
@@ -1726,8 +2886,8 @@
     },
     {
       "id": "preset:kit-808",
-      "title": "808 · Kit",
-      "subtitle": "808 drum machine · family voices",
+      "title": "808 \u00b7 Kit",
+      "subtitle": "808 drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1739,8 +2899,8 @@
     },
     {
       "id": "preset:kit-909",
-      "title": "909 · Kit",
-      "subtitle": "909 drum machine · family voices",
+      "title": "909 \u00b7 Kit",
+      "subtitle": "909 drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1752,8 +2912,8 @@
     },
     {
       "id": "preset:kit-electro",
-      "title": "Electro · Kit",
-      "subtitle": "Electro drum machine · family voices",
+      "title": "Electro \u00b7 Kit",
+      "subtitle": "Electro drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1763,8 +2923,8 @@
     },
     {
       "id": "preset:kit-trap",
-      "title": "Trap · Kit",
-      "subtitle": "Trap drum machine · family voices",
+      "title": "Trap \u00b7 Kit",
+      "subtitle": "Trap drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1774,8 +2934,8 @@
     },
     {
       "id": "preset:kit-boombap",
-      "title": "Boom Bap · Kit",
-      "subtitle": "Boom Bap drum machine · family voices",
+      "title": "Boom Bap \u00b7 Kit",
+      "subtitle": "Boom Bap drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1787,8 +2947,8 @@
     },
     {
       "id": "preset:kit-house",
-      "title": "House · Kit",
-      "subtitle": "House drum machine · family voices",
+      "title": "House \u00b7 Kit",
+      "subtitle": "House drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1798,8 +2958,8 @@
     },
     {
       "id": "preset:kit-techno",
-      "title": "Techno · Kit",
-      "subtitle": "Techno drum machine · family voices",
+      "title": "Techno \u00b7 Kit",
+      "subtitle": "Techno drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1810,8 +2970,8 @@
     },
     {
       "id": "preset:kit-pop",
-      "title": "Pop · Kit",
-      "subtitle": "Pop drum machine · family voices",
+      "title": "Pop \u00b7 Kit",
+      "subtitle": "Pop drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1822,8 +2982,8 @@
     },
     {
       "id": "preset:kit-rnb",
-      "title": "R&B · Kit",
-      "subtitle": "R&B drum machine · family voices",
+      "title": "R&B \u00b7 Kit",
+      "subtitle": "R&B drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1833,8 +2993,8 @@
     },
     {
       "id": "preset:kit-reggae",
-      "title": "Reggae · Kit",
-      "subtitle": "Reggae drum machine · family voices",
+      "title": "Reggae \u00b7 Kit",
+      "subtitle": "Reggae drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1844,8 +3004,8 @@
     },
     {
       "id": "preset:kit-rock",
-      "title": "Rock · Kit",
-      "subtitle": "Rock drum machine · family voices",
+      "title": "Rock \u00b7 Kit",
+      "subtitle": "Rock drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1855,8 +3015,8 @@
     },
     {
       "id": "preset:kit-breakbeat",
-      "title": "Breakbeat · Kit",
-      "subtitle": "Breakbeat drum machine · family voices",
+      "title": "Breakbeat \u00b7 Kit",
+      "subtitle": "Breakbeat drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1866,8 +3026,8 @@
     },
     {
       "id": "preset:kit-disco",
-      "title": "Disco · Kit",
-      "subtitle": "Disco drum machine · family voices",
+      "title": "Disco \u00b7 Kit",
+      "subtitle": "Disco drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1878,8 +3038,8 @@
     },
     {
       "id": "preset:kit-dnb",
-      "title": "DnB · Kit",
-      "subtitle": "DnB drum machine · family voices",
+      "title": "DnB \u00b7 Kit",
+      "subtitle": "DnB drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1889,8 +3049,8 @@
     },
     {
       "id": "preset:kit-ambient",
-      "title": "Ambient · Kit",
-      "subtitle": "Ambient drum machine · family voices",
+      "title": "Ambient \u00b7 Kit",
+      "subtitle": "Ambient drum machine \u00b7 family voices",
       "deviceType": "drum_machine",
       "tags": [
         "factory",
@@ -1903,7 +3063,7 @@
     {
       "id": "midi:edm-bass-offbeat",
       "title": "Offbeat drive",
-      "subtitle": "EDM · 4 bars · 16 notes",
+      "subtitle": "EDM \u00b7 4 bars \u00b7 16 notes",
       "patternId": "edm-bass-offbeat",
       "tags": [
         "bass",
@@ -1915,7 +3075,7 @@
     {
       "id": "midi:edm-bass-fourfloor",
       "title": "Four-on-floor",
-      "subtitle": "EDM · 4 bars · pumping root",
+      "subtitle": "EDM \u00b7 4 bars \u00b7 pumping root",
       "patternId": "edm-bass-fourfloor",
       "tags": [
         "bass",
@@ -1927,7 +3087,7 @@
     {
       "id": "midi:dnb-bass-roller",
       "title": "DnB roller",
-      "subtitle": "Drum & bass · 16th bass roll",
+      "subtitle": "Drum & bass \u00b7 16th bass roll",
       "patternId": "dnb-bass-roller",
       "tags": [
         "bass",
@@ -1939,7 +3099,7 @@
     {
       "id": "midi:dnb-bass-jumpup",
       "title": "Jump-up stabs",
-      "subtitle": "Drum & bass · syncopated hits",
+      "subtitle": "Drum & bass \u00b7 syncopated hits",
       "patternId": "dnb-bass-jumpup",
       "tags": [
         "bass",
@@ -1951,7 +3111,7 @@
     {
       "id": "midi:edm-dnb-groove",
       "title": "Half-time sway",
-      "subtitle": "EDM/DnB · halftime groove",
+      "subtitle": "EDM/DnB \u00b7 halftime groove",
       "patternId": "edm-dnb-groove",
       "tags": [
         "bass",
@@ -1964,7 +3124,7 @@
     {
       "id": "midi:prog-chords-cycle",
       "title": "Cycle stabs",
-      "subtitle": "Progressive · Am-F-C-G",
+      "subtitle": "Progressive \u00b7 Am-F-C-G",
       "patternId": "prog-chords-cycle",
       "tags": [
         "lead",
@@ -1976,7 +3136,7 @@
     {
       "id": "midi:prog-chords-uplift",
       "title": "Uplift chords",
-      "subtitle": "Progressive · emotional lift",
+      "subtitle": "Progressive \u00b7 emotional lift",
       "patternId": "prog-chords-uplift",
       "tags": [
         "lead",
@@ -1988,7 +3148,7 @@
     {
       "id": "midi:prog-chords-sparse",
       "title": "Sparse pads-to-lead",
-      "subtitle": "Progressive · wide spacing",
+      "subtitle": "Progressive \u00b7 wide spacing",
       "patternId": "prog-chords-sparse",
       "tags": [
         "lead",
@@ -2000,7 +3160,7 @@
     {
       "id": "midi:prog-chords-rhythm",
       "title": "Rhythm stabs",
-      "subtitle": "Progressive · 8th chord hits",
+      "subtitle": "Progressive \u00b7 8th chord hits",
       "patternId": "prog-chords-rhythm",
       "tags": [
         "lead",
@@ -2012,7 +3172,7 @@
     {
       "id": "midi:prog-chords-wide",
       "title": "Wide voicings",
-      "subtitle": "Progressive · open chord stack",
+      "subtitle": "Progressive \u00b7 open chord stack",
       "patternId": "prog-chords-wide",
       "tags": [
         "lead",
@@ -2024,7 +3184,7 @@
     {
       "id": "midi:pad-am-warm",
       "title": "Warm Am pad",
-      "subtitle": "Pad · 4-bar progression",
+      "subtitle": "Pad \u00b7 4-bar progression",
       "patternId": "pad-am-warm",
       "tags": [
         "pad",
@@ -2035,7 +3195,7 @@
     {
       "id": "midi:pad-fm7-stack",
       "title": "FM7 stack",
-      "subtitle": "Pad · layered sevenths",
+      "subtitle": "Pad \u00b7 layered sevenths",
       "patternId": "pad-fm7-stack",
       "tags": [
         "pad",
@@ -2046,7 +3206,7 @@
     {
       "id": "midi:pad-dm-emotional",
       "title": "Emotional Dm",
-      "subtitle": "Pad · minor wash",
+      "subtitle": "Pad \u00b7 minor wash",
       "patternId": "pad-dm-emotional",
       "tags": [
         "pad",
@@ -2057,7 +3217,7 @@
     {
       "id": "midi:pad-epic-rise",
       "title": "Epic rise",
-      "subtitle": "Pad · building chords",
+      "subtitle": "Pad \u00b7 building chords",
       "patternId": "pad-epic-rise",
       "tags": [
         "pad",
@@ -2068,7 +3228,7 @@
     {
       "id": "midi:pad-ambient-cluster",
       "title": "Ambient cluster",
-      "subtitle": "Pad · dense held stack",
+      "subtitle": "Pad \u00b7 dense held stack",
       "patternId": "pad-ambient-cluster",
       "tags": [
         "pad",
@@ -2079,7 +3239,7 @@
     {
       "id": "midi:edm-melody-anthem",
       "title": "Anthem lead",
-      "subtitle": "EDM · festival topline",
+      "subtitle": "EDM \u00b7 festival topline",
       "patternId": "edm-melody-anthem",
       "tags": [
         "lead",
@@ -2091,7 +3251,7 @@
     {
       "id": "midi:edm-melody-hook-a",
       "title": "Hook A",
-      "subtitle": "EDM · catchy 4-bar hook",
+      "subtitle": "EDM \u00b7 catchy 4-bar hook",
       "patternId": "edm-melody-hook-a",
       "tags": [
         "lead",
@@ -2103,7 +3263,7 @@
     {
       "id": "midi:edm-melody-hook-b",
       "title": "Hook B",
-      "subtitle": "EDM · higher register hook",
+      "subtitle": "EDM \u00b7 higher register hook",
       "patternId": "edm-melody-hook-b",
       "tags": [
         "lead",
@@ -2115,7 +3275,7 @@
     {
       "id": "midi:edm-melody-arpeggio",
       "title": "Arp lead",
-      "subtitle": "EDM · rising arpeggio",
+      "subtitle": "EDM \u00b7 rising arpeggio",
       "patternId": "edm-melody-arpeggio",
       "tags": [
         "lead",
@@ -2127,7 +3287,7 @@
     {
       "id": "midi:edm-melody-drop",
       "title": "Drop lead",
-      "subtitle": "EDM · 2-bar drop line",
+      "subtitle": "EDM \u00b7 2-bar drop line",
       "patternId": "edm-melody-drop",
       "tags": [
         "lead",
@@ -2140,7 +3300,7 @@
     {
       "id": "midi:edm-melody-pluck",
       "title": "Pluck melody",
-      "subtitle": "EDM · short pluck line",
+      "subtitle": "EDM \u00b7 short pluck line",
       "patternId": "edm-melody-pluck",
       "tags": [
         "lead",
@@ -2153,7 +3313,7 @@
     {
       "id": "midi:edm-melody-festival",
       "title": "Festival lead",
-      "subtitle": "EDM · big-room line",
+      "subtitle": "EDM \u00b7 big-room line",
       "patternId": "edm-melody-festival",
       "tags": [
         "lead",
@@ -2166,7 +3326,7 @@
     {
       "id": "midi:edm-melody-night",
       "title": "Night drive",
-      "subtitle": "EDM · darker minor line",
+      "subtitle": "EDM \u00b7 darker minor line",
       "patternId": "edm-melody-night",
       "tags": [
         "lead",
@@ -2179,7 +3339,7 @@
     {
       "id": "midi:edm-melody-rise",
       "title": "Rising lead",
-      "subtitle": "EDM · build-up melody",
+      "subtitle": "EDM \u00b7 build-up melody",
       "patternId": "edm-melody-rise",
       "tags": [
         "lead",
@@ -2192,7 +3352,7 @@
     {
       "id": "midi:edm-melody-chant",
       "title": "Chant motif",
-      "subtitle": "EDM · rhythmic repeat",
+      "subtitle": "EDM \u00b7 rhythmic repeat",
       "patternId": "edm-melody-chant",
       "tags": [
         "lead",
@@ -2303,7 +3463,7 @@
     },
     {
       "id": "midi:drum-breakbeat-amen-bars12",
-      "title": "Amen Skeleton Bars 1–2",
+      "title": "Amen Skeleton Bars 1\u20132",
       "subtitle": "Breakbeat - 136 BPM - 1 bar - light swing",
       "patternId": "breakbeat-amen-bars12",
       "tags": [

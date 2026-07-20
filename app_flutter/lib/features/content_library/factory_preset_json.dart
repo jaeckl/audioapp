@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import '../device_strip/device_preset_store.dart';
+import '../device_strip/bass_synth_presets.dart';
+import '../device_strip/phase_mod_synth_presets.dart';
 
 part 'factory_preset_kits.dart';
 
@@ -8,11 +10,18 @@ part 'factory_preset_kits.dart';
 ///
 /// Leaves are built from [DevicePresetStore]. Kits / nests may use
 /// `presetRef` nodes that resolve to another factory preset's `device` blob.
+/// Bass / phase-mod synth presets ship docs via their preset classes.
 abstract final class FactoryPresetJson {
   static const presetVersion = 2;
 
   /// Unresolved document for [presetId], or null if unknown.
   static Map<String, dynamic>? documentFor(String presetId) {
+    final bass = BassSynthPresets.documentFor(presetId);
+    if (bass != null) return bass;
+
+    final phaseMod = PhaseModSynthPresets.documentFor(presetId);
+    if (phaseMod != null) return phaseMod;
+
     final kit = _kitDocuments[presetId];
     if (kit != null) return kit;
 
@@ -50,11 +59,39 @@ abstract final class FactoryPresetJson {
   }
 
   static String? deviceTypeFor(String presetId) {
+    if (BassSynthPresets.presets.containsKey(presetId)) return 'bass_synth';
+    if (PhaseModSynthPresets.presets.containsKey(presetId)) {
+      return 'phase_mod_synth';
+    }
     if (_kitDocuments.containsKey(presetId)) return 'drum_machine';
+    // Subtractive stays out of _leafTypes so apply still uses
+    // applySubtractiveSynthPreset (LFO/mod), not bare leaf JSON.
+    if (DevicePresetStore.find('subtractive_synth', presetId) != null) {
+      return 'subtractive_synth';
+    }
     for (final type in _leafTypes) {
       if (DevicePresetStore.find(type, presetId) != null) return type;
     }
     return null;
+  }
+
+  /// Device types that have a real engine preview renderer.
+  /// FX / unknown stay silent (no fake sine for device presets).
+  static bool supportsAudioPreview(String? deviceType) {
+    if (deviceType == null || deviceType.isEmpty) return false;
+    switch (deviceType) {
+      case 'subtractive_synth':
+      case 'bass_synth':
+      case 'phase_mod_synth':
+      case 'simple_oscillator':
+      case 'simple_sampler':
+      case 'kick_generator':
+        return true;
+      default:
+        // Kits preview as kick_generator via previewDeviceType.
+        // Other percussion generators stay silent until engine renderers exist.
+        return false;
+    }
   }
 
   static bool isFactoryPreset(String presetId) => documentFor(presetId) != null;

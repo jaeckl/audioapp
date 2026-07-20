@@ -45,6 +45,10 @@ const List<DevicePresetFilter> kDevicePresetFilters = [
   DevicePresetFilter(
       deviceType: 'bass_synth', label: 'Bass Synth', icon: Icons.waves),
   DevicePresetFilter(
+      deviceType: 'phase_mod_synth',
+      label: 'Phase Mod',
+      icon: Icons.graphic_eq),
+  DevicePresetFilter(
       deviceType: 'dynamics_fx', label: 'Dynamics', icon: Icons.tune),
 ];
 

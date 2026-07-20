@@ -1,6 +1,6 @@
 part of 'phase_mod_synth_presets.dart';
 
-final Map<String, dynamic> _phase_mod_presetsGroup3 = {
+final Map<String, Map<String, dynamic>> _phase_mod_presetsGroup3 = {
   'preset:pm-fx-noise': PhaseModSynthPresets._patch({
     'pmOp1Ratio': 0.0625,
     'pmOp1Level': 0.3,
