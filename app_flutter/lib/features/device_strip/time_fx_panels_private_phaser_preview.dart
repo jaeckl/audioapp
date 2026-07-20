@@ -12,13 +12,8 @@ class _PhaserPreview extends StatelessWidget {
   final Set<String> automatedParams;
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => KeyedSubtree(
         key: const ValueKey('phaser-preview'),
-        decoration: BoxDecoration(
-          color: const Color(0xFF050508),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white10),
-        ),
         child: EffectiveParameterValuesBuilder(
           fallbackValues: {
             'waveform': device.phaserWaveform / 3,
@@ -31,11 +26,14 @@ class _PhaserPreview extends StatelessWidget {
             'depth': device.phaserDepth,
           },
           activeParameterIds: automatedParams,
-          builder: (context, liveValues) => CustomPaint(
-            painter: _PhaserPreviewPainter(
-              device: device,
-              view: view,
-              liveValues: liveValues,
+          builder: (context, liveValues) => IgnorePointer(
+            child: CustomPaint(
+              painter: _PhaserPreviewPainter(
+                device: device,
+                view: view,
+                liveValues: liveValues,
+              ),
+              child: const SizedBox.expand(),
             ),
           ),
         ),

@@ -4,14 +4,13 @@ extension DeviceStripSlotStateBuildphaserdeviceOperation
     on _DeviceStripSlotState {
   Widget _buildPhaserDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as PhaserDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Full-bleed center hero — skip DeviceStripViewport letterbox.
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: PhaserFxStrip(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,
-        selectedTab: PhaserViewTab.values[_selectedTabIndex.clamp(0, 1)],
         modulatedParams: _modulatedParamIds,
         automatedParams: _automatedParamIds,
         modulationAmounts: _modulationAmounts,

@@ -5,7 +5,6 @@ class PhaserFxStrip extends StatelessWidget {
     super.key,
     required this.device,
     required this.onParameterChanged,
-    this.selectedTab = PhaserViewTab.motion,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -17,7 +16,6 @@ class PhaserFxStrip extends StatelessWidget {
   });
   final PhaserDeviceSnapshot device;
   final TimeFxParameterChanged onParameterChanged;
-  final PhaserViewTab selectedTab;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -30,7 +28,6 @@ class PhaserFxStrip extends StatelessWidget {
   Widget build(BuildContext context) => PhaserFxPanel(
         device: device,
         onParameterChanged: onParameterChanged,
-        selectedTab: selectedTab,
         modulatedParams: modulatedParams,
         automatedParams: automatedParams,
         modulationAmounts: modulationAmounts,

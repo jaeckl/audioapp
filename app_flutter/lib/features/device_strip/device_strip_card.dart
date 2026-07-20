@@ -52,11 +52,19 @@ class DeviceStripCard extends StatelessWidget {
   bool get _usesContainerTabs =>
       !headerOnly && (tabs.isNotEmpty || headerActions != null);
 
+  /// Header→face cast only for blank-header full-bleed devices.
+  bool get _usesHeaderFaceCast =>
+      deviceType == 'filter' ||
+      deviceType == 'distortion' ||
+      deviceType == 'phaser';
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
-    final label = (deviceType == 'filter' || deviceType == 'distortion')
+    final label = (deviceType == 'filter' ||
+            deviceType == 'distortion' ||
+            deviceType == 'phaser')
         ? ''
         : DeviceStripTheme.labelForDeviceType(deviceType);
     final radius = const Radius.circular(DeviceStripTheme.cardRadius);
@@ -120,34 +128,37 @@ class DeviceStripCard extends StatelessWidget {
                         ),
                       SizedBox(
                         height: bodyHeight,
-                        // Soft cast from header onto the face (body paints
-                        // after header, so shadow lives here, not on header).
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            child,
-                            const Positioned(
-                              top: 0,
-                              left: 0,
-                              right: 0,
-                              height: 5,
-                              child: IgnorePointer(
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0x73000000),
-                                        Color(0x00000000),
-                                      ],
+                        // Soft cast from blank header onto full-bleed faces
+                        // only (Filter / Distortion). Tabbed faces like Phaser
+                        // look wrong with a fake drop under the tab bar.
+                        child: _usesHeaderFaceCast
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  child,
+                                  const Positioned(
+                                    top: 0,
+                                    left: 0,
+                                    right: 0,
+                                    height: 5,
+                                    child: IgnorePointer(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topCenter,
+                                            end: Alignment.bottomCenter,
+                                            colors: [
+                                              Color(0x73000000),
+                                              Color(0x00000000),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                                ],
+                              )
+                            : child,
                       ),
                     ],
                   ),
