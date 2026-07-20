@@ -18,7 +18,8 @@ final class ResonatorBankDefinition extends AudioEffectDefinition {
       category: 'Frequency Effects');
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 304, inputPanelWidth: 64, outputPanelWidth: 64);
+      // Empty input in engine — no Dynamics IN/Trim. Mix stays on face (resMix).
+      designWidth: 424, inputPanelWidth: 0, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       ResonatorBankDeviceSnapshot.fromMap(map);

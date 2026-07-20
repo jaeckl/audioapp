@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../bridge/device_snapshot.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
+import 'panels/filter_section_layout.dart';
 import 'rotary_knob.dart';
 
 part 'resonator_bank_panel_resonator_bank_preview_painter.dart';
@@ -31,8 +32,9 @@ class ResonatorBankPanel extends StatelessWidget {
   });
 
   static const accent = Color(0xFFFFB454);
-  static const double designWidth = 304;
+  static const double designWidth = 424;
   static const containerTabs = <DeviceTabSpec>[];
+  static const _sideWell = Color(0xFF1C1C28);
 
   final ResonatorBankDeviceSnapshot device;
   final ResonatorParameterChanged onParameterChanged;
@@ -47,17 +49,31 @@ class ResonatorBankPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 7, 8, 7),
-      child: Column(
-        children: [
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF12121A),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              ),
+    Widget side(List<Widget> children, {double width = 84}) => Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: _sideWell,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: children,
+          ),
+        );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        side([
+          _knob('Root', 'resRoot', device.resRoot, _rootLabel(device.resRoot)),
+          _knob('Spread', 'resSpread', device.resSpread,
+              (0.5 + device.resSpread).toStringAsFixed(2)),
+        ]),
+        const SizedBox(width: 4),
+        Expanded(
+          child: FilterSectionLayout(
+            modeSelector: const SizedBox.shrink(),
+            preview: IgnorePointer(
               child: CustomPaint(
                 painter: ResonatorBankPreviewPainter(
                   root: device.resRoot,
@@ -71,34 +87,26 @@ class ResonatorBankPanel extends StatelessWidget {
                 child: const SizedBox.expand(),
               ),
             ),
+            controls: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _knob('Decay', 'resDecay', device.resDecay,
+                    _decayLabel(device.resDecay)),
+                _knob('Damping', 'resDamping', device.resDamping,
+                    _percent(device.resDamping)),
+                _knob('Color', 'resColor', device.resColor,
+                    _signedColor(device.resColor)),
+              ],
+            ),
           ),
-          const SizedBox(height: 7),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _knob('Root', 'resRoot', device.resRoot,
-                  _rootLabel(device.resRoot)),
-              _knob('Spread', 'resSpread', device.resSpread,
-                  (0.5 + device.resSpread).toStringAsFixed(2)),
-              _knob('Decay', 'resDecay', device.resDecay,
-                  _decayLabel(device.resDecay)),
-              _knob('Damping', 'resDamping', device.resDamping,
-                  _percent(device.resDamping)),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _knob('Color', 'resColor', device.resColor,
-                  _signedColor(device.resColor)),
-              _knob('Width', 'resWidth', device.resWidth,
-                  '${(device.resWidth * 200).round()}%'),
-              _knob('Mix', 'resMix', device.resMix, _percent(device.resMix)),
-            ],
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 4),
+        side([
+          _knob('Width', 'resWidth', device.resWidth,
+              '${(device.resWidth * 200).round()}%'),
+          _knob('Mix', 'resMix', device.resMix, _percent(device.resMix)),
+        ]),
+      ],
     );
   }
 

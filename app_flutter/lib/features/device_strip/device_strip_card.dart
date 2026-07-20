@@ -61,7 +61,8 @@ class DeviceStripCard extends StatelessWidget {
       deviceType == 'limiter' ||
       deviceType == 'expander' ||
       deviceType == 'gate' ||
-      deviceType == 'bitcrusher';
+      deviceType == 'bitcrusher' ||
+      deviceType == 'resonator_bank';
 
   @override
   Widget build(BuildContext context) {
@@ -74,7 +75,8 @@ class DeviceStripCard extends StatelessWidget {
             deviceType == 'limiter' ||
             deviceType == 'expander' ||
             deviceType == 'gate' ||
-            deviceType == 'bitcrusher')
+            deviceType == 'bitcrusher' ||
+            deviceType == 'resonator_bank')
         ? ''
         : DeviceStripTheme.labelForDeviceType(deviceType);
     final radius = const Radius.circular(DeviceStripTheme.cardRadius);
