@@ -13,9 +13,7 @@ class _BitcrusherPreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    canvas.drawRRect(RRect.fromRectAndRadius(rect, const Radius.circular(5)),
-        Paint()..color = const Color(0xFF07070A));
+    // Hero fill comes from FilterSectionLayout — paint graph only.
     final pad = math.max(8.0, size.shortestSide * .07);
     final graph =
         Rect.fromLTRB(pad, pad + 8, size.width - pad, size.height - pad);

@@ -19,7 +19,7 @@ void main() {
     expect(device.bcFilter, 1);
   });
 
-  testWidgets('refined bitcrusher panel exposes advanced control groups',
+  testWidgets('bitcrusher rail face: mode/shape plate + crush rails',
       (tester) async {
     final device = BitcrusherDeviceSnapshot(
       id: 'bc-1',
@@ -45,33 +45,41 @@ void main() {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: SizedBox(
-          width: 424,
-          height: 320,
-          child: Column(children: [
-            SizedBox(
-              height: 40,
-              child: BitcrusherHeaderActions(
-                device: device,
-                onParameterChanged: (id, value) => changes.add((id, value)),
-              ),
-            ),
-            Expanded(
-              child: BitcrusherFxPanel(
-                device: device,
-                onParameterChanged: (id, value) => changes.add((id, value)),
-                onModulationAssign: null,
-              ),
-            ),
-          ]),
+          width: BitcrusherFxPanel.designWidth,
+          height: 280,
+          child: BitcrusherFxPanel(
+            device: device,
+            onParameterChanged: (id, value) => changes.add((id, value)),
+            onModulationAssign: null,
+          ),
         ),
       ),
     ));
 
+    for (final label in [
+      'Rate',
+      'Bits',
+      'Jitter',
+      'Drive',
+      'Filter',
+      'Classic',
+      'Impact',
+      'No Dither',
+      'No Clip',
+    ]) {
+      expect(find.text(label), findsOneWidget);
+    }
     expect(find.byKey(const ValueKey('bitcrusher-mode-0')), findsOneWidget);
     expect(find.byKey(const ValueKey('bitcrusher-shape-0')), findsOneWidget);
-    expect(find.text('No Dither'), findsOneWidget);
-    expect(find.text('No Clip'), findsOneWidget);
+    expect(BitcrusherFxPanel.containerTabs, isEmpty);
+
     await tester.tap(find.byKey(const ValueKey('bitcrusher-mode-1')));
-    expect(changes.last, ('bcMode', 1.0));
+    await tester.pump();
+    expect(changes, contains(('bcMode', 1.0)));
+
+    await tester.tap(find.byKey(const ValueKey('bitcrusher-shape-2')));
+    await tester.pump();
+    expect(changes, contains(('bcShape', 2.0)));
+    expect(tester.takeException(), isNull);
   });
 }
