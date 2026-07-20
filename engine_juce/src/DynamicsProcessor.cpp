@@ -1,4 +1,5 @@
 #include "audioapp/DynamicsProcessor.hpp"
+#include "audioapp/effects/DuckerParams.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -265,6 +266,41 @@ void processLimiterStereoBlock(float* trackLeft,
         applyGainDb(left, right, runtime.gainReductionDb);
         trackLeft[i] = left * params.gain * makeupLin;
         trackRight[i] = right * params.gain * makeupLin;
+    }
+}
+
+void processDuckerStereoBlock(float* trackLeft,
+                              float* trackRight,
+                              int numFrames,
+                              const float* sidechainLeft,
+                              const float* sidechainRight,
+                              double sampleRate,
+                              const DuckerParams& params,
+                              DynamicsRuntime& runtime) noexcept {
+    if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0 || sampleRate <= 0.0) {
+        return;
+    }
+
+    const float thresholdDb = normToThresholdDb(params.duckThreshold);
+    const float maxGrDb = -params.duckDepth * 36.0f;
+    const float attackSec = normToAttackSec(params.duckAttack);
+    const float releaseSec = normToReleaseSec(params.duckRelease);
+
+    for (int i = 0; i < numFrames; ++i) {
+        float detector = 0.0f;
+        if (sidechainLeft != nullptr && sidechainRight != nullptr) {
+            detector = std::max(std::abs(sidechainLeft[i]), std::abs(sidechainRight[i]));
+        }
+        processDynamicsEnvelope(detector, sampleRate, attackSec, releaseSec, runtime);
+
+        const float envDb = linearToDb(runtime.envelope);
+        float grDb = 0.0f;
+        if (envDb > thresholdDb && maxGrDb < 0.0f) {
+            const float over = std::min(1.0f, (envDb - thresholdDb) / 24.0f);
+            grDb = maxGrDb * over;
+        }
+        runtime.gainReductionDb = grDb;
+        applyGainDb(trackLeft[i], trackRight[i], grDb);
     }
 }
 

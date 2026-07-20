@@ -46,6 +46,8 @@ void applyModulation(DeCracklerParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DeEsserParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DeHumParamsPlayback&, float, uint16_t) noexcept;
 void applyModulation(DeNoiseParamsPlayback&, float, uint16_t) noexcept;
+void applyModulation(DuckerParams&, float, uint16_t) noexcept;
+void applyModulation(UtilityParams&, float, uint16_t) noexcept;
 inline void applyModulation(DrumMachineParams&, float, uint16_t) noexcept {}
 inline void applyModulation(ChainParams& p, float amount, uint16_t localParamId) noexcept {
     const auto rawId = unpackParamId(localParamId);

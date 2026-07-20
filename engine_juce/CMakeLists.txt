@@ -104,6 +104,8 @@ add_library(audioapp_engine STATIC
   src/devices/processors/DeEsserProcessor.cpp
   src/devices/processors/DeHumProcessor.cpp
   src/devices/processors/DeNoiseProcessor.cpp
+  src/devices/processors/DuckerProcessor.cpp
+  src/devices/processors/UtilityProcessor.cpp
   src/devices/processors/AnalysisProcessor.cpp
   src/devices/processors/ChainProcessor.cpp
   src/devices/processors/GranularProcessor.cpp
@@ -166,6 +168,8 @@ add_library(audioapp_engine STATIC
   src/effects/DeEsserDeviceType.cpp
   src/effects/DeHumDeviceType.cpp
   src/effects/DeNoiseDeviceType.cpp
+  src/effects/DuckerDeviceType.cpp
+  src/effects/UtilityDeviceType.cpp
   src/model/TrackRepository.cpp
   src/model/ClipRepository.cpp
   src/model/AutomationClipStore.cpp

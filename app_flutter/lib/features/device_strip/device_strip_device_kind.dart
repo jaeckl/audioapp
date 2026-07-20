@@ -7,6 +7,8 @@ const fxDeviceTypes = <String>{
   'compressor',
   'expander',
   'limiter',
+  'ducker',
+  'utility',
   'bitcrusher',
   'distortion',
   'tremolo',

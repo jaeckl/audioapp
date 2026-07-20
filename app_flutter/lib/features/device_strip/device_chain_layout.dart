@@ -60,6 +60,9 @@ abstract final class DeviceChainLayout {
       DeviceCapabilities.virtualStripHosts.contains(type) ||
       type == 'spectral_loud_split';
 
+  static bool _hostsAudioFx(String type) =>
+      DeviceCapabilities.hostsAudioFx(type);
+
   static double slotWidthFor(
       DeviceSnapshot device, DeviceStripSlotDensity density) {
     final cardWidth = DeviceStripMetrics.designWidthFor(
@@ -189,11 +192,9 @@ abstract final class DeviceChainLayout {
           showInsertWhenUnderCap: true,
         );
       }
-    }
-
-    if (_isSynthHost(device.type) &&
-        device is! SpectralLoudSplitDeviceSnapshot) {
-      if (expand.isSynthAudioFxExpanded(device.id)) {
+    } else {
+      if (_hostsAudioFx(device.type) &&
+          expand.isSynthAudioFxExpanded(device.id)) {
         width += _virtualStripListWidth(
           device.audioFxDevices,
           density,
@@ -202,7 +203,8 @@ abstract final class DeviceChainLayout {
           showInsertWhenUnderCap: true,
         );
       }
-      if (expand.isSynthNoteFxExpanded(device.id)) {
+      if (_isSynthHost(device.type) &&
+          expand.isSynthNoteFxExpanded(device.id)) {
         width += _virtualStripListWidth(
           device.noteFxDevices,
           density,

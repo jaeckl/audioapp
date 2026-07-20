@@ -20,6 +20,7 @@ import 'sampler_device_panel.dart';
 import 'snare_generator_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'time_fx_panels.dart';
+import 'utility_device_panel.dart';
 import 'wavetable_synth_device_panel.dart';
 
 final Map<String, List<DeviceTabSpec>> generatedDevicePanelTabs = {
@@ -35,6 +36,7 @@ final Map<String, List<DeviceTabSpec>> generatedDevicePanelTabs = {
   'de_hum': DeHumFxPanel.containerTabs,
   'de_noise': DeNoiseFxPanel.containerTabs,
   'distortion': DistortionFxPanel.containerTabs,
+  'ducker': DuckerDevicePanel.containerTabs,
   'expander': ExpanderDevicePanel.containerTabs,
   'filter': FilterDevicePanel.containerTabs,
   'four_band_eq': FourBandEqDevicePanel.containerTabs,
@@ -55,5 +57,6 @@ final Map<String, List<DeviceTabSpec>> generatedDevicePanelTabs = {
   'stutter_fx': StutterFxPanel.containerTabs,
   'subtractive_synth': SubtractiveSynthDevicePanel.containerTabs,
   'tremolo': TremoloFxPanel.containerTabs,
+  'utility': UtilityDevicePanel.containerTabs,
   'wavetable_synth': WavetableSynthDevicePanel.containerTabs,
 };

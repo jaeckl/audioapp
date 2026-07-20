@@ -8,6 +8,8 @@ part 'device_families/gate_device_snapshot.dart';
 part 'device_families/compressor_device_snapshot.dart';
 part 'device_families/expander_device_snapshot.dart';
 part 'device_families/limiter_device_snapshot.dart';
+part 'device_families/ducker_device_snapshot.dart';
+part 'device_families/utility_device_snapshot.dart';
 part 'device_families/effect_family.dart';
 part 'device_families/frequency_fx_family.dart';
 part 'device_families/resonator_bank_family.dart';

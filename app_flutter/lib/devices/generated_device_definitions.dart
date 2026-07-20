@@ -17,6 +17,7 @@ import 'drums/rimshot_generator_definition.dart';
 import 'drums/snare_generator_definition.dart';
 import 'drums/tom_generator_definition.dart';
 import 'dynamics/compressor_definition.dart';
+import 'dynamics/ducker_definition.dart';
 import 'dynamics/expander_definition.dart';
 import 'dynamics/gate_definition.dart';
 import 'dynamics/limiter_definition.dart';
@@ -55,6 +56,7 @@ import 'utility/device_chain_definition.dart';
 import 'utility/lr_split_definition.dart';
 import 'utility/ms_split_definition.dart';
 import 'utility/track_gain_definition.dart';
+import 'utility/utility_definition.dart';
 
 final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   LoudnessMeterDefinition(),
@@ -71,6 +73,7 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   SnareGeneratorDefinition(),
   TomGeneratorDefinition(),
   CompressorDefinition(),
+  DuckerDefinition(),
   ExpanderDefinition(),
   GateDefinition(),
   LimiterDefinition(),
@@ -109,4 +112,5 @@ final List<DeviceDefinition<DeviceSnapshot>> generatedDeviceDefinitions = [
   LrSplitDefinition(),
   MsSplitDefinition(),
   TrackGainDefinition(),
+  UtilityDefinition(),
 ];

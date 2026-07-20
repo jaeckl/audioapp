@@ -70,6 +70,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       'compressor',
       'expander',
       'limiter',
+      'ducker',
+      'utility',
       'filter',
       'four_band_eq',
       'frequency_shifter',
@@ -201,6 +203,15 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
       devicePanelTabsRepository.tabsFor(widget.device.type);
 
   Widget? get _deviceHeaderActions {
+    if (widget.device.type == 'ducker') {
+      return DuckerHeaderActions(
+        device: widget.device as DuckerDeviceSnapshot,
+        sources: widget.routingSources,
+        tracks: widget.routingTracks,
+        onSidechainChanged: (value) => widget.onDeviceStringParameterChanged
+            ?.call('sidechainSourceId', value),
+      );
+    }
     if (widget.device.type == 'reverb') {
       return ReverbHeaderActions(
         device: widget.device as ReverbDeviceSnapshot,

@@ -21,6 +21,7 @@ import 'live_automation_value.dart';
 import 'sampler_device_panel.dart';
 import 'subtractive_synth_device_panel.dart';
 import 'routing_device_panel.dart';
+import 'audio_source_picker.dart';
 
 part 'device_chain_row_private_device_chain_row_state.dart';
 part 'device_chain_row_private_virtual_chain_bracket_painter.dart';

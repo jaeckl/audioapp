@@ -36,6 +36,8 @@
 #include "audioapp/effects/StutterDeviceType.hpp"
 #include "audioapp/effects/EffectDeviceRegistration.hpp"
 #include "audioapp/effects/RestoreEffectRegistration.hpp"
+#include "audioapp/effects/DuckerDeviceType.hpp"
+#include "audioapp/effects/UtilityDeviceType.hpp"
 
 #include <cmath>
 
@@ -169,6 +171,8 @@ DeviceRegistry DeviceRegistry::createBuiltIn() {
     registry.registerType(std::make_unique<CompressorDeviceType>());
     registry.registerType(std::make_unique<ExpanderDeviceType>());
     registry.registerType(std::make_unique<LimiterDeviceType>());
+    registry.registerType(std::make_unique<DuckerDeviceType>());
+    registry.registerType(std::make_unique<UtilityDeviceType>());
     registry.registerType(std::make_unique<BassSynthDeviceType>());
     registry.registerType(std::make_unique<PhaseModSynthDeviceType>());
     registry.registerType(std::make_unique<WavetableSynthDeviceType>());

@@ -66,6 +66,8 @@ struct GraphReceiverDefinition {
     uint16_t eventCapacity = 128;
     /// Feedback is explicit and always read from the preceding callback block.
     bool feedback = false;
+    /// Sidechain receivers key a destination device without mixing into the track bus.
+    bool sidechain = false;
 };
 
 struct GraphTrackDefinition {
@@ -92,6 +94,7 @@ struct ProcessorGraphEdge {
     uint16_t latencyCompensationSamples = 0;
     bool feedback = false;
     uint8_t feedbackBufferSlot = 0;
+    bool sidechain = false;
 };
 
 /// Control-thread tap definition. The source is a stable logical Output

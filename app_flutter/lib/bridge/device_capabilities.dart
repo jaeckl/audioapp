@@ -9,6 +9,12 @@ abstract final class DeviceCapabilities {
     'simple_sampler',
   };
 
+  /// Hosts a virtual audio-FX strip on a secondary signal (sidechain key).
+  static const sidechainFxHosts = {'ducker'};
+
+  static bool hostsAudioFx(String type) =>
+      virtualStripHosts.contains(type) || sidechainFxHosts.contains(type);
+
   static const noteFx = {'midi_delay'};
 
   static const audioFx = {
@@ -33,5 +39,7 @@ abstract final class DeviceCapabilities {
     'de_esser',
     'de_hum',
     'de_noise',
+    'ducker',
+    'utility',
   };
 }

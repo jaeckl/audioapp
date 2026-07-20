@@ -60,17 +60,22 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
 
   void _onDeviceStringParameterChanged(
       String deviceId, String parameterId, String value) {
-    if (parameterId == 'sourceId') {
+    if (parameterId == 'sourceId' || parameterId == 'sidechainSourceId') {
       setState(() {
         _track = TrackSnapshot(
           id: _track.id,
           name: _track.name,
-          devices: _track.devices
-              .map((device) =>
-                  device.id == deviceId && device is RoutingDeviceSnapshot
-                      ? device.withSourceId(value)
-                      : device)
-              .toList(),
+          devices: _track.devices.map((device) {
+            if (device.id != deviceId) return device;
+            if (parameterId == 'sourceId' && device is RoutingDeviceSnapshot) {
+              return device.withSourceId(value);
+            }
+            if (parameterId == 'sidechainSourceId' &&
+                device is DuckerDeviceSnapshot) {
+              return device.withSidechainSourceId(value);
+            }
+            return device;
+          }).toList(),
           midiClips: _track.midiClips,
           sampleClips: _track.sampleClips,
           automationClips: _track.automationClips,

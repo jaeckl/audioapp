@@ -42,6 +42,8 @@ inline constexpr const char* kDeCrackler = "de_crackler";
 inline constexpr const char* kDeEsser = "de_esser";
 inline constexpr const char* kDeHum = "de_hum";
 inline constexpr const char* kDeNoise = "de_noise";
+inline constexpr const char* kDucker = "ducker";
+inline constexpr const char* kUtility = "utility";
 inline constexpr const char* kWavetableSynth = "wavetable_synth";
 inline constexpr const char* kDrumMachine = "drum_machine";
 inline constexpr const char* kGranular = "granular_formant_synth";
@@ -76,10 +78,16 @@ inline bool isAudioFxType(std::string_view typeId) {
            typeId == kResonatorBank || typeId == kBitcrusher ||
            typeId == kDistortion || typeId == kTremolo || typeId == kStutter ||
            typeId == kDcOffset || typeId == kDeCrackler || typeId == kDeEsser ||
-           typeId == kDeHum || typeId == kDeNoise ||
+           typeId == kDeHum || typeId == kDeNoise || typeId == kDucker ||
+           typeId == kUtility ||
            typeId == kLrSplit || typeId == kMsSplit ||
            typeId == kMbSplit2 || typeId == kMbSplit3 || typeId == kMbSplit4 ||
            typeId == kSpectralLoudSplit;
+}
+
+/// Devices that host a virtual audio-FX strip on a secondary signal (e.g. sidechain).
+inline bool isSidechainFxHost(std::string_view typeId) {
+    return typeId == kDucker;
 }
 
 /// Returns true for LR/Mid-Side split container device types.

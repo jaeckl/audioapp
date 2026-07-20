@@ -56,6 +56,10 @@ extension DeviceStripSlotStateBuilddeviceOperation on _DeviceStripSlotState {
         return _buildExpanderDevice(context, contentHeight);
       case 'limiter':
         return _buildLimiterDevice(context, contentHeight);
+      case 'ducker':
+        return _buildDuckerDevice(context, contentHeight);
+      case 'utility':
+        return _buildUtilityDevice(context, contentHeight);
       case 'filter':
         return _buildFilterDevice(context, contentHeight);
       case 'four_band_eq':

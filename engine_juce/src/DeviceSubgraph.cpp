@@ -1,6 +1,8 @@
 #include "audioapp/DeviceSubgraph.hpp"
 
 #include "audioapp/devices/DeviceSlot.hpp"
+#include "audioapp/devices/DeviceTypeIds.hpp"
+#include "audioapp/effects/DuckerParams.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -34,6 +36,7 @@ bool hasPureInputTrim(DeviceNodeKind kind) noexcept {
         case DeviceNodeKind::DeEsser:
         case DeviceNodeKind::DeHum:
         case DeviceNodeKind::DeNoise:
+        case DeviceNodeKind::Ducker:
             return true;
         default:
             return false;
@@ -81,7 +84,12 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceSlot& slot) {
         }
     };
     appendSlots(slot.noteFxDevices, tree.noteFx);
-    appendSlots(slot.audioFxDevices, tree.audioFx);
+    if (device_types::isSynthType(slot.config.typeId)) {
+        appendSlots(slot.audioFxDevices, tree.audioFx);
+    } else if (slot.config.typeId == device_types::kDucker) {
+        // Sidechain FX are nested inside DuckerParams, not track-level siblings.
+        appendSlots(slot.audioFxDevices, tree.chainChildren);
+    }
 
     if (const auto* chain = std::get_if<ChainModel>(&slot.config.instance)) {
         appendSlots(chain->devices, tree.chainChildren);
@@ -123,6 +131,14 @@ DeviceSubgraphTree buildDeviceSubgraphTree(const DeviceNodePlayback& node) {
         for (int index = 0; index < chain->playback->deviceCount; ++index) {
             tree.chainChildren.push_back(
                 buildDeviceSubgraphTree(chain->playback->devices[index]));
+        }
+    }
+    if (const auto* ducker = std::get_if<DuckerParams>(&node.params);
+        ducker != nullptr && ducker->sidechainFx != nullptr) {
+        tree.chainChildren.reserve(static_cast<size_t>(ducker->sidechainFx->deviceCount));
+        for (int index = 0; index < ducker->sidechainFx->deviceCount; ++index) {
+            tree.chainChildren.push_back(
+                buildDeviceSubgraphTree(ducker->sidechainFx->devices[index]));
         }
     }
     if (const auto* drum = std::get_if<DrumMachineParams>(&node.params);

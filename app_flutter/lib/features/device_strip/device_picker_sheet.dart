@@ -25,6 +25,8 @@ Future<String?> showVirtualFxPickerSheet(
           ('compressor', 'Compressor', 'Dynamics control', Icons.compress),
           ('expander', 'Expander', 'Downward expansion', Icons.unfold_more),
           ('limiter', 'Limiter', 'Brick-wall limiting', Icons.horizontal_rule),
+          ('ducker', 'Ducker', 'Sidechain pump', Icons.arrow_downward),
+          ('utility', 'Utility', 'Mono · polarity · swap', Icons.build_circle_outlined),
           ('filter', 'Filter', 'Multimode filtering', Icons.equalizer),
           ('four_band_eq', '4-Band EQ', 'Tone shaping', Icons.tune),
           (

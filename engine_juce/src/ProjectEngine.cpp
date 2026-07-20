@@ -1054,7 +1054,9 @@ std::string ProjectEngine::addDeviceToSynthAudioFx(const std::string& deviceId,
     const juce::ScopedWriteLock lock(mutex_);
     lastNestingError_ = {};
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) {
+    if (slot == nullptr ||
+        !(device_types::isSynthType(slot->config.typeId) ||
+          device_types::isSidechainFxHost(slot->config.typeId))) {
         lastNestingError_ = makeNestingError(NestingErrorCode::UnknownParent,
                                              "Parent device not found.", deviceId, deviceType);
         return {};
@@ -1085,7 +1087,11 @@ bool ProjectEngine::removeDeviceFromSynthAudioFx(const std::string& deviceId,
                                                    const std::string& subDeviceId) {
     const juce::ScopedWriteLock lock(mutex_);
     DeviceSlot* slot = findDeviceLocked(deviceId);
-    if (slot == nullptr || !device_types::isSynthType(slot->config.typeId)) return false;
+    if (slot == nullptr ||
+        !(device_types::isSynthType(slot->config.typeId) ||
+          device_types::isSidechainFxHost(slot->config.typeId))) {
+        return false;
+    }
     auto& devices = slot->audioFxDevices;
     const auto it = std::find_if(devices.begin(), devices.end(), [&](const auto& child) {
         return child != nullptr && child->id == subDeviceId;
@@ -1594,8 +1600,11 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
         return false;
     }
     const DeviceSlot previousDevice = *device;
-    const bool routingDevice =
-        isRoutingDeviceNodeKind(deviceNodeKindFromTypeId(device->config.typeId));
+    const auto deviceKind = deviceNodeKindFromTypeId(device->config.typeId);
+    const bool routingDevice = isRoutingDeviceNodeKind(deviceKind);
+    const bool duckerSidechain =
+        deviceKind == DeviceNodeKind::Ducker && parameterId == "sidechainSourceId";
+    const bool topologyStringEdit = routingDevice || duckerSidechain;
 
     PlaybackBuildContext context{sampleBank_};
     context.wavetableBank = wavetableBank_;
@@ -1646,7 +1655,7 @@ bool ProjectEngine::setDeviceStringParameter(const std::string& deviceId,
     // Routing source changes are topology edits, not realtime parameter
     // gestures. Publish them through the inactive playback/graph bank.
     rebuildTrackPlaybackLocked();
-    if (routingDevice) {
+    if (topologyStringEdit) {
         if (!processorGraphs_[lastBuiltProcessorGraph_].valid()) {
             *device = previousDevice;
             rebuildTrackPlaybackLocked();
@@ -4925,6 +4934,7 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
     std::array<GraphTrackDefinition, kMaxProcessorGraphTracks> definitions{};
     std::array<std::string, kMaxProcessorGraphTracks> midiInputIds{};
+    std::array<std::string, kMaxProcessorGraphTracks> trackAudioIds{};
     std::array<GraphTapDefinition, kMaxProcessorGraphTaps> tapDefinitions{};
     int tapDefinitionCount = 0;
     for (int slot = 0; slot < kMaxProcessorGraphTaps; ++slot) {
@@ -4959,6 +4969,7 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
             midiInputIds[static_cast<size_t>(trackIndex)], GraphSignalType::Midi,
             kGraphTrackMidiInput};
         int deviceIndex = 0;
+        int lastAudioDeviceIndex = -1;
         for (const auto& device : track.devices) {
             const auto kind = deviceNodeKindFromTypeId(device.config.typeId);
             if (kind == DeviceNodeKind::MidiDelay &&
@@ -4973,6 +4984,7 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
                     source.latencySamples = processor->reportedLatencySamples();
                 }
                 definition.sources[definition.sourceCount++] = source;
+                lastAudioDeviceIndex = deviceIndex;
             } else if (isRoutingDeviceNodeKind(kind) && !device.config.bypassed &&
                        definition.receiverCount < kMaxProcessorGraphReceiversPerTrack) {
                 const auto& model = std::get<RoutingModel>(device.config.instance);
@@ -4986,7 +4998,27 @@ void ProjectEngine::rebuildProcessorGraphLocked(int trackCount) {
                 receiver.feedback = kind == DeviceNodeKind::AudioReceiver && model.feedback;
                 definition.receivers[definition.receiverCount++] = receiver;
             }
+            if (kind == DeviceNodeKind::Ducker && !device.config.bypassed &&
+                definition.receiverCount < kMaxProcessorGraphReceiversPerTrack) {
+                const auto& model = std::get<DuckerModel>(device.config.instance);
+                if (!model.sidechainSourceId.empty()) {
+                    GraphReceiverDefinition receiver;
+                    receiver.sourceId = model.sidechainSourceId;
+                    receiver.signalType = GraphSignalType::Audio;
+                    receiver.deviceIndex = static_cast<uint8_t>(deviceIndex);
+                    receiver.mix = 1.0f;
+                    receiver.sidechain = true;
+                    definition.receivers[definition.receiverCount++] = receiver;
+                }
+            }
             ++deviceIndex;
+        }
+        if (lastAudioDeviceIndex >= 0 &&
+            definition.sourceCount < kMaxProcessorGraphSourcesPerTrack) {
+            trackAudioIds[static_cast<size_t>(trackIndex)] = "track-audio:" + track.id;
+            definition.sources[definition.sourceCount++] = GraphSourceDefinition{
+                trackAudioIds[static_cast<size_t>(trackIndex)], GraphSignalType::Audio,
+                static_cast<uint8_t>(lastAudioDeviceIndex)};
         }
         ++trackIndex;
     }

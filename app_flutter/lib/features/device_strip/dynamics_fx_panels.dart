@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../bridge/project_snapshot.dart';
+import '../arrangement/track_lane_icon.dart';
 import 'device_strip_metrics.dart';
+import 'device_strip_theme.dart';
 import 'device_tab_bar.dart';
 import 'dynamics_envelope_preview.dart';
 import 'panels/compact_fx_layout.dart';
 import 'rotary_knob.dart';
+import 'routing_device_panel.dart';
+import 'stereo_gain_pan_panel.dart';
 
 import 'dynamics/gate_device_tab.dart';
 import 'dynamics/compressor_device_tab.dart';
@@ -25,6 +29,8 @@ part 'dynamics/expander_device_panel.dart';
 part 'dynamics/expander_device_strip.dart';
 part 'dynamics/limiter_device_panel.dart';
 part 'dynamics/limiter_device_strip.dart';
+part 'dynamics/ducker_device_panel.dart';
+part 'dynamics/ducker_header_actions.dart';
 
 typedef DynamicsParameterChanged = void Function(
     String parameterId, double value);

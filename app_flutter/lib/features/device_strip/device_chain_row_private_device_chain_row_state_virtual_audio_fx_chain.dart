@@ -16,7 +16,9 @@ extension _DeviceChainRowStateVirtualaudiofxchain on _DeviceChainRowState {
 
     return _VirtualStripChrome(
       accent: accent,
-      title: 'FX',
+      title: DeviceCapabilities.sidechainFxHosts.contains(synth.type)
+          ? 'SC FX'
+          : 'FX',
       children: [
         ..._virtualStripChildRow(
           context,

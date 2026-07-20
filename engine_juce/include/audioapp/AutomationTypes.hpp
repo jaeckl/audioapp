@@ -441,6 +441,24 @@ enum class DeNoiseParam : uint16_t {
     Smoothing = 2,
 };
 
+enum class DuckerParam : uint16_t {
+    Threshold = 0,
+    Depth = 1,
+    Attack = 2,
+    Release = 3,
+    SidechainGain = 4,
+};
+
+enum class UtilityParam : uint16_t {
+    Mono = 0,
+    Polarity = 1,
+    Swap = 2,
+    Trim = 3,
+    Autopan = 4,
+    AutopanRate = 5,
+    AutopanDepth = 6,
+};
+
 enum class ChorusParam : uint16_t {
     ModeMorph = 0,
     ClassicRate, ClassicDepth, ClassicDelay, ClassicFeedback, ClassicPhase, ClassicShape,
@@ -531,6 +549,8 @@ enum class ParamKind : uint16_t {
     DeEsser          = 38,
     DeHum            = 39,
     DeNoise          = 40,
+    Ducker           = 41,
+    Utility          = 42,
 };
 
 constexpr uint16_t kParamKindShift      = 10;
