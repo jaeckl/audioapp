@@ -11,10 +11,12 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
     super.outputMix,
     super.outputWidth,
     required this.distDrive,
+    required this.distSym,
     required this.distTone,
   }) : super(type: 'distortion');
 
   final double distDrive;
+  final double distSym;
   final double distTone;
 
   factory DistortionDeviceSnapshot.fromMap(Map<dynamic, dynamic> map) {
@@ -29,8 +31,15 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       meterGainReductionDb:
           (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
-      distDrive: (params['drive'] as num?)?.toDouble() ?? 0.5,
-      distTone: (params['tone'] as num?)?.toDouble() ?? 0.5,
+      distDrive: (params['drive'] as num?)?.toDouble() ??
+          (params['distDrive'] as num?)?.toDouble() ??
+          0.5,
+      distSym: (params['sym'] as num?)?.toDouble() ??
+          (params['distSym'] as num?)?.toDouble() ??
+          0.5,
+      distTone: (params['tone'] as num?)?.toDouble() ??
+          (params['distTone'] as num?)?.toDouble() ??
+          0.5,
       outputMix: (outputPanel['outputMix'] as num?)?.toDouble() ??
           (params['outputMix'] as num?)?.toDouble() ??
           1.0,
@@ -52,6 +61,7 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
     double? outputMix,
     double? outputWidth,
     double? distDrive,
+    double? distSym,
     double? distTone,
   }) {
     return DistortionDeviceSnapshot(
@@ -64,6 +74,7 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       outputMix: outputMix ?? this.outputMix,
       outputWidth: outputWidth ?? this.outputWidth,
       distDrive: distDrive ?? this.distDrive,
+      distSym: distSym ?? this.distSym,
       distTone: distTone ?? this.distTone,
     );
   }
@@ -77,6 +88,7 @@ class DistortionDeviceSnapshot extends EffectDeviceSnapshot {
       'outputMix' => copyWith(outputMix: value),
       'outputWidth' => copyWith(outputWidth: value),
       'drive' || 'distDrive' => copyWith(distDrive: value),
+      'sym' || 'distSym' => copyWith(distSym: value),
       'tone' || 'distTone' => copyWith(distTone: value),
       _ => this,
     };

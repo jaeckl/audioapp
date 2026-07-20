@@ -12,13 +12,14 @@ final class DistortionDefinition extends AudioEffectDefinition {
   @override
   DevicePickerMetadata get picker => const DevicePickerMetadata(
       name: 'Distortion',
-      description: 'Tanh waveshape · drive & tone',
+      description: 'Tanh waveshape · drive, symmetry & tone',
       icon: Icons.waves,
       color: Color(0xFFE85D4B),
       category: 'Mood Effects');
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-      designWidth: 216, inputPanelWidth: 0, outputPanelWidth: 64);
+      // 3×(56+8) knobs + plate insets + dual accent stripes need >216.
+      designWidth: 224, inputPanelWidth: 0, outputPanelWidth: 64);
   @override
   DeviceSnapshot parseSnapshot(Map<dynamic, dynamic> map) =>
       DistortionDeviceSnapshot.fromMap(map);

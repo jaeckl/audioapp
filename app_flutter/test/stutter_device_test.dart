@@ -103,10 +103,12 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Hold'), findsOneWidget);
     expect(find.text('HOLD'), findsOneWidget);
     expect(find.text('Sync'), findsOneWidget);
     expect(find.text('1/4'), findsWidgets);
+    expect(find.text('SIZE'), findsOneWidget);
+    expect(find.text('POS'), findsOneWidget);
+    expect(find.text('GATE'), findsOneWidget);
 
     await tester.tap(find.text('HOLD'));
     await tester.pump();

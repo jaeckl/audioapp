@@ -3,6 +3,7 @@ part of 'mood_fx_panels.dart';
 class StutterFxStrip extends StatelessWidget {
   final StutterDeviceSnapshot device;
   final MoodFxParameterChanged onParameterChanged;
+  final StutterViewTab selectedTab;
   final Set<String> modulatedParams;
   final Set<String> automatedParams;
   final Map<String, double> modulationAmounts;
@@ -16,6 +17,7 @@ class StutterFxStrip extends StatelessWidget {
     super.key,
     required this.device,
     required this.onParameterChanged,
+    this.selectedTab = StutterViewTab.play,
     this.modulatedParams = const {},
     this.automatedParams = const {},
     this.modulationAmounts = const {},
@@ -31,6 +33,7 @@ class StutterFxStrip extends StatelessWidget {
     return StutterFxPanel(
       device: device,
       onParameterChanged: onParameterChanged,
+      selectedTab: selectedTab,
       modulatedParams: modulatedParams,
       automatedParams: automatedParams,
       modulationAmounts: modulationAmounts,

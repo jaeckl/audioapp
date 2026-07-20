@@ -4,12 +4,13 @@ extension DeviceStripSlotStateBuildstutterfxdeviceOperation
     on _DeviceStripSlotState {
   Widget _buildStutterFxDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as StutterDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Full-bleed hero — skip DeviceStripViewport letterbox (same as Filter).
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: StutterFxStrip(
         device: dev,
+        selectedTab: StutterViewTab.values[_selectedTabIndex.clamp(0, 1)],
         onParameterChanged: widget.onDeviceParameterChanged,
         modulatedParams: _modulatedParamIds,
         automatedParams: _automatedParamIds,

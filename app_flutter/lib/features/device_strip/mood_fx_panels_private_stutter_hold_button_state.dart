@@ -92,7 +92,6 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -113,29 +112,22 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
               final pulseAlpha = _pulseActive ? _pulseAnimation.value : 0.0;
               final fill = widget.active
                   ? widget.accent.withValues(alpha: 0.18)
-                  : const Color(0xFF12121A);
+                  : Colors.white.withValues(alpha: 0.04);
               final stroke = widget.active
                   ? widget.accent.withValues(alpha: 0.85)
-                  : Colors.white.withValues(alpha: 0.11);
+                  : Colors.white.withValues(alpha: 0.10);
               return SizedBox(
-                width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-                height: 50,
+                width: double.infinity,
+                height: 56,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: Color.alphaBlend(
                       widget.accent.withValues(alpha: pulseAlpha),
                       fill,
                     ),
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(color: stroke, width: 1.2),
-                    boxShadow: widget.active
-                        ? [
-                            BoxShadow(
-                              color: widget.accent.withValues(alpha: 0.14),
-                              blurRadius: 10,
-                            ),
-                          ]
-                        : null,
+                    borderRadius:
+                        BorderRadius.circular(DevicePanelTheme.sectionRadius),
+                    border: Border.all(color: stroke, width: 1),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -162,7 +154,10 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
                                   child: Text(
                                     'HOLD',
                                     maxLines: 1,
-                                    style: theme.textTheme.labelSmall?.copyWith(
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
                                       color: widget.active
                                           ? widget.accent
                                           : Colors.white54,
@@ -206,16 +201,9 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
                           child: Container(
                             width: 8,
                             height: 8,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFB48CFF),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFB48CFF),
                               shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFB48CFF)
-                                      .withValues(alpha: 0.65),
-                                  blurRadius: 5,
-                                ),
-                              ],
                             ),
                           ),
                         ),
@@ -224,15 +212,6 @@ class _StutterHoldButtonState extends State<_StutterHoldButton>
                 ),
               );
             },
-          ),
-        ),
-        const SizedBox(height: 3),
-        Text(
-          'Hold',
-          style: theme.textTheme.labelSmall?.copyWith(
-            color: Colors.white54,
-            fontSize: 10,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ],

@@ -4,26 +4,36 @@
 
 namespace audioapp {
 
+namespace {
+
+float waveshapeSample(float x, float driveGain, float bias) noexcept {
+    // Asymmetric tanh: bias shifts the operating point, then DC is removed.
+    const float wet = std::tanh((x + bias) * driveGain);
+    const float dc = std::tanh(bias * driveGain);
+    return wet - dc;
+}
+
+} // namespace
+
 void DistortionProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     auto p = std::get<DistortionParamsPlayback>(*ctx.modulatedParams);
 
     applyStereoScalarGain(block.channelL, block.channelR, block.numSamples,
                           std::clamp(p.inputGain, 0.0f, 1.0f));
 
-    float drive = std::clamp(p.drive, 0.0f, 1.0f) * 8.0f + 0.5f; // 0.5..8.5
-    float tone = std::clamp(p.tone, 0.0f, 1.0f);
-    float mix = std::clamp(p.mix, 0.0f, 1.0f);
-    float lpCoeff = std::clamp(tone * tone * 0.98f + 0.01f, 0.01f, 0.99f);
+    const float driveGain = std::clamp(p.drive, 0.0f, 1.0f) * 8.0f + 0.5f; // 0.5..8.5
+    const float tone = std::clamp(p.tone, 0.0f, 1.0f);
+    const float mix = std::clamp(p.mix, 0.0f, 1.0f);
+    const float bias = (std::clamp(p.sym, 0.0f, 1.0f) - 0.5f) * 1.2f; // ~-0.6..0.6
+    const float lpCoeff = std::clamp(tone * tone * 0.98f + 0.01f, 0.01f, 0.99f);
 
     for (int f = 0; f < block.numSamples; ++f) {
-        float dryL = block.channelL[f];
-        float dryR = block.channelR[f];
+        const float dryL = block.channelL[f];
+        const float dryR = block.channelR[f];
 
-        // Tanh waveshaping
-        float wetL = std::tanh(dryL * drive);
-        float wetR = std::tanh(dryR * drive);
+        float wetL = waveshapeSample(dryL, driveGain, bias);
+        float wetR = waveshapeSample(dryR, driveGain, bias);
 
-        // Simple one-pole low-pass for tone control
         lpStateL_ = lpStateL_ + lpCoeff * (wetL - lpStateL_);
         lpStateR_ = lpStateR_ + lpCoeff * (wetR - lpStateR_);
         wetL = lpStateL_;

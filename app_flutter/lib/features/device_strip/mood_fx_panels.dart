@@ -10,6 +10,8 @@ import 'effective_parameter_binding.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
 import 'panels/compact_fx_layout.dart';
+import 'panels/device_panel_theme.dart';
+import 'panels/filter_section_layout.dart';
 import 'panels/horizontal_group_shell.dart';
 import 'rotary_knob.dart';
 
@@ -23,14 +25,11 @@ part 'mood_fx_panels_distortion_fx_panel.dart';
 part 'mood_fx_panels_distortion_fx_strip.dart';
 part 'mood_fx_panels_tremolo_fx_panel.dart';
 part 'mood_fx_panels_tremolo_fx_strip.dart';
+part 'mood_fx_panels_stutter_view_tab.dart';
 part 'mood_fx_panels_stutter_fx_panel.dart';
 part 'mood_fx_panels_stutter_fx_strip.dart';
-part 'mood_fx_panels_private_stutter_preview_painter.dart';
-part 'mood_fx_panels_private_stutter_shape_panel.dart';
-part 'mood_fx_panels_private_stutter_rate_mode_box.dart';
-part 'mood_fx_panels_private_stutter_rate_mode_box_state.dart';
+part 'mood_fx_panels_private_stutter_direction_picker.dart';
 part 'mood_fx_panels_private_stutter_mini_toggle.dart';
-part 'mood_fx_panels_private_stutter_select_face.dart';
 part 'mood_fx_panels_private_stutter_hold_button.dart';
 part 'mood_fx_panels_private_stutter_hold_button_state.dart';
 part 'mood_fx_panels_private_stutter_mod_line.dart';
@@ -169,25 +168,6 @@ Widget _moodFxSinglePage({
 }
 
 Widget _knobGridRow(List<Widget?> slots) => compactFxKnobGridRow(slots);
-
-Widget _stutterTopRow(Widget hold, Widget rateMode) {
-  return Row(
-    mainAxisSize: MainAxisSize.min,
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(
-        width: DeviceStripMetrics.dynamicsFxKnobColumnWidth,
-        child: Align(alignment: Alignment.topCenter, child: hold),
-      ),
-      const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-      SizedBox(
-        width: DeviceStripMetrics.dynamicsFxKnobColumnWidth * 2 +
-            DeviceStripMetrics.dynamicsFxKnobGap,
-        child: rateMode,
-      ),
-    ],
-  );
-}
 
 // ─── Bitcrusher preview painter ──────────────────────────────
 
