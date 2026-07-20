@@ -21,8 +21,8 @@ class ExpanderDevicePanel extends StatelessWidget {
   static const accent = Color(0xFF9AD4E8);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// Expander — compact dynamics FX card.
-  static const double designWidth = 216;
+  /// Single timing rail + curve plate (Floor earns plate — shapes plot).
+  static const double designWidth = 340;
   final ExpanderDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final ExpanderDeviceTab? selectedTab;
@@ -39,7 +39,33 @@ class ExpanderDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _dynamicsSinglePage(
+    Widget k(
+      String label,
+      double value,
+      String paramId,
+      String display,
+    ) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: paramId,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          deviceId: device.id,
+          lfos: lfos,
+          modEdges: modEdges,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+        );
+
+    return _DynamicsRailFace(
       preview: DynamicsEnvelopePreview(
         threshold: device.expandThreshold,
         ratio: device.expandRatio,
@@ -47,108 +73,19 @@ class ExpanderDevicePanel extends StatelessWidget {
         accent: accent,
         mode: DynamicsPreviewMode.expander,
       ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Threshold',
-            value: device.expandThreshold,
-            paramId: 'expandThreshold',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsThresholdLabel(device.expandThreshold),
-          ),
-          _knob(
-            label: 'Ratio',
-            value: device.expandRatio,
-            paramId: 'expandRatio',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue:
-                dynamicsRatioLabel(device.expandRatio, expander: true),
-          ),
-          _knob(
-            label: 'Attack',
-            value: device.expandAttack,
-            paramId: 'expandAttack',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.expandAttack),
-          ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Release',
-            value: device.expandRelease,
-            paramId: 'expandRelease',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.expandRelease),
-          ),
-          _knob(
-            label: 'Floor',
-            value: device.expandRange,
-            paramId: 'expandRange',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsRangeLabel(device.expandRange),
-          ),
-          null,
-        ]),
+      left: [
+        k('Attack', device.expandAttack, 'expandAttack',
+            dynamicsTimeLabel(device.expandAttack)),
+        k('Release', device.expandRelease, 'expandRelease',
+            dynamicsTimeLabel(device.expandRelease)),
+      ],
+      plate: [
+        k('Threshold', device.expandThreshold, 'expandThreshold',
+            dynamicsThresholdLabel(device.expandThreshold)),
+        k('Ratio', device.expandRatio, 'expandRatio',
+            dynamicsRatioLabel(device.expandRatio, expander: true)),
+        k('Floor', device.expandRange, 'expandRange',
+            dynamicsRangeLabel(device.expandRange)),
       ],
     );
   }

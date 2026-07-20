@@ -21,8 +21,8 @@ class LimiterDevicePanel extends StatelessWidget {
   static const accent = Color(0xFFE85D4B);
   static const containerTabs = <DeviceTabSpec>[];
 
-  /// Limiter — compact dynamics FX card.
-  static const double designWidth = 216;
+  /// Phaser-like rails + full-bleed transfer curve.
+  static const double designWidth = 424;
   final LimiterDeviceSnapshot device;
   final DynamicsParameterChanged onParameterChanged;
   final LimiterDeviceTab? selectedTab;
@@ -39,7 +39,33 @@ class LimiterDevicePanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _dynamicsSinglePage(
+    Widget k(
+      String label,
+      double value,
+      String paramId,
+      String display,
+    ) =>
+        _knob(
+          label: label,
+          value: value,
+          paramId: paramId,
+          accent: accent,
+          onParameterChanged: onParameterChanged,
+          modulatedParams: modulatedParams,
+          automatedParams: automatedParams,
+          modulationAmounts: modulationAmounts,
+          connectModeLfoId: connectModeLfoId,
+          deviceId: device.id,
+          lfos: lfos,
+          modEdges: modEdges,
+          onModulationAssign: onModulationAssign,
+          automationLinkActive: automationLinkActive,
+          onAutomationLinkTap: onAutomationLinkTap,
+          onAutomateParameter: onAutomateParameter,
+          displayValue: display,
+        );
+
+    return _DynamicsRailFace(
       preview: DynamicsEnvelopePreview(
         threshold: device.limitCeiling,
         ceiling: device.limitCeiling,
@@ -49,125 +75,23 @@ class LimiterDevicePanel extends StatelessWidget {
         accent: accent,
         mode: DynamicsPreviewMode.limiter,
       ),
-      rows: [
-        _knobGridRow([
-          _knob(
-            label: 'Ceiling',
-            value: device.limitCeiling,
-            paramId: 'limitCeiling',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsCeilingLabel(device.limitCeiling),
-          ),
-          _knob(
-            label: 'Attack',
-            value: device.limitAttack,
-            paramId: 'limitAttack',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.limitAttack),
-          ),
-          _knob(
-            label: 'Release',
-            value: device.limitRelease,
-            paramId: 'limitRelease',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsTimeLabel(device.limitRelease),
-          ),
-        ]),
-        _knobGridRow([
-          _knob(
-            label: 'Knee',
-            value: device.limitKnee,
-            paramId: 'limitKnee',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: '${(device.limitKnee * 12).round()} dB',
-          ),
-          _knob(
-            label: 'Drive',
-            value: device.limitDrive,
-            paramId: 'limitDrive',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsDriveLabel(device.limitDrive),
-          ),
-          _knob(
-            label: 'Makeup',
-            value: device.limitMakeup,
-            paramId: 'limitMakeup',
-            accent: accent,
-            onParameterChanged: onParameterChanged,
-            modulatedParams: modulatedParams,
-            automatedParams: automatedParams,
-            modulationAmounts: modulationAmounts,
-            connectModeLfoId: connectModeLfoId,
-            deviceId: device.id,
-            lfos: lfos,
-            modEdges: modEdges,
-            onModulationAssign: onModulationAssign,
-            automationLinkActive: automationLinkActive,
-            onAutomationLinkTap: onAutomationLinkTap,
-            onAutomateParameter: onAutomateParameter,
-            displayValue: dynamicsMakeupLabel(device.limitMakeup),
-          ),
-        ]),
+      left: [
+        k('Attack', device.limitAttack, 'limitAttack',
+            dynamicsTimeLabel(device.limitAttack)),
+        k('Release', device.limitRelease, 'limitRelease',
+            dynamicsTimeLabel(device.limitRelease)),
+      ],
+      plate: [
+        k('Ceiling', device.limitCeiling, 'limitCeiling',
+            dynamicsCeilingLabel(device.limitCeiling)),
+        k('Drive', device.limitDrive, 'limitDrive',
+            dynamicsDriveLabel(device.limitDrive)),
+      ],
+      right: [
+        k('Knee', device.limitKnee, 'limitKnee',
+            '${(device.limitKnee * 12).round()} dB'),
+        k('Makeup', device.limitMakeup, 'limitMakeup',
+            dynamicsMakeupLabel(device.limitMakeup)),
       ],
     );
   }
