@@ -630,8 +630,10 @@ uint16_t paramIdFromString(const char* name, DeviceNodeKind kind) noexcept {
                 ? packParamId(ParamKind::Utility, static_cast<uint16_t>(pid))
                 : 0;
         };
-        if (auto v = p("utilMono", UtilityParam::Mono)) return v;
-        if (auto v = p("utilPolarity", UtilityParam::Polarity)) return v;
+        if (auto v = p("utilWidth", UtilityParam::Width)) return v;
+        if (auto v = p("utilMono", UtilityParam::Width)) return v; // legacy
+        if (auto v = p("utilInvertL", UtilityParam::InvertL)) return v;
+        if (auto v = p("utilInvertR", UtilityParam::InvertR)) return v;
         if (auto v = p("utilSwap", UtilityParam::Swap)) return v;
         if (auto v = p("utilTrim", UtilityParam::Trim)) return v;
         if (auto v = p("utilAutopan", UtilityParam::Autopan)) return v;
@@ -1028,8 +1030,9 @@ const char* paramIdToString(uint16_t localParamId, DeviceNodeKind kind) noexcept
     }
     case DeviceNodeKind::Utility: {
         switch (static_cast<UtilityParam>(rawId)) {
-        case UtilityParam::Mono: return "utilMono";
-        case UtilityParam::Polarity: return "utilPolarity";
+        case UtilityParam::Width: return "utilWidth";
+        case UtilityParam::InvertL: return "utilInvertL";
+        case UtilityParam::InvertR: return "utilInvertR";
         case UtilityParam::Swap: return "utilSwap";
         case UtilityParam::Trim: return "utilTrim";
         case UtilityParam::Autopan: return "utilAutopan";
@@ -1751,8 +1754,9 @@ void applyAutomationValue(DeviceVariantParams& params,
     case ParamKind::Utility:
         if (auto* p = std::get_if<UtilityParams>(&params)) {
             switch (static_cast<UtilityParam>(rawId)) {
-            case UtilityParam::Mono: p->utilMono = value; break;
-            case UtilityParam::Polarity: p->utilPolarity = value; break;
+            case UtilityParam::Width: p->utilWidth = value; break;
+            case UtilityParam::InvertL: p->utilInvertL = value; break;
+            case UtilityParam::InvertR: p->utilInvertR = value; break;
             case UtilityParam::Swap: p->utilSwap = value; break;
             case UtilityParam::Trim: p->utilTrim = value; break;
             case UtilityParam::Autopan: p->utilAutopan = value; break;

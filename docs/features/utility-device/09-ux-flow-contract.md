@@ -2,9 +2,9 @@
 
 Compact single-page card (`designWidth` ~200).
 
-- Toggles: Mono, Swap, Autopan
-- Combobox: Polarity Off | L | R | Both
-- Knobs: Trim (always); Rate + Depth when Autopan on
-- Output chrome: empty or stereo gain+pan (prefer empty — trim is body)
+- Face buttons (Bitwig Tool-style): **L−** | **Swap L/R** | **R−**
+- Autopan on/off button; Rate + Depth knobs when on
+- Knobs: Width (0=mono … 100%=stereo), Trim
+- Output chrome: empty (trim is body)
 
 No sidechain picker.
