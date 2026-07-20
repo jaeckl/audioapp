@@ -12,6 +12,7 @@
 #include "audioapp/PhaseModSynthAlgorithm.hpp"
 #include "audioapp/WavetableSynthAlgorithm.hpp"
 #include "audioapp/GranularAlgorithm.hpp"
+#include "audioapp/FrequencyFxProcessor.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1906,6 +1907,83 @@ void applyAutomationValue(DeviceVariantParams& params,
             case PhaserParam::PhaseOffset: p->phaseOffset = value; break;
             case PhaserParam::StereoPhase: p->stereoPhase = value; break;
             case PhaserParam::Stages: p->stages = 2.0f + std::round(value * 10.0f); break;
+            }
+        }
+        break;
+    case ParamKind::Filter:
+        if (auto* p = std::get_if<FilterParams>(&params)) {
+            switch (static_cast<FilterParam>(rawId)) {
+            case FilterParam::Cutoff:
+                p->cutoffHz = normalizedToFrequency(value);
+                break;
+            case FilterParam::Resonance:
+                p->resonance = normalizedToQ(value);
+                break;
+            case FilterParam::Mode:
+                p->filterMode = std::clamp(
+                    static_cast<int>(std::lround(value * 3.0f)), 0, 3);
+                break;
+            }
+        }
+        break;
+    case ParamKind::FourBandEq:
+        if (auto* p = std::get_if<FourBandEqParams>(&params)) {
+            switch (static_cast<FourBandEqParam>(rawId)) {
+            case FourBandEqParam::Band1Freq:
+                p->bands[0].frequencyHz = normalizedToFrequency(value); break;
+            case FourBandEqParam::Band1Gain:
+                p->bands[0].gainDb = normalizedToDb(value); break;
+            case FourBandEqParam::Band1Q:
+                p->bands[0].q = normalizedToQ(value); break;
+            case FourBandEqParam::Band2Freq:
+                p->bands[1].frequencyHz = normalizedToFrequency(value); break;
+            case FourBandEqParam::Band2Gain:
+                p->bands[1].gainDb = normalizedToDb(value); break;
+            case FourBandEqParam::Band2Q:
+                p->bands[1].q = normalizedToQ(value); break;
+            case FourBandEqParam::Band3Freq:
+                p->bands[2].frequencyHz = normalizedToFrequency(value); break;
+            case FourBandEqParam::Band3Gain:
+                p->bands[2].gainDb = normalizedToDb(value); break;
+            case FourBandEqParam::Band3Q:
+                p->bands[2].q = normalizedToQ(value); break;
+            case FourBandEqParam::Band4Freq:
+                p->bands[3].frequencyHz = normalizedToFrequency(value); break;
+            case FourBandEqParam::Band4Gain:
+                p->bands[3].gainDb = normalizedToDb(value); break;
+            case FourBandEqParam::Band4Q:
+                p->bands[3].q = normalizedToQ(value); break;
+            }
+        }
+        break;
+    case ParamKind::FrequencyShifter:
+        if (auto* p = std::get_if<FrequencyShifterParams>(&params)) {
+            switch (static_cast<FrequencyShifterParam>(rawId)) {
+            case FrequencyShifterParam::Shift: {
+                // Combined shiftHz = coarse + fine. Preserve fine in ±50 Hz.
+                const float fine = std::clamp(
+                    p->shiftHz - std::round(p->shiftHz / 50.0f) * 50.0f,
+                    -50.0f, 50.0f);
+                p->shiftHz = (value - 0.5f) * 4000.0f + fine;
+                break;
+            }
+            case FrequencyShifterParam::Fine: {
+                const float fine = std::clamp(
+                    p->shiftHz - std::round(p->shiftHz / 50.0f) * 50.0f,
+                    -50.0f, 50.0f);
+                const float coarse = p->shiftHz - fine;
+                p->shiftHz = coarse + (value - 0.5f) * 100.0f;
+                break;
+            }
+            case FrequencyShifterParam::Mix:
+                p->mix = std::clamp(value, 0.0f, 1.0f);
+                break;
+            case FrequencyShifterParam::Tone:
+                p->tone = std::clamp(value, 0.0f, 1.0f);
+                break;
+            case FrequencyShifterParam::Feedback:
+                p->feedback = std::clamp(value, 0.0f, 1.0f);
+                break;
             }
         }
         break;
