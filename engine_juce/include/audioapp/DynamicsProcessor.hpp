@@ -13,11 +13,14 @@ struct DynamicsRuntime {
 struct GateParams {
     float gain = 1.0f;
     float inputGain = 1.0f;
-    float gateThreshold = 0.45f;
+    // Lower default threshold so typical track levels open the gate
+    // (−60 + 0.28*54 ≈ −45 dB) instead of sitting closed at −36 dB floor −80.
+    float gateThreshold = 0.28f;
     float gateAttack = 0.25f;
     float gateRelease = 0.50f;
     float gateHold = 0.20f;
-    float gateRange = 0.0f;
+    // Floor ≈ −56 dB when closed (still strong mute, not total digital zero).
+    float gateRange = 0.30f;
 };
 
 void processGateStereoBlock(float* trackLeft,

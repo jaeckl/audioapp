@@ -40,9 +40,11 @@ class DynamicsOutputPanel extends StatelessWidget {
   final bool audioFxExpanded;
   final VoidCallback? onToggleAudioFx;
 
+  /// Engine publishes gain reduction as ≤0 dB (and Gate publishes open-gain
+  /// the same way when closed). Meter needs magnitude.
   static double gainReductionMeterLevel(double db) {
     const maxDb = 24.0;
-    return (db / maxDb).clamp(0.0, 1.0);
+    return (db.abs() / maxDb).clamp(0.0, 1.0);
   }
 
   @override

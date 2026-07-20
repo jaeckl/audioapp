@@ -220,11 +220,11 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
             };
             GateParams inst;
             inst.inputGain = readFloat(p, "inputGain", 1.0f);
-            inst.gateThreshold = readFloat(p, "gateThreshold", 0.45f);
+            inst.gateThreshold = readFloat(p, "gateThreshold", 0.28f);
             inst.gateAttack = readFloat(p, "gateAttack", 0.25f);
             inst.gateRelease = readFloat(p, "gateRelease", 0.50f);
             inst.gateHold = readFloat(p, "gateHold", 0.20f);
-            inst.gateRange = readFloat(p, "gateRange", 0.0f);
+            inst.gateRange = readFloat(p, "gateRange", 0.30f);
             slot.config.instance = inst;
         }
     }
@@ -266,11 +266,11 @@ std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcep
 std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
         {static_cast<uint16_t>(GateParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.28f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Attack), "gateAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Release), "gateRelease", "Release", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Hold), "gateHold", "Hold", 0.20f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(GateParam::Range), "gateRange", "Range", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Range), "gateRange", "Range", 0.30f, 0.0f, 1.0f, true, true},
     };
     return kParams;
 }
