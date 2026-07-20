@@ -1,6 +1,6 @@
-part of 'mood_fx_panels.dart';
+part of 'horizontal_group_shell.dart';
 
-class _HorizontalGroupShellState extends State<_HorizontalGroupShell>
+class _HorizontalGroupShellState extends State<HorizontalGroupShell>
     with SingleTickerProviderStateMixin {
   late final AnimationController _pulseController;
   late final Animation<double> _pulse;
@@ -20,7 +20,7 @@ class _HorizontalGroupShellState extends State<_HorizontalGroupShell>
   }
 
   @override
-  void didUpdateWidget(covariant _HorizontalGroupShell oldWidget) {
+  void didUpdateWidget(covariant HorizontalGroupShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     final wasLinking = oldWidget.connectModeActive || oldWidget.linkModeActive;
     if (_linking && !wasLinking) {
@@ -92,11 +92,14 @@ class _HorizontalGroupShellState extends State<_HorizontalGroupShell>
                   color: _linking
                       ? pulseColor.withValues(alpha: _pulse.value)
                       : Colors.transparent,
-                  borderRadius: BorderRadius.circular(5),
-                  border: Border.all(
-                      color: _linking
-                          ? pulseColor.withValues(alpha: .7)
-                          : Colors.white.withValues(alpha: .08)),
+                  borderRadius:
+                      widget.flat ? BorderRadius.zero : BorderRadius.circular(5),
+                  border: _linking
+                      ? Border.all(color: pulseColor.withValues(alpha: .7))
+                      : widget.flat
+                          ? null
+                          : Border.all(
+                              color: Colors.white.withValues(alpha: .08)),
                 ),
                 child: child,
               ),

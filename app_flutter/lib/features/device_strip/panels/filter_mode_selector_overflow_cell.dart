@@ -18,23 +18,33 @@ class _OverflowCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Material(
-        color: active ? accent.withValues(alpha: 0.18) : Colors.transparent,
-        child: PopupMenuButton<int>(
-          padding: EdgeInsets.zero,
-          tooltip: 'More filter modes',
-          onSelected: onSelected,
-          itemBuilder: (context) => [
-            for (final option in options)
-              PopupMenuItem<int>(
-                value: option.index,
-                height: 32,
-                child: Text(
-                  option.label,
-                  style: const TextStyle(fontSize: 11),
-                ),
+      child: PopupMenuButton<int>(
+        padding: EdgeInsets.zero,
+        tooltip: 'More filter modes',
+        onSelected: onSelected,
+        itemBuilder: (context) => [
+          for (final option in options)
+            PopupMenuItem<int>(
+              value: option.index,
+              height: 32,
+              child: Text(
+                option.label,
+                style: const TextStyle(fontSize: 11),
               ),
-          ],
+            ),
+        ],
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: active
+                ? accent.withValues(alpha: 0.22)
+                : const Color(0xFF222229),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(
+              color: active
+                  ? accent.withValues(alpha: 0.55)
+                  : const Color(0xFF3A3A48),
+            ),
+          ),
           child: Center(
             child: Text(
               label,

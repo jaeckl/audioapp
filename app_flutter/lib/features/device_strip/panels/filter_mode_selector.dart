@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'device_panel_theme.dart';
 import 'filter_mode_icons.dart';
+import 'horizontal_group_shell.dart';
 import '../effective_parameter_binding.dart';
 
 part 'filter_mode_selector_filter_mode_primary_option.dart';
@@ -10,9 +11,8 @@ part 'filter_mode_selector_filter_mode_selector_layout.dart';
 part 'filter_mode_selector_mode_cell.dart';
 part 'filter_mode_selector_overflow_cell.dart';
 
-/// Maps an engine mode index to a curve icon in the mode row.
-/// Extra filter modes shown in a popup (e.g. Subtractive FB / LP 24).
 /// Unified filter mode picker — curve icons + optional overflow menu.
+/// Wrapped in [HorizontalGroupShell] for automation / modulation connect.
 class FilterModeSelector extends StatelessWidget {
   const FilterModeSelector({
     super.key,
@@ -26,6 +26,13 @@ class FilterModeSelector extends StatelessWidget {
     this.modulated = false,
     this.automated = false,
     this.parameterId,
+    this.embeddedInWell = false,
+    this.modulationAmount = 0.0,
+    this.connectModeActive = false,
+    this.linkModeActive = false,
+    this.onModulationAssign,
+    this.onLinkTap,
+    this.onAutomateRequest,
   });
 
   final int selectedIndex;
@@ -38,6 +45,13 @@ class FilterModeSelector extends StatelessWidget {
   final bool modulated;
   final bool automated;
   final String? parameterId;
+  final bool embeddedInWell;
+  final double modulationAmount;
+  final bool connectModeActive;
+  final bool linkModeActive;
+  final ValueChanged<double>? onModulationAssign;
+  final VoidCallback? onLinkTap;
+  final VoidCallback? onAutomateRequest;
 
   static const _defaultPrimaryOptions = <FilterModePrimaryOption>[
     FilterModePrimaryOption(index: 0, curve: FilterCurveMode.lowPass),
@@ -84,50 +98,122 @@ class FilterModeSelector extends StatelessWidget {
       );
     }
 
-    final borderColor = modulated || automated
-        ? accentColor.withValues(alpha: 0.7)
-        : Colors.white.withValues(alpha: 0.08);
+    final showLabels =
+        _rowOptions.any((o) => o.label != null && o.label!.isNotEmpty);
+    final iconSize = (height - 6).clamp(14.0, 24.0);
+    final stroke = (iconSize * 0.08).clamp(1.3, 2.0);
 
-    return Container(
-      height: height,
-      decoration: DevicePanelTheme.sectionDecoration(borderColor: borderColor),
-      child: Row(
-        children: [
-          for (var i = 0; i < _rowOptions.length; i++) ...[
-            Expanded(
-              child: _ModeCell(
+    final row = Row(
+      children: [
+        for (var i = 0; i < _rowOptions.length; i++) ...[
+          if (i > 0 && !embeddedInWell) const SizedBox(width: 4),
+          Expanded(
+            child: _ModeCell(
+              selected: !_overflowActiveFor(liveSelectedIndex) &&
+                  liveSelectedIndex == _rowOptions[i].index,
+              accent: accentColor,
+              flush: embeddedInWell,
+              onTap: () => onSelected(_rowOptions[i].index),
+              child: _modeContent(
+                option: _rowOptions[i],
                 selected: !_overflowActiveFor(liveSelectedIndex) &&
                     liveSelectedIndex == _rowOptions[i].index,
-                accent: accentColor,
-                onTap: () => onSelected(_rowOptions[i].index),
-                child: CustomPaint(
-                  size: Size.square(height - 6),
-                  painter: FilterCurveIconPainter(
-                    mode: _rowOptions[i].curve,
-                    color: (!_overflowActiveFor(liveSelectedIndex) &&
-                            liveSelectedIndex == _rowOptions[i].index)
-                        ? accentColor
-                        : Colors.white.withValues(alpha: 0.38),
-                    strokeWidth: ((height - 6) * 0.05).clamp(1.4, 2.2),
-                  ),
-                ),
+                showLabel: showLabels,
+                iconSize: iconSize,
+                stroke: stroke,
               ),
             ),
-            if (i < _rowOptions.length - 1)
-              Container(width: 1, color: Colors.white.withValues(alpha: 0.06)),
-          ],
-          if (overflowOptions.isNotEmpty) ...[
-            Container(width: 1, color: Colors.white.withValues(alpha: 0.06)),
-            _OverflowCell(
-              accent: accentColor,
-              active: _overflowActiveFor(liveSelectedIndex),
-              label: _activeOverflowFor(liveSelectedIndex)?.label ?? '···',
-              options: overflowOptions,
-              onSelected: onSelected,
-            ),
-          ],
+          ),
         ],
+        if (overflowOptions.isNotEmpty) ...[
+          const SizedBox(width: 4),
+          _OverflowCell(
+            accent: accentColor,
+            active: _overflowActiveFor(liveSelectedIndex),
+            label: _activeOverflowFor(liveSelectedIndex)?.label ?? '···',
+            options: overflowOptions,
+            onSelected: onSelected,
+          ),
+        ],
+      ],
+    );
+
+    final maxValue = _maxIndex > 0 ? _maxIndex.toDouble() : 1.0;
+    final shellChild = embeddedInWell
+        ? row
+        : ClipRRect(
+            borderRadius: BorderRadius.circular(5),
+            child: row,
+          );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+            ? constraints.maxWidth
+            : 200.0;
+        return HorizontalGroupShell(
+          width: width,
+          height: height,
+          value: liveSelectedIndex.toDouble().clamp(0.0, maxValue),
+          maxValue: maxValue,
+          accent: accentColor,
+          flat: embeddedInWell,
+          modulationActive: modulated,
+          modulationAmount: modulationAmount,
+          automationActive: automated,
+          connectModeActive: connectModeActive,
+          linkModeActive: linkModeActive,
+          onModulationAssign: onModulationAssign,
+          onLinkTap: onLinkTap,
+          onAutomateRequest: onAutomateRequest,
+          child: embeddedInWell
+              ? shellChild
+              : Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: shellChild,
+                ),
+        );
+      },
+    );
+  }
+
+  Widget _modeContent({
+    required FilterModePrimaryOption option,
+    required bool selected,
+    required bool showLabel,
+    required double iconSize,
+    required double stroke,
+  }) {
+    final color = selected
+        ? accentColor
+        : Colors.white.withValues(alpha: showLabel ? 0.55 : 0.46);
+    final icon = CustomPaint(
+      size: Size.square(iconSize),
+      painter: FilterCurveIconPainter(
+        mode: option.curve,
+        color: color,
+        strokeWidth: stroke,
       ),
+    );
+    final label = option.label;
+    if (!showLabel || label == null || label.isEmpty) return icon;
+
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        icon,
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 7,
+            fontWeight: FontWeight.w700,
+            height: 1,
+            letterSpacing: 0.4,
+          ),
+        ),
+      ],
     );
   }
 

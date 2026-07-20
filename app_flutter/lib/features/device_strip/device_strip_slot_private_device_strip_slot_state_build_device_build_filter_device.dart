@@ -4,10 +4,12 @@ extension DeviceStripSlotStateBuildfilterdeviceOperation
     on _DeviceStripSlotState {
   Widget _buildFilterDevice(BuildContext context, double contentHeight) {
     final dev = widget.device as FilterDeviceSnapshot;
-    return DeviceStripViewport(
-      shrinkWrap: true,
-      designWidth: _cardWidth,
-      designHeight: contentHeight,
+    // Fill the card body edge-to-edge (no FittedBox letterbox). Black hero
+    // must reach the bottom of the device — DeviceStripViewport+contain was
+    // leaving chassis-colored gap under the scaled face.
+    return SizedBox(
+      width: _cardWidth,
+      height: contentHeight,
       child: FilterDeviceStrip(
         device: dev,
         onParameterChanged: widget.onDeviceParameterChanged,

@@ -43,7 +43,7 @@ class BitcrusherHeaderActions extends StatelessWidget {
           active: automatedParams.contains('bcMode'),
           builder: (context, liveValue) {
             final selected = (liveValue * 3).round().clamp(0, 3);
-            return _HorizontalGroupShell(
+            return HorizontalGroupShell(
               width: 210,
               height: 32,
               value: selected.toDouble(),

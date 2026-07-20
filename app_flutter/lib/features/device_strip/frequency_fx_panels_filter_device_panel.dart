@@ -40,8 +40,7 @@ class FilterDevicePanel extends StatelessWidget {
     final modeNorm = device.ffxFilterMode.clamp(0.0, 1.0);
     final cutoffHz = _normalizedToFrequency(cutoffNorm);
     final q = _normalizedToQ(resNorm);
-    // 4 modes quantised onto [0,1] at 0.125 / 0.375 / 0.625 / 0.875.
-    final modeIndex = (modeNorm * 4.0).round().clamp(0, 3);
+    final modeIndex = FilterFxModeNorm.indexFrom(modeNorm);
     return FilterSectionLayout(
       preview: EffectiveParameterValuesBuilder(
         fallbackValues: {
@@ -54,61 +53,72 @@ class FilterDevicePanel extends StatelessWidget {
           cutoffHz: _normalizedToFrequency(values['ffxCutoff']!),
           q: _normalizedToQ(values['ffxResonance']!),
           mode: FilterPreviewMode
-              .values[(values['ffxFilterMode']! * 4).round().clamp(0, 3)],
+              .values[FilterFxModeNorm.indexFrom(values['ffxFilterMode']!)],
           accent: accent,
         ),
       ),
       modeSelector: FilterModeSelector(
         selectedIndex: modeIndex,
         accentColor: accent,
+        embeddedInWell: true,
         modulated: modulatedParams.contains('ffxFilterMode'),
         automated: automatedParams.contains('ffxFilterMode'),
         parameterId: 'ffxFilterMode',
+        modulationAmount: modulationAmounts['ffxFilterMode'] ?? 0.0,
+        connectModeActive: connectModeLfoId != null,
+        linkModeActive: automationLinkActive,
+        onModulationAssign: onModulationAssign == null
+            ? null
+            : (amount) => onModulationAssign!('ffxFilterMode', amount),
+        onLinkTap: onAutomationLinkTap == null
+            ? null
+            : () => onAutomationLinkTap!('ffxFilterMode'),
+        onAutomateRequest: onAutomateParameter == null
+            ? null
+            : () => onAutomateParameter!('ffxFilterMode'),
         onSelected: (index) => onParameterChanged(
           'ffxFilterMode',
           FilterFxModeNorm.values[index],
         ),
       ),
-      controls: Center(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _knob(
-              label: 'Cutoff',
-              value: cutoffNorm,
-              paramId: 'ffxCutoff',
-              accent: accent,
-              onParameterChanged: onParameterChanged,
-              modulatedParams: modulatedParams,
-              automatedParams: automatedParams,
-              modulationAmounts: modulationAmounts,
-              connectModeLfoId: connectModeLfoId,
-              onModulationAssign: onModulationAssign,
-              automationLinkActive: automationLinkActive,
-              onAutomationLinkTap: onAutomationLinkTap,
-              onAutomateParameter: onAutomateParameter,
-              displayValue: _formatHz(cutoffHz),
-            ),
-            const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
-            _knob(
-              label: 'Resonance',
-              value: resNorm,
-              paramId: 'ffxResonance',
-              accent: accent,
-              onParameterChanged: onParameterChanged,
-              modulatedParams: modulatedParams,
-              automatedParams: automatedParams,
-              modulationAmounts: modulationAmounts,
-              connectModeLfoId: connectModeLfoId,
-              onModulationAssign: onModulationAssign,
-              automationLinkActive: automationLinkActive,
-              onAutomationLinkTap: onAutomationLinkTap,
-              onAutomateParameter: onAutomateParameter,
-              displayValue: _formatQ(q),
-            ),
-          ],
-        ),
+      controls: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _knob(
+            label: 'CUTOFF',
+            value: cutoffNorm,
+            paramId: 'ffxCutoff',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: _formatHz(cutoffHz),
+          ),
+          const SizedBox(width: DeviceStripMetrics.dynamicsFxKnobGap),
+          _knob(
+            label: 'RES',
+            value: resNorm,
+            paramId: 'ffxResonance',
+            accent: accent,
+            onParameterChanged: onParameterChanged,
+            modulatedParams: modulatedParams,
+            automatedParams: automatedParams,
+            modulationAmounts: modulationAmounts,
+            connectModeLfoId: connectModeLfoId,
+            onModulationAssign: onModulationAssign,
+            automationLinkActive: automationLinkActive,
+            onAutomationLinkTap: onAutomationLinkTap,
+            onAutomateParameter: onAutomateParameter,
+            displayValue: 'Q ${_formatQ(q)}',
+          ),
+        ],
       ),
     );
   }

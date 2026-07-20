@@ -56,7 +56,10 @@ class DeviceStripCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final accent = DeviceStripTheme.accentForDeviceType(deviceType);
-    final label = DeviceStripTheme.labelForDeviceType(deviceType);
+    // Filter: tool rail already shows name; keep blank header strip for chrome.
+    final label = deviceType == 'filter'
+        ? ''
+        : DeviceStripTheme.labelForDeviceType(deviceType);
     final radius = const Radius.circular(DeviceStripTheme.cardRadius);
 
     const borderSide = BorderSide(
@@ -118,7 +121,34 @@ class DeviceStripCard extends StatelessWidget {
                         ),
                       SizedBox(
                         height: bodyHeight,
-                        child: child,
+                        // Soft cast from header onto the face (body paints
+                        // after header, so shadow lives here, not on header).
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            child,
+                            const Positioned(
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              height: 5,
+                              child: IgnorePointer(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0x73000000),
+                                        Color(0x00000000),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
