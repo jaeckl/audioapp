@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../../bridge/device_snapshot.dart';
 import 'device_knob_sizes.dart';
-import 'device_automation_spinner.dart';
 import 'effective_parameter_binding.dart';
 import 'device_strip_metrics.dart';
 import 'device_tab_bar.dart';
@@ -16,9 +15,10 @@ import 'panels/horizontal_group_shell.dart';
 import 'rotary_knob.dart';
 
 part 'mood_fx_panels_private_bitcrusher_preview_painter.dart';
+part 'mood_fx_panels_private_bitcrusher_mode_row.dart';
+part 'mood_fx_panels_private_bitcrusher_shape_row.dart';
 part 'mood_fx_panels_private_distortion_preview_painter.dart';
 part 'mood_fx_panels_private_tremolo_preview_painter.dart';
-part 'mood_fx_panels_bitcrusher_header_actions.dart';
 part 'mood_fx_panels_bitcrusher_fx_panel.dart';
 part 'mood_fx_panels_bitcrusher_fx_strip.dart';
 part 'mood_fx_panels_distortion_fx_panel.dart';
