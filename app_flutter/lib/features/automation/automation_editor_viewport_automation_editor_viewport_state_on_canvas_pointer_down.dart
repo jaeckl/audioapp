@@ -8,6 +8,7 @@ extension _AutomationEditorViewportStateOncanvaspointerdown
     if (_canvasPointers.length == 2) {
       _pinchStartSpanX = _canvasPointerSpanX();
       _pinchStartSpanY = _canvasPointerSpanY();
+      _pinchStartFocal = _canvasFocalPoint();
       _pinchZoomAxis = _resolvePinchAxis(_pinchStartSpanX!, _pinchStartSpanY!);
       _pinchStartPpb = _pixelsPerBeat;
       _pinchStartValueH = _valueAxisHeight;

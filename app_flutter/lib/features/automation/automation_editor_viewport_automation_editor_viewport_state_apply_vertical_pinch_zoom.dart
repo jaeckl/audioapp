@@ -8,7 +8,7 @@ extension _AutomationEditorViewportStateApplyverticalpinchzoom
       _canvasViewportHeight,
     );
 
-    if ((newValueH - _valueAxisHeight).abs() < 0.15) {
+    if ((newValueH - _valueAxisHeight).abs() < 0.05) {
       return;
     }
 

@@ -7,6 +7,7 @@ extension _PianoRollViewportStateOncanvaspointerdown on PianoRollViewportState {
     if (_canvasPointers.length == 2) {
       _pinchStartSpanX = _canvasPointerSpanX();
       _pinchStartSpanY = _canvasPointerSpanY();
+      _pinchStartFocal = _canvasFocalPoint();
       _pinchZoomAxis = _resolvePinchAxis(_pinchStartSpanX!, _pinchStartSpanY!);
       _pinchStartPpb = _pixelsPerBeat;
       _pinchStartRowH = _rowHeight;

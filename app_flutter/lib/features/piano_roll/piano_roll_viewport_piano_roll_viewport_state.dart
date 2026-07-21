@@ -15,6 +15,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   final Map<int, Offset> _canvasPointers = {};
   double? _pinchStartSpanX;
   double? _pinchStartSpanY;
+  Offset? _pinchStartFocal;
   _PinchZoomAxis? _pinchZoomAxis;
 
   double _pixelsPerBeat = PianoRollMetrics.pixelsPerBeat;

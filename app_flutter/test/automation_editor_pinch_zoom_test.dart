@@ -157,7 +157,7 @@ void main() {
   );
 
   testWidgets(
-    'horizontal pinch is clamped at maxPixelsPerBeat (96)',
+    'horizontal pinch is clamped at maxPixelsPerBeat (${PianoRollMetrics.maxPixelsPerBeat})',
     (tester) async {
       await _pumpViewport(tester, bodyHeight: 400);
       final canvas = _findCanvas(tester);
@@ -181,8 +181,7 @@ void main() {
       }
 
       final after = tester.getSize(canvas);
-      // Width must grow but cannot exceed virtualLengthBeats *
-      // maxPixelsPerBeat = 32 * 96 = 3072.
+      // Width must grow but cannot exceed virtualLengthBeats * maxPixelsPerBeat.
       expect(after.width, greaterThan(before.width));
       expect(
         after.width,
