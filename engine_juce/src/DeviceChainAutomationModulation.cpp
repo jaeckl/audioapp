@@ -1,6 +1,7 @@
 #include "audioapp/DeviceChainAutomationModulation.hpp"
 
 #include "audioapp/AutomationPlayback.hpp"
+#include "audioapp/DeviceSubgraph.hpp"
 #include "audioapp/MasterMix.hpp"
 #include "audioapp/MidiUtils.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
@@ -488,7 +489,10 @@ DeviceVariantParams dspParamsAtFrame(const DeviceNodePlayback& node,
                                      const ModulationEdgePlayback* modEdges,
                                      int modEdgeCount) {
     auto params = node.params;
-    applyDspAutomationAtBeat(params, node.kind, static_cast<uint16_t>(deviceIndex), beat,
+    const uint64_t nodeId = stableDeviceSubgraphNodeId(
+        node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+    applyDspAutomationAtBeat(params, node.kind, nodeId,
+                             static_cast<uint16_t>(deviceIndex), beat,
                              automationClips, automationClipCount);
     applyDspModulationAtFrame(params, node.kind, lfoFrame, framesToProcess,
                               lfoValues, lfoCount, modEdges, modEdgeCount);
@@ -532,8 +536,14 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
                                     const AutomationClipPlayback* clips,
                                     int clipCount) noexcept {
     if (clips == nullptr || clipCount <= 0) return false;
+    const uint64_t nodeId = stableDeviceSubgraphNodeId(
+        node.deviceId, DeviceSubgraphNodeRole::DeviceProcessor);
+    const auto processorIndex = static_cast<uint16_t>(deviceIndex);
     for (int a = 0; a < clipCount; ++a) {
-        if (clips[a].deviceIndex != static_cast<uint16_t>(deviceIndex)) continue;
+        if (!playbackTargetMatches(clips[a].targetNodeId, clips[a].deviceIndex,
+                                   nodeId, processorIndex)) {
+            continue;
+        }
         const uint16_t pid = clips[a].localParamId;
         if (pid != kEncodedCommonGain &&
             pid != kEncodedCommonPan &&
@@ -556,12 +566,16 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
     return false;
 }
 
-bool nodeHasDspModulation(uint16_t deviceIndex,
+bool nodeHasDspModulation(uint64_t processorNodeId,
+                          uint16_t processorIndex,
                           const ModulationEdgePlayback* modEdges,
                           int modEdgeCount) noexcept {
     if (modEdges == nullptr || modEdgeCount <= 0) return false;
     for (int e = 0; e < modEdgeCount; ++e) {
-        if (modEdges[e].deviceIndex != deviceIndex) continue;
+        if (!playbackTargetMatches(modEdges[e].targetNodeId, modEdges[e].deviceIndex,
+                                   processorNodeId, processorIndex)) {
+            continue;
+        }
         const uint16_t pid = modEdges[e].localParamId;
         if (pid != kEncodedCommonGain &&
             pid != kEncodedCommonPan &&

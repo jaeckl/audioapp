@@ -41,15 +41,17 @@ bool automationBeatInClip(const AutomationClipPlayback& clip,
                           double beat,
                           float& beatInClipOut) noexcept;
 
-/// True when [clips] contains a non-gain/pan automation target for [deviceIndex].
-bool nodeHasDspAutomation(uint16_t deviceIndex,
+/// True when [clips] contains a non-gain/pan automation target for the processor.
+bool nodeHasDspAutomation(uint64_t processorNodeId,
+                          uint16_t processorIndex,
                           const AutomationClipPlayback* clips,
                           int clipCount) noexcept;
 
 /// Apply all active automation clips at [beat] (absolute timeline beats).
 void applyDspAutomationAtBeat(DeviceVariantParams& params,
                               DeviceNodeKind kind,
-                              uint16_t deviceIndex,
+                              uint64_t processorNodeId,
+                              uint16_t processorIndex,
                               double beat,
                               const AutomationClipPlayback* clips,
                               int clipCount) noexcept;

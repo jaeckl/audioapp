@@ -59,10 +59,14 @@ void OscillatorProcessor::process(AudioBlock& block, ProcessContext& ctx) noexce
         instModPtr = &instMod;
     }
     const bool bakePanelGain = instModPtr != nullptr &&
-        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
+        deviceHasPerNoteModEdges(
+            ctx.processorNodeId != 0 ? ctx.processorNodeId : stableProcessorNodeId,
+            static_cast<uint16_t>(ctx.deviceIndex),
+            ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     if (ctx.needsSubBlocks) {
         DeviceNodePlayback tmpNode;
+        tmpNode.deviceId = deviceId();
         tmpNode.params = *ctx.modulatedParams;
         tmpNode.kind = kind();
         for (int sub = 0; sub < block.numSamples; sub += kAutomationSubBlockFrames) {

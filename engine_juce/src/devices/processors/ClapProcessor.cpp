@@ -155,7 +155,9 @@ void ClapProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
             instModPtr = &instMod;
         }
         const bool bakePanelGain = instModPtr != nullptr &&
-            deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
+            deviceHasPerNoteModEdges(
+                ctx.processorNodeId, static_cast<uint16_t>(ctx.deviceIndex),
+                ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
         mixClapMidiNotesBlock(
             ctx.scratch.scratch,
             block.numSamples,

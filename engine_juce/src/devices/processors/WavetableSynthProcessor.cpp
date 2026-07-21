@@ -112,26 +112,34 @@ bool isWtPositionParam(uint16_t paramId) noexcept {
            unpackParamId(paramId) == static_cast<uint16_t>(WavetableParam::WtPosition);
 }
 
-bool blockHasWtPositionAutomation(uint16_t deviceIndex,
+bool blockHasWtPositionAutomation(uint64_t processorNodeId,
+                                  uint16_t processorIndex,
                                   const AutomationClipPlayback* clips,
                                   int clipCount) noexcept {
     if (clips == nullptr || clipCount <= 0) return false;
     for (int i = 0; i < clipCount; ++i) {
-        if (clips[i].deviceIndex == deviceIndex && isWtPositionParam(clips[i].localParamId)) {
-            return true;
+        if (!playbackTargetMatches(clips[i].targetNodeId, clips[i].deviceIndex,
+                                   processorNodeId, processorIndex) ||
+            !isWtPositionParam(clips[i].localParamId)) {
+            continue;
         }
+        return true;
     }
     return false;
 }
 
-bool blockHasWtPositionModulation(uint16_t deviceIndex,
+bool blockHasWtPositionModulation(uint64_t processorNodeId,
+                                  uint16_t processorIndex,
                                   const ModulationEdgePlayback* edges,
                                   int edgeCount) noexcept {
     if (edges == nullptr || edgeCount <= 0) return false;
     for (int i = 0; i < edgeCount; ++i) {
-        if (edges[i].deviceIndex == deviceIndex && isWtPositionParam(edges[i].localParamId)) {
-            return true;
+        if (!playbackTargetMatches(edges[i].targetNodeId, edges[i].deviceIndex,
+                                   processorNodeId, processorIndex) ||
+            !isWtPositionParam(edges[i].localParamId)) {
+            continue;
         }
+        return true;
     }
     return false;
 }
@@ -150,9 +158,11 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     auto params = wavetableRealtimeParams(
         std::get<WavetableSynthParamsPlayback>(*ctx.modulatedParams));
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
+    const uint64_t nodeId =
+        ctx.processorNodeId != 0 ? ctx.processorNodeId : stableProcessorNodeId;
     if (realtimeWtPositionValid_.load(std::memory_order_acquire) &&
-        !blockHasWtPositionAutomation(di, ctx.automationClips, ctx.automationClipCount) &&
-        !blockHasWtPositionModulation(di, ctx.modEdges, ctx.modEdgeCount)) {
+        !blockHasWtPositionAutomation(nodeId, di, ctx.automationClips, ctx.automationClipCount) &&
+        !blockHasWtPositionModulation(nodeId, di, ctx.modEdges, ctx.modEdgeCount)) {
         params.wtPosition = realtimeWtPosition_.load(std::memory_order_acquire);
     }
     if (ctx.wavetableBank != nullptr) {
@@ -185,7 +195,8 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
     std::memset(ctx.scratch.scratch, 0, static_cast<size_t>(block.numSamples) * sizeof(float));
 
     auto& runtime = runtime_;
-    const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
+    const bool hasAuto =
+        nodeHasDspAutomation(nodeId, di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
                         ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
     const InstrumentModulationContext* instModPtr = nullptr;
@@ -195,7 +206,8 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
         instModPtr = &instMod;
     }
     const bool bakePanelGain = instModPtr != nullptr &&
-        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
+        deviceHasPerNoteModEdges(nodeId, di, ctx.modEdges, ctx.modEdgeCount,
+                                 ctx.modulators, ctx.lfoCount);
 
     mixWavetableMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.wavetableRegions, regionCount,
@@ -210,7 +222,8 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
         instModPtr,
         ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kWavetableMaxVoices,
         ctx.voicePolicy.retriggerReplacesVoice,
-        bakePanelGain ? &ctx.commonControls : nullptr);
+        bakePanelGain ? &ctx.commonControls : nullptr,
+        nodeId);
 
     StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
                                         ctx.commonControls, !bakePanelGain);

@@ -334,7 +334,10 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
         instModPtr = &instMod;
     }
     const bool bakePanelGain = instModPtr != nullptr &&
-        deviceHasPerNoteModEdges(di, ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
+        deviceHasPerNoteModEdges(
+            ctx.processorNodeId != 0 ? ctx.processorNodeId : stableProcessorNodeId,
+            static_cast<uint16_t>(ctx.deviceIndex),
+            ctx.modEdges, ctx.modEdgeCount, ctx.modulators, ctx.lfoCount);
 
     const auto render = [&](int sub, int subLen, double subBeat, const SamplerParams& p) {
         mixSamplerMidiNotesBlock(ctx.scratch.scratch + sub, subLen, ctx.sampleRate, ctx.bpm, subBeat,
@@ -357,6 +360,7 @@ void SamplerProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept 
 
     if (ctx.needsSubBlocks) {
         DeviceNodePlayback tmpNode;
+        tmpNode.deviceId = deviceId();
         tmpNode.params = *ctx.modulatedParams;
         tmpNode.kind = kind();
         for (int sub = 0; sub < block.numSamples; sub += kAutomationSubBlockFrames) {

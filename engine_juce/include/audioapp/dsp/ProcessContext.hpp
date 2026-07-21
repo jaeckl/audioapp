@@ -48,6 +48,7 @@ struct ProcessContext {
     int graphTapRuntimeCount = 0;
 
     int deviceIndex = 0;
+    uint64_t processorNodeId = 0;
     bool needsSubBlocks = false;
     int numFrames = 0;
     CommonControlBlock commonControls{};
@@ -71,6 +72,7 @@ struct ProcessContext {
         out.modEdges = modEdges;
         out.modEdgeCount = modEdgeCount;
         out.deviceIndex = static_cast<uint16_t>(deviceIndex);
+        out.targetNodeId = processorNodeId;
         out.modulators = modulators;
         out.retriggerGeneration = retriggerGeneration;
         out.playheadStartBeat = playheadBeat;
