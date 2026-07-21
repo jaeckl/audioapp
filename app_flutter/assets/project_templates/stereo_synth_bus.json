@@ -1,0 +1,71 @@
+{
+  "project_format_version": 2,
+  "name": "Stereo Synth Bus",
+  "bpm": 110,
+  "selectedTrackId": "tpl-lead",
+  "loopEnabled": true,
+  "loopRegionStartBeat": 0.0,
+  "loopRegionEndBeat": 4.0,
+  "master": {"id": "master", "name": "Master", "gain": 0.8},
+  "samples": [],
+  "tracks": [
+    {
+      "id": "group-synths",
+      "name": "Synths",
+      "iconKey": "folder",
+      "isGroup": true,
+      "devices": [
+        {
+          "id": "synth-lr",
+          "type": "lr_split",
+          "parameters": {"bypass": 0.0},
+          "branches": [
+            {
+              "devices": [
+                {"id": "left-delay", "type": "delay", "parameters": {"delayTimeMs": 380.0, "delayFeedback": 0.28, "delayMix": 0.35, "bypass": 0.0}}
+              ]
+            },
+            {
+              "devices": [
+                {"id": "right-reverb", "type": "reverb", "parameters": {"decay": 0.58, "size": 0.62, "diffusion": 0.38, "bypass": 0.0}}
+              ]
+            }
+          ]
+        },
+        {"id": "synth-gain", "type": "track_gain", "parameters": {"gain": 0.86, "bypass": 0.0}}
+      ],
+      "midiClips": [],
+      "sampleClips": []
+    },
+    {
+      "id": "tpl-lead",
+      "name": "Lead",
+      "parentGroupId": "group-synths",
+      "outputTarget": "group-synths",
+      "devices": [
+        {"id": "tpl-lead-synth", "type": "subtractive_synth", "parameters": {"gain": 0.74, "filterCutoff": 0.64, "filterResonance": 0.4, "bypass": 0.0}},
+        {"id": "tpl-lead-gain", "type": "track_gain", "parameters": {"gain": 0.72, "bypass": 0.0}}
+      ],
+      "midiClips": [{
+        "id": "tpl-lead-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
+        "notes": [{"pitch": 69, "startBeat": 0.0, "durationBeats": 0.75, "velocity": 98.0}, {"pitch": 72, "startBeat": 1.0, "durationBeats": 0.75, "velocity": 94.0}, {"pitch": 76, "startBeat": 2.0, "durationBeats": 0.75, "velocity": 100.0}]
+      }],
+      "sampleClips": []
+    },
+    {
+      "id": "tpl-pad",
+      "name": "Pad",
+      "parentGroupId": "group-synths",
+      "outputTarget": "group-synths",
+      "devices": [
+        {"id": "tpl-pad-synth", "type": "subtractive_synth", "parameters": {"gain": 0.66, "filterCutoff": 0.55, "attack": 0.32, "release": 0.65, "bypass": 0.0}},
+        {"id": "tpl-pad-gain", "type": "track_gain", "parameters": {"gain": 0.7, "bypass": 0.0}}
+      ],
+      "midiClips": [{
+        "id": "tpl-pad-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
+        "notes": [{"pitch": 60, "startBeat": 0.0, "durationBeats": 3.5, "velocity": 80.0}, {"pitch": 64, "startBeat": 0.0, "durationBeats": 3.5, "velocity": 76.0}, {"pitch": 67, "startBeat": 0.0, "durationBeats": 3.5, "velocity": 74.0}]
+      }],
+      "sampleClips": []
+    }
+  ]
+}

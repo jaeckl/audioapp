@@ -623,6 +623,9 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('welcome-new-project')));
     await tester.pumpAndSettle();
+    expect(find.text('New Project'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('template-template-empty')));
+    await tester.pumpAndSettle();
     expect(createProjectCalls, 1);
     expect(find.byKey(const ValueKey('track-lane-track-1')), findsOneWidget);
   });
