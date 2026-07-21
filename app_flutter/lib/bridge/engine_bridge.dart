@@ -34,6 +34,7 @@ part 'engine_bridge_refresh_track_freeze.dart';
 part 'engine_bridge_select_track.dart';
 part 'engine_bridge_add_device_to_track.dart';
 part 'engine_bridge_remove_device_from_track.dart';
+part 'engine_bridge_move_device_in_track.dart';
 part 'engine_bridge_add_device_to_drum_pad.dart';
 part 'engine_bridge_remove_device_from_drum_pad.dart';
 part 'engine_bridge_add_device_to_chain.dart';

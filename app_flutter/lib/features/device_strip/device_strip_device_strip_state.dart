@@ -65,6 +65,7 @@ class _DeviceStripState extends State<DeviceStrip> {
           onSynthTabChanged: _setSynthTab,
           onBypassToggle: widget.onBypassToggle,
           onDeleteDevice: (device) => widget.onRemoveDevice(track, device),
+          onMoveDevice: widget.onMoveDevice,
           onPreviewAudio: widget.onPreviewSample,
           onAssignSamplerSample: widget.onAssignSamplerSample,
           onImportAudio: () async {
@@ -182,6 +183,7 @@ class _DeviceStripState extends State<DeviceStrip> {
                               ),
                   onAssignDroppedSampleToDevice:
                       widget.onAssignDroppedSampleToDevice,
+                  onMoveDevice: widget.onMoveDevice,
                   drumSelectedNoteFor: (id) => _drumSelectedNotes[id] ?? 36,
                   drumBankStartFor: (id) => _drumBankStarts[id] ?? 36,
                   drumChainExpandedFor: (id) => _drumChainExpanded[id] ?? true,

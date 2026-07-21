@@ -41,6 +41,7 @@ class DeviceStrip extends StatefulWidget {
     required this.onAddDevice,
     required this.onBypassToggle,
     required this.onRemoveDevice,
+    this.onMoveDevice,
     required this.onOpenDeviceLibrary,
     this.onOpenDrumPadLibrary,
     this.onPickDeviceType,
@@ -80,6 +81,7 @@ class DeviceStrip extends StatefulWidget {
   final void Function(String deviceId, bool bypassed) onBypassToggle;
   final Future<ProjectSnapshot?> Function(
       TrackSnapshot track, DeviceSnapshot device) onRemoveDevice;
+  final Future<void> Function(String deviceId, int toIndex)? onMoveDevice;
   final void Function(DeviceSnapshot device, LibraryFilter filter)
       onOpenDeviceLibrary;
   final void Function(DrumMachineDeviceSnapshot device, int note)?

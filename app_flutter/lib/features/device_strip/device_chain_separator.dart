@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../bridge/project_snapshot.dart';
+import 'device_drag_data.dart';
 import 'device_insert_slot.dart';
 import 'device_strip_metrics.dart';
 import 'device_vu_meter.dart';
 
 part 'device_chain_separator_device_chain_separator_metrics.dart';
+part 'device_chain_separator_device_reorder_drop_target.dart';
 /// VU meter with centered insert button between device chain slots.
 class DeviceChainSeparator extends StatelessWidget {
   const DeviceChainSeparator({
@@ -56,6 +59,19 @@ int deviceInsertIndexAfter(TrackSnapshot track, int visibleDeviceIndex) {
   final anchorIndex = devices.indexWhere((device) => device.id == anchor.id);
   if (anchorIndex < 0) return devices.length;
   return anchorIndex + 1;
+}
+
+/// Engine slot index when dropping after [visibleInsertAfterIndex].
+/// Pass -1 to insert before the first visible device.
+int deviceMoveTargetIndex(TrackSnapshot track, int visibleInsertAfterIndex) {
+  if (visibleInsertAfterIndex < 0) return 0;
+  return deviceInsertIndexAfter(track, visibleInsertAfterIndex);
+}
+
+/// True when dropping at [visibleInsertAfterIndex] would not change order.
+bool deviceMoveWouldBeNoOp(int fromVisibleIndex, int visibleInsertAfterIndex) {
+  return visibleInsertAfterIndex == fromVisibleIndex ||
+      visibleInsertAfterIndex == fromVisibleIndex - 1;
 }
 
 double _deviceGain(DeviceSnapshot device) {

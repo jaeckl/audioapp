@@ -284,6 +284,33 @@ public:
             expect(audioapp::test::hasNonZeroSample(high), "high-pitch pad child renders");
             expect(meanAbsDifference(low, high) > 1.0e-4f,
                    "nested kick parameter changes generated audio");
+        beginTest("move device within track preserves ids and order");
+        {
+            audioapp::EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("Reorder");
+            host.selectTrack(trackId);
+
+            const std::string oscId = host.addDeviceToTrack(trackId, "simple_oscillator");
+            const std::string fxId = host.addDeviceToTrack(trackId, "compressor");
+            const std::string delayId = host.addDeviceToTrack(trackId, "delay");
+            expect(!oscId.empty() && !fxId.empty() && !delayId.empty(),
+                   "devices created");
+
+            expect(host.moveDeviceInTrack(delayId, 0), "move delay to front");
+            const std::string json = host.getProjectSnapshotJson();
+            expect(json.find("\"id\":\"" + delayId + "\"") != std::string::npos,
+                   "delay id preserved");
+            expect(json.find("\"id\":\"" + oscId + "\"") != std::string::npos,
+                   "oscillator id preserved");
+            const auto delayPos = json.find("\"id\":\"" + delayId + "\"");
+            const auto oscPos = json.find("\"id\":\"" + oscId + "\"");
+            expect(delayPos < oscPos, "delay now before oscillator");
+
+            expect(!host.moveDeviceInTrack("dev-1", 0),
+                   "cannot move track_gain");
+            expect(!host.moveDeviceInTrack("missing", 0),
+                   "missing device returns false");
         }
     }
 };
