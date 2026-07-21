@@ -77,6 +77,7 @@ extension _DeviceChainRowStateVirtualNested on _DeviceChainRowState {
         onAccept: (sample) =>
             widget.onAssignDroppedSampleToDevice!(device, sample),
         child: DeviceStripSlot(
+          key: ValueKey(device.id),
           track: widget.track,
           routingSources: () {
             if (widget.routingSnapshot == null) {

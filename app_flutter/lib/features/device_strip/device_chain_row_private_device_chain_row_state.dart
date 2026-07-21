@@ -197,6 +197,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                     onAccept: (sample) => widget.onAssignDroppedSampleToDevice!(
                         devices[i], sample),
                     child: DeviceStripSlot(
+                      key: ValueKey(devices[i].id),
                       track: widget.track,
                       routingSources: () {
                         final d = devices[i];
