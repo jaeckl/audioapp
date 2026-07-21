@@ -591,6 +591,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
             pc.graphTapRuntimes = ctx.graphTapRuntimes;
             pc.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
             pc.deviceIndex = deviceIndex;
+            pc.processorNodeId = proc->stableProcessorNodeId;
             pc.needsSubBlocks = false;
             pc.wavetableBank = ctx.wavetableBank;
             pc.modulators = ctx.modulators;
@@ -670,6 +671,7 @@ void DeviceChainOrchestrator::processChain(Context& ctx,
         pc.graphTapRuntimes = ctx.graphTapRuntimes;
         pc.graphTapRuntimeCount = ctx.graphTapRuntimeCount;
         pc.deviceIndex = deviceIndex;
+        pc.processorNodeId = proc->stableProcessorNodeId;
         pc.needsSubBlocks = needsSubBlocks;
         pc.wavetableBank = ctx.wavetableBank;
         pc.modulators = ctx.modulators;

@@ -72,6 +72,7 @@ struct InstrumentModulationContext {
     const ModulationEdgePlayback* modEdges = nullptr;
     int modEdgeCount = 0;
     uint16_t deviceIndex = 0;
+    uint64_t targetNodeId = 0;
     IModulator* const* modulators = nullptr;
     uint32_t retriggerGeneration = 0;
     double playheadStartBeat = 0.0;
@@ -84,7 +85,8 @@ struct InstrumentModulationContext {
 
 bool modulatorUsesPerNoteClock(const IModulator* mod) noexcept;
 
-bool deviceHasPerNoteModEdges(uint16_t deviceIndex,
+bool deviceHasPerNoteModEdges(uint64_t processorNodeId,
+                              uint16_t processorIndex,
                               const ModulationEdgePlayback* modEdges,
                               int modEdgeCount,
                               IModulator* const* modulators,

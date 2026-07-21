@@ -157,7 +157,9 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                                const InstrumentModulationContext* instMod = nullptr,
                                int voiceLimit = kPhaseModMaxVoices,
                                bool retriggerReplacesVoice = false,
-                               const CommonControlBlock* commonControls = nullptr) noexcept;
+                               const CommonControlBlock* commonControls = nullptr,
+                               uint64_t automationTargetNodeId = 0,
+                               uint64_t modulationTargetNodeId = 0) noexcept;
 
 // -----------------------------------------------------------------------
 // Helper functions

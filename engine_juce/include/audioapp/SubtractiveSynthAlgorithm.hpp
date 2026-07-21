@@ -146,7 +146,9 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
                                   const InstrumentModulationContext* instMod = nullptr,
                                   int voiceLimit = kSubtractiveMaxVoices,
                                   bool retriggerReplacesVoice = false,
-                                  const CommonControlBlock* commonControls = nullptr) noexcept;
+                                  const CommonControlBlock* commonControls = nullptr,
+                                  uint64_t automationTargetNodeId = 0,
+                                  uint64_t modulationTargetNodeId = 0) noexcept;
 
 float subtractiveNoiseSample(float& seed) noexcept;
 

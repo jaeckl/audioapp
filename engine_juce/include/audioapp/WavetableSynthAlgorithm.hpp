@@ -168,7 +168,8 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 const InstrumentModulationContext* instMod = nullptr,
                                 int voiceLimit = kWavetableMaxVoices,
                                 bool retriggerReplacesVoice = false,
-                                const CommonControlBlock* commonControls = nullptr) noexcept;
+                                const CommonControlBlock* commonControls = nullptr,
+                                uint64_t automationTargetNodeId = 0) noexcept;
 
 float wavetableInterpolatedSample(const float* table,
                                   int frameCount,

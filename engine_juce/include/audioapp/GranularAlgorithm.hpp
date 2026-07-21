@@ -87,7 +87,8 @@ void mixGranularMidiNotesBlock(float* leftOut,
                                int modEdgeCount = 0,
                                const uint16_t* modulationDeviceIndex = nullptr,
                                const InstrumentModulationContext* instMod = nullptr,
-                               const CommonControlBlock* commonControls = nullptr) noexcept;
+                               const CommonControlBlock* commonControls = nullptr,
+                               uint64_t automationTargetNodeId = 0) noexcept;
 
 /// Live / instrument-mode one-voice sample (mono).
 float granularLiveVoiceSample(const GranularParams& params,

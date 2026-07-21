@@ -48,7 +48,8 @@ bool modulatorUsesPerNoteClock(const IModulator* mod) noexcept {
     return mod != nullptr && mod->usesPerNoteClock();
 }
 
-bool deviceHasPerNoteModEdges(uint16_t deviceIndex,
+bool deviceHasPerNoteModEdges(uint64_t processorNodeId,
+                              uint16_t processorIndex,
                               const ModulationEdgePlayback* modEdges,
                               int modEdgeCount,
                               IModulator* const* modulators,
@@ -58,7 +59,8 @@ bool deviceHasPerNoteModEdges(uint16_t deviceIndex,
     }
     for (int e = 0; e < modEdgeCount; ++e) {
         const auto& edge = modEdges[e];
-        if (edge.deviceIndex != deviceIndex) {
+        if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                   processorNodeId, processorIndex)) {
             continue;
         }
         if (edge.lfoId >= static_cast<uint16_t>(modulatorCount)) {
@@ -150,7 +152,9 @@ float applyPerNoteCommonGain(float baseGain,
     }
     for (int e = 0; e < modCtx.modEdgeCount; ++e) {
         const auto& edge = modCtx.modEdges[e];
-        if (edge.deviceIndex != deviceIndex || edge.localParamId != kEncodedCommonGain) {
+        if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                   modCtx.targetNodeId, modCtx.deviceIndex) ||
+            edge.localParamId != kEncodedCommonGain) {
             continue;
         }
         if (edge.lfoId >= static_cast<uint16_t>(modCtx.lfoCount)) {
@@ -180,7 +184,9 @@ float applyPerNoteCommonPan(float basePan,
     }
     for (int e = 0; e < modCtx.modEdgeCount; ++e) {
         const auto& edge = modCtx.modEdges[e];
-        if (edge.deviceIndex != deviceIndex || edge.localParamId != kEncodedCommonPan) {
+        if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                   modCtx.targetNodeId, modCtx.deviceIndex) ||
+            edge.localParamId != kEncodedCommonPan) {
             continue;
         }
         if (edge.lfoId >= static_cast<uint16_t>(modCtx.lfoCount)) {
@@ -208,7 +214,8 @@ void applyGlobalDspModulationAtFrame(DeviceVariantParams& params,
     }
     for (int e = 0; e < modCtx.modEdgeCount; ++e) {
         const auto& edge = modCtx.modEdges[e];
-        if (edge.deviceIndex != deviceIndex) {
+        if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                   modCtx.targetNodeId, modCtx.deviceIndex)) {
             continue;
         }
         if (edge.lfoId >= static_cast<uint16_t>(modCtx.lfoCount)) {
@@ -244,7 +251,8 @@ void applyPerNoteDspModulation(DeviceVariantParams& params,
     }
     for (int e = 0; e < modCtx.modEdgeCount; ++e) {
         const auto& edge = modCtx.modEdges[e];
-        if (edge.deviceIndex != deviceIndex) {
+        if (!playbackTargetMatches(edge.targetNodeId, edge.deviceIndex,
+                                   modCtx.targetNodeId, modCtx.deviceIndex)) {
             continue;
         }
         if (edge.lfoId >= static_cast<uint16_t>(modCtx.lfoCount)) {

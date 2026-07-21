@@ -455,7 +455,7 @@ public:
             clips[0].points[1] = {4.0f, 1.0f};
 
             applyDspAutomationAtBeat(params, DeviceNodeKind::SubtractiveSynth,
-                                     0, 2.0, clips, 1);
+                                     0, 0, 2.0, clips, 1);
             const auto& result = std::get<SubtractiveSynthParams>(params);
             expectWithinAbsoluteError(result.filterCutoff, 0.5f, 0.01f);
         }

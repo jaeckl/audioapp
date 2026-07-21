@@ -94,7 +94,8 @@ bool nodeUsesDspAutomationSubBlocks(const DeviceNodePlayback& node,
                                     const AutomationClipPlayback* clips,
                                     int clipCount) noexcept;
 
-bool nodeHasDspModulation(uint16_t deviceIndex,
+bool nodeHasDspModulation(uint64_t processorNodeId,
+                          uint16_t processorIndex,
                           const ModulationEdgePlayback* modEdges,
                           int modEdgeCount) noexcept;
 

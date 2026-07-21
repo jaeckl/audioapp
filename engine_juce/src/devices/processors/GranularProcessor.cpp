@@ -18,7 +18,10 @@ void GranularProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept
     }
 
     const uint16_t di = static_cast<uint16_t>(ctx.deviceIndex);
-    const bool hasAuto = nodeHasDspAutomation(di, ctx.automationClips, ctx.automationClipCount);
+    const uint64_t nodeId =
+        ctx.processorNodeId != 0 ? ctx.processorNodeId : stableProcessorNodeId;
+    const bool hasAuto =
+        nodeHasDspAutomation(nodeId, di, ctx.automationClips, ctx.automationClipCount);
     const bool hasMod = ctx.lfoValues != nullptr && ctx.lfoCount > 0 &&
                         ctx.modEdges != nullptr && ctx.modEdgeCount > 0;
     const InstrumentModulationContext* instModPtr = nullptr;
@@ -48,7 +51,8 @@ void GranularProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept
                               hasMod ? ctx.modEdgeCount : 0,
                               hasMod ? &di : nullptr,
                               instModPtr,
-                              &ctx.commonControls);
+                              &ctx.commonControls,
+                              nodeId);
 }
 
 } // namespace audioapp

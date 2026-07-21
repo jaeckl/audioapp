@@ -149,6 +149,47 @@ public:
             expect(risingPairs >= kWindows - 2,
                    "nested chain preserves upward gain automation trend");
         }
+
+        beginTest("renderOffline inner chain child gain automation affects playback");
+        {
+            EngineHost host;
+            host.createProject();
+            const std::string trackId = host.addTrack("InnerChildAuto");
+            host.selectTrack(trackId);
+            expect(!host.addDeviceToTrack(trackId, "simple_oscillator").empty(),
+                   "source oscillator added");
+            const std::string chainId = host.addDeviceToTrack(trackId, "device_chain");
+            expect(!chainId.empty(), "nested chain container added");
+            expect(!host.addDeviceToChain(chainId, "track_gain").empty(),
+                   "inner chain child 0 added");
+            const std::string innerGainId =
+                host.addDeviceToChain(chainId, "track_gain");
+            expect(!innerGainId.empty(), "inner chain child 1 added");
+
+            const std::string midiClipId = host.createMidiClip(trackId, 0.0, 4.0);
+            expect(!midiClipId.empty(), "midi clip created");
+            std::vector<MidiNoteState> notes;
+            notes.push_back({60, 0.0, 4.0, 100.0f});
+            expect(host.setMidiClipNotes(midiClipId, notes), "midi notes set");
+
+            const std::string autoClipId = host.createAutomationClip(trackId, 0.0, 4.0);
+            expect(!autoClipId.empty(), "automation clip created");
+            expect(host.assignAutomationTarget(autoClipId, innerGainId, "gain"),
+                   "automation targets second inner chain device");
+            std::vector<AutomationPointState> points;
+            points.push_back({0.0, 0.0f});
+            points.push_back({4.0, 1.0f});
+            expect(host.setAutomationPoints(autoClipId, points), "automation points set");
+
+            host.setPlaying(true);
+            const std::vector<float> rendered = host.renderOffline(4.0, 48000.0);
+            expect(static_cast<int>(rendered.size()) >= 48000, "enough audio rendered");
+
+            constexpr int kWindows = 8;
+            const std::vector<float> rmsPerWindow = windowRMS(rendered, kWindows);
+            expect(rmsPerWindow[0] < rmsPerWindow[kWindows - 1],
+                   "second inner chain child gain automation should ramp output");
+        }
     }
 };
 

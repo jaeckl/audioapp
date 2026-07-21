@@ -84,6 +84,7 @@ static WavetableSynthParamsPlayback heldWavetableParamsAtFrame(
     const AutomationClipPlayback* automationClips,
     int automationClipCount,
     const uint16_t* automationDeviceIndex,
+    uint64_t automationTargetNodeId,
     bool useModulation,
     const float* lfoValues,
     int lfoCount,
@@ -98,6 +99,7 @@ static WavetableSynthParamsPlayback heldWavetableParamsAtFrame(
         DeviceVariantParams variant = held;
         applyDspAutomationAtBeat(variant,
                                  DeviceNodeKind::WavetableSynth,
+                                 automationTargetNodeId,
                                  *automationDeviceIndex,
                                  beat,
                                  automationClips,
@@ -322,7 +324,8 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 const InstrumentModulationContext* instMod,
                                 int voiceLimit,
                                 bool retriggerReplacesVoice,
-                                const CommonControlBlock* commonControls) noexcept {
+                                const CommonControlBlock* commonControls,
+                                uint64_t automationTargetNodeId = 0) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0 ||
         wavetablePcm == nullptr || wavetableFrameCount <= 0 || wavetableFrameLength <= 0) {
         return;
@@ -555,6 +558,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
             automationClips,
             automationClipCount,
             automationDeviceIndex,
+            automationTargetNodeId,
             useModulation,
             lfoValues,
             lfoCount,

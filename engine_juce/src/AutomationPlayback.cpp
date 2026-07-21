@@ -1952,12 +1952,16 @@ bool automationClipPlaybackFromClip(const AutomationClip& clip,
 // nodeHasDspAutomation — uses deviceIndex matching
 // -----------------------------------------------------------------------
 
-bool nodeHasDspAutomation(uint16_t deviceIndex,
+bool nodeHasDspAutomation(uint64_t processorNodeId,
+                          uint16_t processorIndex,
                           const AutomationClipPlayback* clips,
                           int clipCount) noexcept {
     if (clips == nullptr || clipCount <= 0) return false;
     for (int a = 0; a < clipCount; ++a) {
-        if (clips[a].deviceIndex != deviceIndex) continue;
+        if (!playbackTargetMatches(clips[a].targetNodeId, clips[a].deviceIndex,
+                                   processorNodeId, processorIndex)) {
+            continue;
+        }
         const uint16_t pid = clips[a].localParamId;
         // Skip common encodings. The encoded values for common params are
         // 0, 1, and 2 (kind tag is 0). The
@@ -1978,14 +1982,18 @@ bool nodeHasDspAutomation(uint16_t deviceIndex,
 
 void applyDspAutomationAtBeat(DeviceVariantParams& params,
                               DeviceNodeKind kind,
-                              uint16_t deviceIndex,
+                              uint64_t processorNodeId,
+                              uint16_t processorIndex,
                               double beat,
                               const AutomationClipPlayback* clips,
                               int clipCount) noexcept {
     if (clips == nullptr) return;
     for (int a = 0; a < clipCount; ++a) {
         const AutomationClipPlayback& ac = clips[a];
-        if (ac.deviceIndex != deviceIndex) continue;
+        if (!playbackTargetMatches(ac.targetNodeId, ac.deviceIndex,
+                                   processorNodeId, processorIndex)) {
+            continue;
+        }
         const uint16_t pid = ac.localParamId;
         // Common params are handled by the device-chain loop. DSP-local
         // params use the encoded kind tag, so

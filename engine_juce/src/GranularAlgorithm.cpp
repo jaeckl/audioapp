@@ -42,6 +42,7 @@ static GranularParams heldGranularParamsAtFrame(
     const AutomationClipPlayback* automationClips,
     int automationClipCount,
     const uint16_t* automationDeviceIndex,
+    uint64_t automationTargetNodeId,
     bool useModulation,
     const float* lfoValues,
     int lfoCount,
@@ -56,6 +57,7 @@ static GranularParams heldGranularParamsAtFrame(
         DeviceVariantParams variant = held;
         applyDspAutomationAtBeat(variant,
                                  DeviceNodeKind::Granular,
+                                 automationTargetNodeId,
                                  *automationDeviceIndex,
                                  beat,
                                  automationClips,
@@ -347,7 +349,8 @@ void mixGranularMidiNotesBlock(float* leftOut,
                                int modEdgeCount,
                                const uint16_t* modulationDeviceIndex,
                                const InstrumentModulationContext* instMod,
-                               const CommonControlBlock* commonControls) noexcept {
+                                const CommonControlBlock* commonControls,
+                                uint64_t automationTargetNodeId = 0) noexcept {
     if (leftOut == nullptr || rightOut == nullptr || numFrames <= 0 || notes == nullptr ||
         noteCount <= 0 || bpm <= 0 || params.pcm == nullptr || params.frameCount < 4) {
         return;
@@ -470,6 +473,7 @@ void mixGranularMidiNotesBlock(float* leftOut,
             automationClips,
             automationClipCount,
             automationDeviceIndex,
+            automationTargetNodeId,
             useModulation,
             lfoValues,
             lfoCount,
