@@ -10,11 +10,17 @@ class _EditorPinchZoomState extends State<EditorPinchZoom> {
     return math.max(12, (points[0] - points[1]).distance);
   }
 
+  Offset get _focal {
+    if (_positions.length < 2) return Offset.zero;
+    final points = _positions.values.take(2).toList();
+    return (points[0] + points[1]) / 2;
+  }
+
   void _down(PointerDownEvent event) {
     _positions[event.pointer] = event.localPosition;
     if (_positions.length == 2) {
       _initialDistance = _distance;
-      widget.onStart();
+      widget.onStart(_focal);
       widget.onPinchChanged(true);
     }
   }

@@ -17,6 +17,7 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
   double? _dragMarkerBeat;
   double _pixelsPerBeat = PianoRollMetrics.pixelsPerBeat;
   double _zoomStartPpb = PianoRollMetrics.pixelsPerBeat;
+  Offset? _zoomStartFocal;
   bool _pinchInteracting = false;
   double _viewportWidth = 0;
 
@@ -150,8 +151,19 @@ class _MidiTakeCompViewState extends State<MidiTakeCompView> {
                   });
                 }
                 return EditorPinchZoom(
-                  onStart: () => _zoomStartPpb = _pixelsPerBeat,
-                  onScale: (scale) => _setPixelsPerBeat(_zoomStartPpb * scale),
+                  onStart: (focal) {
+                    _zoomStartPpb = _pixelsPerBeat;
+                    _zoomStartFocal = focal;
+                  },
+                  onScale: (scale) => _setPixelsPerBeat(
+                    _zoomStartPpb * scale,
+                    focal: _zoomStartFocal == null
+                        ? null
+                        : Offset(
+                            _zoomStartFocal!.dx - _labelRailWidth,
+                            _zoomStartFocal!.dy,
+                          ),
+                  ),
                   onPinchChanged: (active) {
                     if (_pinchInteracting != active) {
                       setState(() => _pinchInteracting = active);

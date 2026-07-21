@@ -7,7 +7,7 @@ extension _AutomationEditorViewportStateOncanvaspointermove
     _canvasPointers[event.pointer] = _pointerToCanvas(event);
 
     if (_canvasPointers.length >= 2 && _pinchZoomAxis != null) {
-      final focal = _canvasFocalPoint();
+      final focal = _pinchStartFocal ?? _canvasFocalPoint();
       if (_pinchZoomAxis == _PinchZoomAxis.horizontal &&
           _pinchStartSpanX != null &&
           _pinchStartSpanX! >= _pinchMinSpan) {

@@ -11,6 +11,7 @@ class AutomationEditorViewportState extends State<AutomationEditorViewport> {
   final Map<int, Offset> _canvasPointers = {};
   double? _pinchStartSpanX;
   double? _pinchStartSpanY;
+  Offset? _pinchStartFocal;
   _PinchZoomAxis? _pinchZoomAxis;
 
   double _pixelsPerBeat = AutomationEditorMetrics.pixelsPerBeat;

@@ -13,6 +13,8 @@ class ArrangementViewState extends State<ArrangementView> {
   double _pixelsPerBeat = ArrangementTimelineMetrics.defaultPixelsPerBeat;
   double _scaleStartPixelsPerBeat =
       ArrangementTimelineMetrics.defaultPixelsPerBeat;
+  double _scaleStartFocalX = 0;
+  double _scaleStartBeatAtFocal = 0;
   final Set<int> _activePointerIds = {};
   final Set<String> _collapsedGroupIds = {};
   bool _syncingScroll = false;

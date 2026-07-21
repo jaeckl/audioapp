@@ -28,7 +28,8 @@ class PianoRollMetrics {
 
   static const double minPixelsPerBeat = 22;
 
-  static const double maxPixelsPerBeat = 96;
+  /// High enough for comfortable 1/16-note editing at max pinch zoom.
+  static const double maxPixelsPerBeat = 384;
 
   static const double noteResizeHandle = 20;
 

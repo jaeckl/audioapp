@@ -6,7 +6,7 @@ extension _MidiTakeCompViewStateSetpixelsperbeat on _MidiTakeCompViewState {
       PianoRollMetrics.minPixelsPerBeat,
       PianoRollMetrics.maxPixelsPerBeat,
     );
-    if ((clamped - _pixelsPerBeat).abs() < 0.15) return;
+    if ((clamped - _pixelsPerBeat).abs() < 0.05) return;
 
     final oldPpb = _pixelsPerBeat;
     final scrollX = _horizontal.hasClients ? _horizontal.offset : 0.0;

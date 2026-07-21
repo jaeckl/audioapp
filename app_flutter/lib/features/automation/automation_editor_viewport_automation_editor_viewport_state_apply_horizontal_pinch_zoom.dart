@@ -8,7 +8,7 @@ extension _AutomationEditorViewportStateApplyhorizontalpinchzoom
       AutomationEditorMetrics.maxPixelsPerBeat,
     );
 
-    if ((newPpb - _pixelsPerBeat).abs() < 0.15) {
+    if ((newPpb - _pixelsPerBeat).abs() < 0.05) {
       return;
     }
 

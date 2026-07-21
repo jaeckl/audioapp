@@ -6,7 +6,7 @@ extension _PianoRollViewportStateApplyverticalpinchzoom
     final newRowH = (_pinchStartRowH * scale)
         .clamp(PianoRollMetrics.minRowHeight, PianoRollMetrics.maxRowHeight);
 
-    if ((newRowH - _rowHeight).abs() < 0.15) {
+    if ((newRowH - _rowHeight).abs() < 0.05) {
       return;
     }
 

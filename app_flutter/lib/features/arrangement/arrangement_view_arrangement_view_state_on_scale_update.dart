@@ -14,10 +14,8 @@ void _onScaleUpdate(ScaleUpdateDetails details) {
       return;
     }
 
-    final scrollX =
-        _horizontalScroll.hasClients ? _horizontalScroll.offset : 0.0;
-    final focalX = details.focalPoint.dx;
-    final beatAtFocal = (scrollX + focalX) / _pixelsPerBeat;
+    final focalX = _scaleStartFocalX;
+    final beatAtFocal = _scaleStartBeatAtFocal;
 
     setState(() => _pixelsPerBeat = next);
 

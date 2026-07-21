@@ -15,8 +15,9 @@ class EditorPinchZoom extends StatefulWidget {
   });
 
   final Widget child;
-  final VoidCallback onStart;
+  final ValueChanged<Offset> onStart;
   final ValueChanged<double> onScale;
+  final ValueChanged<bool> onPinchChanged;
   final ValueChanged<bool> onPinchChanged;
 
   @override
