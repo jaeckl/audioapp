@@ -115,6 +115,7 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
                           ? () => widget.onOpenLibrary!(
                               libraryFilterForDeviceType(widget.device.type))
                           : null,
+                      reorderDragData: widget.reorderDragData,
                       modActive: _modStripVisible,
                       onModToggle: () async {
                         if (!_modStripVisible && _localLfos.isEmpty) {

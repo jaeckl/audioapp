@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'device_drag_data.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'effective_parameter_binding.dart';
@@ -9,6 +10,7 @@ part 'device_tool_rail_tool_rail_button.dart';
 part 'device_tool_rail_tool_rail_button_state.dart';
 part 'device_tool_rail_status_dot.dart';
 part 'device_tool_rail_mod_button.dart';
+part 'device_tool_rail_device_drag_feedback.dart';
 
 /// Vertical tool buttons attached to the left of an expanded device card.
 class DeviceToolRail extends StatelessWidget {
@@ -31,6 +33,7 @@ class DeviceToolRail extends StatelessWidget {
     this.onBypassModulationAssign,
     this.onBypassAutomationLinkTap,
     this.onAutomateBypass,
+    this.reorderDragData,
   });
 
   final String deviceName;
@@ -50,6 +53,7 @@ class DeviceToolRail extends StatelessWidget {
   final ValueChanged<double>? onBypassModulationAssign;
   final VoidCallback? onBypassAutomationLinkTap;
   final VoidCallback? onAutomateBypass;
+  final DeviceDragData? reorderDragData;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +79,20 @@ class DeviceToolRail extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
+            if (reorderDragData != null)
+              Positioned.fill(
+                child: LongPressDraggable<DeviceDragData>(
+                  data: reorderDragData!,
+                  dragAnchorStrategy: pointerDragAnchorStrategy,
+                  feedback: _DeviceDragFeedback(
+                    deviceName: deviceName,
+                    accentColor: accentColor,
+                  ),
+                  childWhenDragging: const SizedBox.expand(),
+                  onDragStarted: HapticFeedback.selectionClick,
+                  child: const SizedBox.expand(),
+                ),
+              ),
             RotatedBox(
               quarterTurns: 3,
               child: Text(

@@ -19,6 +19,7 @@ import 'device_strip_metrics.dart';
 import 'device_strip_theme.dart';
 import 'device_strip_viewport.dart';
 import 'device_tool_rail.dart';
+import 'device_drag_data.dart';
 import 'modulation_grid.dart';
 import 'lfo_properties_panel.dart';
 import 'envelope_properties_panel.dart';
@@ -209,6 +210,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.onToggleMultibandBand,
     this.spectralLoudExpandedBands = const {},
     this.onToggleSpectralLoudBand,
+    this.reorderDragData,
   });
 
   final TrackSnapshot track;
@@ -279,6 +281,7 @@ class DeviceStripSlot extends StatefulWidget {
   final void Function(int bandIndex)? onToggleMultibandBand;
   final Set<int> spectralLoudExpandedBands;
   final void Function(int bandIndex)? onToggleSpectralLoudBand;
+  final DeviceDragData? reorderDragData;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();

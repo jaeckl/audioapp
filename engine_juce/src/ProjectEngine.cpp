@@ -610,6 +610,91 @@ bool ProjectEngine::removeDeviceFromTrack(const std::string& deviceId) {
     return true;
 }
 
+namespace {
+
+size_t trackGainIndex(const std::vector<DeviceSlot>& devices) {
+    for (size_t i = 0; i < devices.size(); ++i) {
+        if (deviceNodeKindFromTypeId(devices[i].config.typeId) == DeviceNodeKind::TrackGain) {
+            return i;
+        }
+    }
+    return devices.size();
+}
+
+bool moveDeviceSlot(std::vector<DeviceSlot>& devices,
+                    size_t fromIndex,
+                    int toIndex) {
+    const size_t gainIndex = trackGainIndex(devices);
+    if (fromIndex >= devices.size() || fromIndex >= gainIndex) {
+        return false;
+    }
+    if (deviceNodeKindFromTypeId(devices[fromIndex].config.typeId) == DeviceNodeKind::TrackGain) {
+        return false;
+    }
+
+    size_t insertAt = gainIndex;
+    if (toIndex >= 0) {
+        insertAt = std::min(static_cast<size_t>(toIndex), gainIndex);
+    }
+    if (fromIndex == insertAt) {
+        return true;
+    }
+
+    DeviceSlot moving = std::move(devices[fromIndex]);
+    devices.erase(devices.begin() + static_cast<std::ptrdiff_t>(fromIndex));
+    if (fromIndex < insertAt) {
+        --insertAt;
+    }
+    devices.insert(devices.begin() + static_cast<std::ptrdiff_t>(insertAt),
+                   std::move(moving));
+    return true;
+}
+
+} // namespace
+
+bool ProjectEngine::moveDeviceInTrack(const std::string& deviceId, int toIndex) {
+    const juce::ScopedWriteLock lock(mutex_);
+    if (deviceId.empty() || toIndex < 0) {
+        return false;
+    }
+
+    for (size_t i = 0; i < masterControl_.devices.size(); ++i) {
+        if (masterControl_.devices[i].id == deviceId) {
+            if (!moveDeviceSlot(masterControl_.devices, i, toIndex)) {
+                return false;
+            }
+            syncActiveFrequencyLocked();
+            rebuildTrackPlaybackLocked();
+            return true;
+        }
+    }
+
+    Track* ownerTrack = nullptr;
+    size_t deviceIndex = 0;
+    for (auto& track : trackRepo_.tracks()) {
+        for (size_t i = 0; i < track.devices.size(); ++i) {
+            if (track.devices[i].id == deviceId) {
+                ownerTrack = &track;
+                deviceIndex = i;
+                break;
+            }
+        }
+        if (ownerTrack != nullptr) {
+            break;
+        }
+    }
+    if (ownerTrack == nullptr) {
+        return false;
+    }
+
+    if (!moveDeviceSlot(ownerTrack->devices, deviceIndex, toIndex)) {
+        return false;
+    }
+    syncActiveFrequencyLocked();
+    rebuildTrackPlaybackLocked();
+    return true;
+}
+
 std::string ProjectEngine::addDeviceToDrumPad(const std::string& drumMachineId, int note,
                                               const std::string& deviceType, int insertIndex,
                                               const std::string& padName) {

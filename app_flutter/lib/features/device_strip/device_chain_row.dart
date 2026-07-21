@@ -9,6 +9,7 @@ import '../content_library/library_filter.dart';
 import '../content_library/library_device_family.dart';
 import '../clip_drag/sample_clip_drag_data.dart';
 import 'device_chain_separator.dart';
+import 'device_drag_data.dart';
 import 'device_strip_device_kind.dart';
 import 'device_strip_metrics.dart';
 import 'device_strip_slot.dart';
@@ -87,6 +88,7 @@ class DeviceChainRow extends StatefulWidget {
     this.onExpandChanged,
     this.onCreateSamplerFromDroppedSample,
     this.onAssignDroppedSampleToDevice,
+    this.onMoveDevice,
   });
 
   final TrackSnapshot track;
@@ -151,6 +153,7 @@ class DeviceChainRow extends StatefulWidget {
       onCreateSamplerFromDroppedSample;
   final Future<void> Function(DeviceSnapshot device, SampleClipDragData sample)?
       onAssignDroppedSampleToDevice;
+  final Future<void> Function(String deviceId, int toIndex)? onMoveDevice;
 
   @override
   State<DeviceChainRow> createState() => _DeviceChainRowState();

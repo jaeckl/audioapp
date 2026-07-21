@@ -135,6 +135,10 @@ bool EngineHost::removeDeviceFromTrack(const std::string& deviceId) {
     return project_->removeDeviceFromTrack(deviceId);
 }
 
+bool EngineHost::moveDeviceInTrack(const std::string& deviceId, int toIndex) {
+    return project_ != nullptr && project_->moveDeviceInTrack(deviceId, toIndex);
+}
+
 std::string EngineHost::addDeviceToDrumPad(const std::string& drumMachineId, int note,
                                            const std::string& deviceType, int insertIndex,
                                            const std::string& padName) {
@@ -1592,6 +1596,15 @@ void EngineHost::registerAllCommands() {
         const auto deviceId = ctx.args["deviceId"].toString().toStdString();
         if (!ctx.engine.removeDeviceFromTrack(deviceId))
             return commands::errorResult("device_not_removable");
+        auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
+        return commands::okWithFullRefresh(snap);
+    });
+
+    reg.registerCommand("moveDeviceInTrack", [](const commands::CommandContext& ctx) -> commands::CommandResult {
+        const auto deviceId = ctx.args["deviceId"].toString().toStdString();
+        const int toIndex = static_cast<int>(static_cast<double>(ctx.args["toIndex"]));
+        if (!ctx.engine.moveDeviceInTrack(deviceId, toIndex))
+            return commands::errorResult("device_not_movable");
         auto snap = juce::JSON::parse(ctx.engine.getProjectSnapshotJson());
         return commands::okWithFullRefresh(snap);
     });

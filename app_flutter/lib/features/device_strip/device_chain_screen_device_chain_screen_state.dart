@@ -315,6 +315,7 @@ class _DeviceChainScreenState extends State<DeviceChainScreen> {
                       onGetParamDescriptors: widget.onGetParamDescriptors,
                       onMeterSubscriptionsChanged:
                           widget.onMeterSubscriptionsChanged,
+                      onMoveDevice: widget.onMoveDevice,
                       onExpandChanged: (expand) {
                         if (!mounted) return;
                         setState(() => _expand = expand);

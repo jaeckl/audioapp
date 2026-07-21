@@ -141,6 +141,40 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
         DeviceStripSlotDensity.strip => DeviceStripMetrics.height,
       };
 
+  bool get _deviceReorderEnabled =>
+      widget.onMoveDevice != null &&
+      widget.track.canInsertDevices &&
+      widget.density != DeviceStripSlotDensity.collapsed;
+
+  DeviceDragData? _reorderDragData(DeviceSnapshot device, int visibleIndex) {
+    if (!_deviceReorderEnabled) return null;
+    return DeviceDragData(
+      trackId: widget.track.id,
+      deviceId: device.id,
+      deviceName: DeviceStripTheme.labelForDeviceType(device.type),
+      accentColor: DeviceStripTheme.accentForDeviceType(device.type),
+      visibleIndex: visibleIndex,
+    );
+  }
+
+  Widget _deviceSeparator(int visibleIndex, DeviceSnapshot device) {
+    final separator = DeviceChainSeparator(
+      active: widget.playing,
+      gain: device.chainVuGain,
+      onInsert: widget.track.canInsertDevices
+          ? () => widget.onInsertDevice(
+              deviceInsertIndexAfter(widget.track, visibleIndex))
+          : null,
+    );
+    if (!_deviceReorderEnabled) return separator;
+    return DeviceReorderDropTarget(
+      track: widget.track,
+      visibleInsertAfterIndex: visibleIndex,
+      onMove: widget.onMoveDevice!,
+      child: separator,
+    );
+  }
+
   SampleLibraryEntrySnapshot? _sampleFor(DeviceSnapshot device) {
     final sampleId = switch (device) {
       SamplerDeviceSnapshot d => d.sampleId,
@@ -179,6 +213,13 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                 )
               : const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           children: [
+            if (_deviceReorderEnabled && devices.isNotEmpty)
+              DeviceReorderDropTarget(
+                track: widget.track,
+                visibleInsertAfterIndex: -1,
+                onMove: widget.onMoveDevice!,
+                child: const SizedBox(width: 8),
+              ),
             if (devices.isEmpty)
               _sampleDropTarget(
                 enabled: widget.track.canInsertDevices &&
@@ -352,6 +393,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                         widget.onOpenDrumPadLibrary?.call(
                             devices[i] as DrumMachineDeviceSnapshot, note);
                       },
+                      reorderDragData: _reorderDragData(devices[i], i),
                     ),
                   ),
                 ),
@@ -364,14 +406,7 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                     sample,
                     deviceInsertIndexAfter(widget.track, i),
                   ),
-                  child: DeviceChainSeparator(
-                    active: widget.playing,
-                    gain: devices[i].chainVuGain,
-                    onInsert: widget.track.canInsertDevices
-                        ? () => widget.onInsertDevice(
-                            deviceInsertIndexAfter(widget.track, i))
-                        : null,
-                  ),
+                  child: _deviceSeparator(i, devices[i]),
                 ),
               ],
           ],

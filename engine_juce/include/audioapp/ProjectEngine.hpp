@@ -138,6 +138,9 @@ public:
                                  const std::string& deviceType,
                                  int insertIndex = -1);
     bool removeDeviceFromTrack(const std::string& deviceId);
+    /// Reorder a device within its owning track (or master bus). `toIndex` is the
+    /// slot index before track_gain; refuses track_gain and out-of-range ids.
+    bool moveDeviceInTrack(const std::string& deviceId, int toIndex);
     std::string addDeviceToDrumPad(const std::string& drumMachineId, int note,
                                    const std::string& deviceType, int insertIndex = -1,
                                    const std::string& padName = {});
