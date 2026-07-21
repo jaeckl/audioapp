@@ -1,0 +1,83 @@
+{
+  "project_format_version": 2,
+  "name": "MS Mastering Chain",
+  "bpm": 120,
+  "selectedTrackId": "tpl-drums",
+  "loopEnabled": true,
+  "loopRegionStartBeat": 0.0,
+  "loopRegionEndBeat": 4.0,
+  "master": {
+    "id": "master",
+    "name": "Master",
+    "gain": 0.78,
+    "devices": [
+      {
+        "id": "master-ms",
+        "type": "ms_split",
+        "parameters": {"bypass": 0.0},
+        "branches": [
+          {
+            "devices": [
+              {"id": "mid-comp", "type": "compressor", "parameters": {"compThreshold": 0.5, "compRatio": 0.58, "compAttack": 0.28, "compRelease": 0.48, "bypass": 0.0}},
+              {"id": "mid-lim", "type": "limiter", "parameters": {"limitCeiling": 0.62, "limitRelease": 0.35, "bypass": 0.0}}
+            ]
+          },
+          {
+            "devices": [
+              {"id": "side-filter", "type": "filter", "parameters": {"filterCutoff": 0.72, "filterResonance": 0.12, "bypass": 0.0}},
+              {"id": "side-comp", "type": "compressor", "parameters": {"compThreshold": 0.56, "compRatio": 0.5, "bypass": 0.0}}
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "samples": [],
+  "tracks": [
+    {
+      "id": "tpl-drums",
+      "name": "Drums",
+      "devices": [
+        {"id": "tpl-kick-dev", "type": "kick_generator", "parameters": {"kickPitch": 0.4, "kickPunch": 0.82, "gain": 0.94, "bypass": 0.0}},
+        {"id": "tpl-snare-dev", "type": "snare_generator", "parameters": {"snareSnap": 0.7, "gain": 0.86, "bypass": 0.0}},
+        {"id": "tpl-drums-gain", "type": "track_gain", "parameters": {"gain": 0.86, "bypass": 0.0}}
+      ],
+      "midiClips": [{
+        "id": "tpl-drums-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
+        "notes": [
+          {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 112.0},
+          {"pitch": 36, "startBeat": 2.0, "durationBeats": 0.1, "velocity": 108.0},
+          {"pitch": 38, "startBeat": 1.0, "durationBeats": 0.16, "velocity": 102.0},
+          {"pitch": 38, "startBeat": 3.0, "durationBeats": 0.16, "velocity": 100.0}
+        ]
+      }],
+      "sampleClips": []
+    },
+    {
+      "id": "tpl-bass",
+      "name": "Bass",
+      "devices": [
+        {"id": "tpl-bass-synth", "type": "subtractive_synth", "parameters": {"gain": 0.76, "filterCutoff": 0.32, "bypass": 0.0}},
+        {"id": "tpl-bass-gain", "type": "track_gain", "parameters": {"gain": 0.78, "bypass": 0.0}}
+      ],
+      "midiClips": [{
+        "id": "tpl-bass-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
+        "notes": [{"pitch": 36, "startBeat": 0.0, "durationBeats": 1.0, "velocity": 100.0}, {"pitch": 36, "startBeat": 2.0, "durationBeats": 1.0, "velocity": 98.0}]
+      }],
+      "sampleClips": []
+    },
+    {
+      "id": "tpl-pad",
+      "name": "Pad",
+      "devices": [
+        {"id": "tpl-pad-synth", "type": "subtractive_synth", "parameters": {"gain": 0.66, "filterCutoff": 0.6, "attack": 0.28, "bypass": 0.0}},
+        {"id": "tpl-pad-gain", "type": "track_gain", "parameters": {"gain": 0.72, "bypass": 0.0}}
+      ],
+      "midiClips": [{
+        "id": "tpl-pad-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
+        "notes": [{"pitch": 57, "startBeat": 0.0, "durationBeats": 3.75, "velocity": 76.0}, {"pitch": 60, "startBeat": 0.0, "durationBeats": 3.75, "velocity": 72.0}]
+      }],
+      "sampleClips": []
+    }
+  ]
+}

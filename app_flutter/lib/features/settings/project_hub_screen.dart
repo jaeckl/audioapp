@@ -42,7 +42,7 @@ class ProjectHubScreen extends StatelessWidget {
                   key: const ValueKey('project-new'),
                   icon: Icons.add_rounded,
                   title: 'New project',
-                  subtitle: 'Start with a clean arrangement',
+                  subtitle: 'Pick a template or start empty',
                   onTap: onNewProject,
                 ),
                 _ActionRow(
