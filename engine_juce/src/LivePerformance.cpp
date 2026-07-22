@@ -152,6 +152,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             voice.wavetable = WavetableVoiceRuntime{};
             voice.wavetable.pitch = pitch;
             voice.wavetable.velocity = voice.velocity;
+            voice.wavetable.noiseSeed =
+                0xA341316Cu ^ static_cast<uint32_t>(pitch * 2654435761u);
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -214,6 +216,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         steal.wavetable = WavetableVoiceRuntime{};
         steal.wavetable.pitch = pitch;
         steal.wavetable.velocity = steal.velocity;
+        steal.wavetable.noiseSeed =
+            0xA341316Cu ^ static_cast<uint32_t>(pitch * 2654435761u);
     }
     steal.active.store(1, std::memory_order_release);
     return 0;

@@ -179,7 +179,7 @@ class DeviceStripSlot extends StatefulWidget {
     this.synthTab = SubtractiveDeviceTab.osc,
     this.bassTab = BassSynthDeviceTab.tone,
     this.onWtTabChanged,
-    this.wtTab = WavetableSynthDeviceTab.osc,
+    this.wtTab = WavetableSynthDeviceTab.source,
     this.onPmTabChanged,
     this.pmTab = PhaseModSynthDeviceTab.mix,
     this.lfos = const [],

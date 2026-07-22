@@ -79,6 +79,38 @@ public:
             expect(std::abs(fullRms(oneVoice) - fullRms(manyVoice)) > 1.0e-6f,
                    "unison detune changes output");
         }
+
+        beginTest("sub oscillator audible with silent wavetable gain path");
+        {
+            const auto table = makeSineWavetable(4, 256);
+            WavetableSynthParamsPlayback silentWt;
+            silentWt.wtSubLevel = 0.0f;
+            silentWt.wtNoiseLevel = 0.0f;
+            silentWt.filterCutoff = 1.0f;
+            WavetableSynthParamsPlayback withSub = silentWt;
+            withSub.wtSubLevel = 1.0f;
+            withSub.wtSubOctave = 1;
+            // Zero the table so only sub contributes.
+            std::vector<float> zeroTable(table.size(), 0.0f);
+            const auto bare = renderBlock(zeroTable, silentWt);
+            const auto subbed = renderBlock(zeroTable, withSub);
+            expect(fullRms(bare) < 1.0e-4f, "silent table stays quiet");
+            expect(fullRms(subbed) > 1.0e-3f, "sub level produces energy");
+        }
+
+        beginTest("noise generator audible with silent wavetable");
+        {
+            std::vector<float> zeroTable(4 * 256, 0.0f);
+            WavetableSynthParamsPlayback silent;
+            silent.wtNoiseLevel = 0.0f;
+            WavetableSynthParamsPlayback noisy = silent;
+            noisy.wtNoiseLevel = 1.0f;
+            noisy.wtNoiseColor = 0.8f;
+            const auto bare = renderBlock(zeroTable, silent);
+            const auto hiss = renderBlock(zeroTable, noisy);
+            expect(fullRms(bare) < 1.0e-4f);
+            expect(fullRms(hiss) > 1.0e-3f, "noise level produces energy");
+        }
     }
 
 private:

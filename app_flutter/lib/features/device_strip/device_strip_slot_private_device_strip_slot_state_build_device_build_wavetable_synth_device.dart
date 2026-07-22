@@ -12,7 +12,8 @@ extension DeviceStripSlotStateBuildwavetablesynthdeviceOperation
       child: WavetableSynthDeviceStrip(
         device: dev,
         onParameterChanged: widget.onSamplerParameterChanged,
-        selectedTab: WavetableSynthDeviceTab.values[_selectedTabIndex],
+        selectedTab: WavetableSynthDeviceTab
+            .values[_selectedTabIndex.clamp(0, WavetableSynthDeviceTab.values.length - 1)],
         onTabChanged: widget.onWtTabChanged,
         onOpenFullscreen: widget.onOpenSamplerEditor,
         onOpenWavetableLibrary: widget.onOpenLibrary != null

@@ -53,19 +53,19 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
 
   Widget _panelBox({
     required Widget child,
-    bool showBorder = true,
+    bool showBorder = false,
     EdgeInsetsGeometry padding = const EdgeInsets.all(4),
   }) {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: const Color(0xFF16161E),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
         border: showBorder
             ? Border.all(color: Colors.white.withValues(alpha: 0.08))
             : null,
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
         child: Padding(
           padding: padding,
           child: child,
@@ -77,7 +77,7 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   @override
   void initState() {
     super.initState();
-    _tab = WavetableSynthDeviceTab.osc;
+    _tab = WavetableSynthDeviceTab.source;
   }
 
   @override
@@ -92,9 +92,9 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
   @override
   Widget build(BuildContext context) {
     final body = switch (_activeTab) {
-      WavetableSynthDeviceTab.osc => _oscTab(),
-      WavetableSynthDeviceTab.filter => _filterTab(),
-      WavetableSynthDeviceTab.env => _envTab(),
+      WavetableSynthDeviceTab.source => _oscTab(),
+      WavetableSynthDeviceTab.tone => _filterTab(),
+      WavetableSynthDeviceTab.voice => _voiceTab(),
     };
 
     if (widget.embeddedInCard) {
@@ -117,31 +117,6 @@ class _WavetableSynthDevicePanelState extends State<WavetableSynthDevicePanel> {
         Expanded(child: body),
       ],
     );
-  }
-
-  FilterPreviewMode _filterPreviewMode(int mode) {
-    switch (mode.clamp(0, 3)) {
-      case 1:
-        return FilterPreviewMode.highPass;
-      case 2:
-        return FilterPreviewMode.bandPass;
-      case 3:
-        return FilterPreviewMode.notch;
-      case 0:
-      default:
-        return FilterPreviewMode.lowPass;
-    }
-  }
-
-  double _filterCutoffHz(double normalized) {
-    const minHz = 20.0;
-    const maxHz = 20000.0;
-    final t = normalized.clamp(0.0, 1.0).toDouble();
-    return minHz * math.pow(maxHz / minHz, t).toDouble();
-  }
-
-  double _filterQ(double normalized) {
-    return 0.1 + normalized.clamp(0.0, 1.0).toDouble() * 9.9;
   }
 
   String _formatOctave(double normalized) {

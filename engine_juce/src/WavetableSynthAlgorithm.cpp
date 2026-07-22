@@ -25,6 +25,64 @@ float beatAtFrame(double playheadStartBeat, int frameIndex, double sampleRate, i
     return static_cast<float>(playheadStartBeat + seconds * static_cast<double>(bpm) / 60.0);
 }
 
+float warpPhase01(float phase, float warp, int mode) noexcept {
+    const float w = safe_clamp(warp, 0.0f, 1.0f);
+    phase = phase - std::floor(phase);
+    if (w < 1.0e-6f) {
+        return phase;
+    }
+    switch (std::clamp(mode, 0, 4)) {
+    case 0: { // Bend+
+        const float bend = w * 0.85f;
+        float p = phase + bend * phase * (1.0f - phase);
+        return p - std::floor(p);
+    }
+    case 1: { // Bend-
+        const float bend = w * 0.85f;
+        float p = phase - bend * phase * (1.0f - phase);
+        return p - std::floor(p);
+    }
+    case 2: // Sync
+        return std::fmod(phase * (1.0f + w * 7.0f), 1.0f);
+    case 3: { // PWM
+        const float width = std::max(0.05f, 0.5f - w * 0.45f);
+        if (phase < width) {
+            return (phase / width) * 0.5f;
+        }
+        return 0.5f + ((phase - width) / (1.0f - width)) * 0.5f;
+    }
+    case 4: // Mirror
+    default: {
+        float p = phase * (1.0f + w);
+        if (p > 1.0f) {
+            p = 2.0f - p;
+        }
+        return safe_clamp(p, 0.0f, 1.0f);
+    }
+    }
+}
+
+float subOscSample(float phase01, int shape) noexcept {
+    constexpr float kTwoPi = 6.28318530718f;
+    const float p = phase01 - std::floor(phase01);
+    switch (std::clamp(shape, 0, 2)) {
+    case 1: { // triangle
+        const float t = p < 0.5f ? (p * 4.0f - 1.0f) : (3.0f - p * 4.0f);
+        return t;
+    }
+    case 2: // square
+        return p < 0.5f ? 1.0f : -1.0f;
+    case 0:
+    default:
+        return std::sin(p * kTwoPi);
+    }
+}
+
+float unitRandom01(uint32_t& seed) noexcept {
+    seed = seed * 1664525u + 1013904223u;
+    return static_cast<float>(seed >> 8) * (1.0f / 16777216.0f);
+}
+
 bool isWavetableNoteAudible(const WavetableMidiNoteRegion& note,
                             double beat, int bpm,
                             float releaseSec,
@@ -245,7 +303,17 @@ float wavetableVoiceSample(const WavetableSynthParamsPlayback& params,
                                           params.wtSemitone,
                                           params.wtFine);
     voice.targetHz = rootHz;
-    voice.currentHz = rootHz;
+    const float glideMs = safe_clamp(params.wtGlide, 0.0f, 1.0f) * 2000.0f;
+    const float glideCoeff =
+        glideMs > 0.0f
+            ? 1.0f - std::exp(-1.0f / (sampleRate * glideMs * 0.001f))
+            : 1.0f;
+    if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
+        voice.currentHz += (voice.targetHz - voice.currentHz) * glideCoeff;
+    } else {
+        voice.currentHz = voice.targetHz;
+    }
+    const float oscHz = voice.currentHz;
 
     const int unisonCount = wavetableUnisonCount(params.wtUnison);
     const float spreadCents = params.wtDetune * 50.0f;
@@ -257,31 +325,74 @@ float wavetableVoiceSample(const WavetableSynthParamsPlayback& params,
     }
 
     const float invSampleRate = 1.0f / sampleRate;
+    const float warp = safe_clamp(params.wtWarp, 0.0f, 1.0f);
+    const int warpMode = std::clamp(params.wtWarpMode, 0, 4);
+    const bool needsWarp = warp > 1.0e-6f;
     float oscAvg = 0.0f;
-    if (!renderWavetableUnisonBankSimd(table,
-                                       frameCount,
-                                       frameLength,
-                                       wtPosition,
-                                       rootHz,
-                                       voice.unisonHzRatio,
-                                       unisonCount,
-                                       invSampleRate,
-                                       voice.phases,
-                                       oscAvg)) {
+    if (!needsWarp &&
+        renderWavetableUnisonBankSimd(table,
+                                      frameCount,
+                                      frameLength,
+                                      wtPosition,
+                                      oscHz,
+                                      voice.unisonHzRatio,
+                                      unisonCount,
+                                      invSampleRate,
+                                      voice.phases,
+                                      oscAvg)) {
+        // SIMD path used currentHz via oscHz.
+    } else {
         float oscSum = 0.0f;
         for (int u = 0; u < unisonCount; ++u) {
-            const float hz = rootHz * voice.unisonHzRatio[u];
+            const float hz = oscHz * voice.unisonHzRatio[u];
             const float phaseInc = hz * invSampleRate;
             voice.phases[u] += phaseInc;
             if (voice.phases[u] >= 1.0f) {
                 voice.phases[u] -= std::floor(voice.phases[u]);
             }
+            const float readPhase = needsWarp
+                ? warpPhase01(voice.phases[u], warp, warpMode)
+                : voice.phases[u];
             oscSum += wavetableInterpolatedSample(
-                table, frameCount, frameLength, wtPosition, voice.phases[u]);
+                table, frameCount, frameLength, wtPosition, readPhase);
         }
         oscAvg = oscSum / static_cast<float>(unisonCount);
     }
-    float output = oscAvg * ampGain;
+
+    float mixed = oscAvg;
+    const float fbAmt = safe_clamp(params.wtFeedback, 0.0f, 1.0f) * 0.35f;
+    if (fbAmt > 1.0e-6f) {
+        mixed += std::tanh(voice.feedbackSample) * fbAmt;
+    }
+    if (params.wtSubLevel > 1.0e-6f) {
+        static constexpr int kSubOctOffsets[] = {-2, -1, 0};
+        const int octIdx = std::clamp(params.wtSubOctave, 0, 2);
+        const float subHz = oscHz * std::ldexp(1.0f, kSubOctOffsets[octIdx]);
+        voice.subPhase += subHz * invSampleRate;
+        if (voice.subPhase >= 1.0f) {
+            voice.subPhase -= std::floor(voice.subPhase);
+        }
+        mixed += subOscSample(voice.subPhase, params.wtSubShape) * params.wtSubLevel * 0.55f;
+    }
+    if (params.wtNoiseLevel > 1.0e-6f) {
+        voice.noiseSeed = voice.noiseSeed * 1664525u + 1013904223u;
+        const float white =
+            static_cast<float>(static_cast<int32_t>(voice.noiseSeed)) *
+            (1.0f / 2147483648.0f);
+        // Color 0 = dark (heavy LP), 1 = bright (almost raw).
+        const float coeff =
+            0.02f + std::clamp(params.wtNoiseColor, 0.0f, 1.0f) * 0.45f;
+        voice.noiseLp += coeff * (white - voice.noiseLp);
+        mixed += voice.noiseLp * params.wtNoiseLevel * 0.28f;
+    }
+
+    const float filterDrive = safe_clamp(params.filterDrive, 0.0f, 1.0f);
+    if (filterDrive > 0.0f) {
+        mixed = std::tanh(mixed * (1.0f + filterDrive * 3.0f));
+    }
+    voice.feedbackSample = std::tanh(mixed);
+
+    float output = mixed * ampGain;
 
     if (filterMode >= 0 && filterMode <= 3) {
         const float cutoffHz = normalizedCutoffToHz(params.filterCutoff + filterGain * params.filterEnvAmount);
@@ -325,7 +436,7 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                 int voiceLimit,
                                 bool retriggerReplacesVoice,
                                 const CommonControlBlock* commonControls,
-                                uint64_t automationTargetNodeId = 0) noexcept {
+                                uint64_t automationTargetNodeId) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0 ||
         wavetablePcm == nullptr || wavetableFrameCount <= 0 || wavetableFrameLength <= 0) {
         return;
@@ -406,6 +517,19 @@ void mixWavetableMidiNotesBlock(float* monoOut,
                                               params.wtFine);
             voice.currentHz = voice.targetHz;
             std::memset(voice.phases, 0, sizeof(voice.phases));
+            const float basePhase = safe_clamp(params.wtPhase, 0.0f, 1.0f);
+            const float rndAmt = safe_clamp(params.wtPhaseRandom, 0.0f, 1.0f);
+            voice.noiseSeed = 0xA341316Cu ^ static_cast<uint32_t>(notes[ni].pitch * 2654435761u);
+            for (int u = 0; u < kWavetableMaxUnison; ++u) {
+                const float rnd = rndAmt > 0.0f ? unitRandom01(voice.noiseSeed) * rndAmt : 0.0f;
+                voice.phases[u] = basePhase + rnd;
+                if (voice.phases[u] >= 1.0f) {
+                    voice.phases[u] -= std::floor(voice.phases[u]);
+                }
+            }
+            voice.subPhase = voice.phases[0];
+            voice.noiseLp = 0.0f;
+            voice.feedbackSample = 0.0f;
         } else {
             voice.active = 1;
         }

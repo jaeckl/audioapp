@@ -126,7 +126,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     if (widget.device.type == 'wavetable_synth' &&
         widget.wtTab != oldWidget.wtTab) {
-      _selectedTabIndex = widget.wtTab.index;
+      _selectedTabIndex = widget.wtTab.index
+          .clamp(0, WavetableSynthDeviceTab.values.length - 1);
     }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();

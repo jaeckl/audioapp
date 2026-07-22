@@ -10,58 +10,38 @@ extension _WavetableSynthDevicePanelStateAdsrrow
     required void Function(String id, double value) onChanged,
     String prefix = '',
     double spacing = 6,
+    double? knobSize,
+    List<String> labels = const ['A', 'D', 'S', 'R'],
   }) {
-    final size = _knobSize * 0.78;
+    final size = knobSize ?? _knobSize * 0.78;
     String id(String n) =>
         prefix.isEmpty ? n : '$prefix${n[0].toUpperCase()}${n.substring(1)}';
+    final values = [attack, decay, sustain, release];
+    final names = ['attack', 'decay', 'sustain', 'release'];
     return Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _knob(
-            label: 'A',
-            value: attack,
-            size: size,
-            labelGap: 1,
-            displayValue: SamplerDevicePanel.formatPercent(attack),
-            onChanged: (v) => onChanged(id('attack'), v),
-            paramId: id('attack'),
-            modulationAmounts: widget.modulationAmounts,
-            connectModeLfoId: widget.connectModeLfoId),
-        SizedBox(width: spacing),
-        _knob(
-            label: 'D',
-            value: decay,
-            size: size,
-            labelGap: 1,
-            displayValue: SamplerDevicePanel.formatPercent(decay),
-            onChanged: (v) => onChanged(id('decay'), v),
-            paramId: id('decay'),
-            modulationAmounts: widget.modulationAmounts,
-            connectModeLfoId: widget.connectModeLfoId),
-        SizedBox(width: spacing),
-        _knob(
-            label: 'S',
-            value: sustain,
-            size: size,
-            labelGap: 1,
-            displayValue: SamplerDevicePanel.formatPercent(sustain),
-            onChanged: (v) => onChanged(id('sustain'), v),
-            paramId: id('sustain'),
-            modulationAmounts: widget.modulationAmounts,
-            connectModeLfoId: widget.connectModeLfoId),
-        SizedBox(width: spacing),
-        _knob(
-            label: 'R',
-            value: release,
-            size: size,
-            labelGap: 1,
-            displayValue: SamplerDevicePanel.formatPercent(release),
-            onChanged: (v) => onChanged(id('release'), v),
-            paramId: id('release'),
-            modulationAmounts: widget.modulationAmounts,
-            connectModeLfoId: widget.connectModeLfoId),
+        for (var i = 0; i < 4; i++) ...[
+          if (i > 0) SizedBox(width: spacing),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: _knob(
+                label: labels[i],
+                value: values[i],
+                size: size,
+                labelGap: 2,
+                displayValue: SamplerDevicePanel.formatPercent(values[i]),
+                onChanged: (v) => onChanged(id(names[i]), v),
+                paramId: id(names[i]),
+                modulationAmounts: widget.modulationAmounts,
+                connectModeLfoId: widget.connectModeLfoId,
+                onModulationAssign: widget.onModulationAssign,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

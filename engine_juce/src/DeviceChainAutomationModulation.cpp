@@ -434,6 +434,16 @@ void applyModulation(WavetableSynthParamsPlayback& p, float modAmount, uint16_t 
     case WavetableParam::WtFine:          p.wtFine = std::clamp(p.wtFine + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::WtUnison:        p.wtUnison = std::clamp(p.wtUnison + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::WtDetune:        p.wtDetune = std::clamp(p.wtDetune + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtSubLevel:      p.wtSubLevel = std::clamp(p.wtSubLevel + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtNoiseLevel:    p.wtNoiseLevel = std::clamp(p.wtNoiseLevel + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtNoiseColor:    p.wtNoiseColor = std::clamp(p.wtNoiseColor + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtWarp:          p.wtWarp = std::clamp(p.wtWarp + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtPhase:         p.wtPhase = std::clamp(p.wtPhase + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtPhaseRandom:   p.wtPhaseRandom = std::clamp(p.wtPhaseRandom + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::FilterDrive:     p.filterDrive = std::clamp(p.filterDrive + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtFeedback:      p.wtFeedback = std::clamp(p.wtFeedback + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtStereoSpread:  p.wtStereoSpread = std::clamp(p.wtStereoSpread + modAmount, 0.0f, 1.0f); break;
+    case WavetableParam::WtGlide:         p.wtGlide = std::clamp(p.wtGlide + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::FilterCutoff:    p.filterCutoff = std::clamp(p.filterCutoff + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::FilterResonance: p.filterResonance = std::clamp(p.filterResonance + modAmount, 0.0f, 1.0f); break;
     case WavetableParam::FilterEnvAmount: p.filterEnvAmount = std::clamp(p.filterEnvAmount + modAmount, 0.0f, 1.0f); break;

@@ -73,6 +73,19 @@ DeviceParameterResult WavetableSynthDeviceType::setParameter(DeviceSlot& slot,
     case WavetableParam::WtFine:      instance.wtFine = std::clamp(value, 0.0f, 1.0f); break;
     case WavetableParam::WtUnison:    instance.wtUnison = std::clamp(value, 0.0f, 1.0f); break;
     case WavetableParam::WtDetune:    instance.wtDetune = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtSubLevel:  instance.wtSubLevel = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtSubOctave: instance.wtSubOctave = std::clamp(static_cast<int>(std::lround(value)), 0, 2); break;
+    case WavetableParam::WtNoiseLevel: instance.wtNoiseLevel = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtNoiseColor: instance.wtNoiseColor = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtWarp: instance.wtWarp = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtWarpMode: instance.wtWarpMode = std::clamp(static_cast<int>(std::lround(value)), 0, 4); break;
+    case WavetableParam::WtPhase: instance.wtPhase = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtPhaseRandom: instance.wtPhaseRandom = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtSubShape: instance.wtSubShape = std::clamp(static_cast<int>(std::lround(value)), 0, 2); break;
+    case WavetableParam::FilterDrive: instance.filterDrive = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtFeedback: instance.wtFeedback = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtStereoSpread: instance.wtStereoSpread = std::clamp(value, 0.0f, 1.0f); break;
+    case WavetableParam::WtGlide: instance.wtGlide = std::clamp(value, 0.0f, 1.0f); break;
     case WavetableParam::FilterMode:  instance.filterMode = std::clamp(static_cast<int>(std::lround(value)), 0, 3); break;
     default:
         return result;
@@ -104,6 +117,9 @@ std::vector<std::string_view> WavetableSynthDeviceType::modulatableParams() cons
         "gain", "pan", "filterCutoff", "filterResonance", "filterMode",
         "wtPosition", "wtOctave", "wtSemitone", "wtFine",
         "wtUnison", "wtDetune", "filterEnvAmount",
+        "wtSubLevel", "wtSubOctave", "wtNoiseLevel", "wtNoiseColor",
+        "wtWarp", "wtWarpMode", "wtPhase", "wtPhaseRandom", "wtSubShape",
+        "filterDrive", "wtFeedback", "wtStereoSpread", "wtGlide",
         "attack", "decay", "sustain", "release",
         "filterAttack", "filterDecay", "filterSustain", "filterRelease",
     };
@@ -191,6 +207,19 @@ juce::var WavetableSynthDeviceType::slotToVar(const DeviceSlot& slot) const {
     parameters->setProperty("wtFine", static_cast<double>(inst.wtFine));
     parameters->setProperty("wtUnison", static_cast<double>(inst.wtUnison));
     parameters->setProperty("wtDetune", static_cast<double>(inst.wtDetune));
+    parameters->setProperty("wtSubLevel", static_cast<double>(inst.wtSubLevel));
+    parameters->setProperty("wtSubOctave", inst.wtSubOctave);
+    parameters->setProperty("wtNoiseLevel", static_cast<double>(inst.wtNoiseLevel));
+    parameters->setProperty("wtNoiseColor", static_cast<double>(inst.wtNoiseColor));
+    parameters->setProperty("wtWarp", static_cast<double>(inst.wtWarp));
+    parameters->setProperty("wtWarpMode", inst.wtWarpMode);
+    parameters->setProperty("wtPhase", static_cast<double>(inst.wtPhase));
+    parameters->setProperty("wtPhaseRandom", static_cast<double>(inst.wtPhaseRandom));
+    parameters->setProperty("wtSubShape", inst.wtSubShape);
+    parameters->setProperty("filterDrive", static_cast<double>(inst.filterDrive));
+    parameters->setProperty("wtFeedback", static_cast<double>(inst.wtFeedback));
+    parameters->setProperty("wtStereoSpread", static_cast<double>(inst.wtStereoSpread));
+    parameters->setProperty("wtGlide", static_cast<double>(inst.wtGlide));
 
     auto* object = new juce::DynamicObject();
     object->setProperty("id", juce::String::fromUTF8(slot.id.c_str()));
@@ -279,6 +308,19 @@ DeviceSlot WavetableSynthDeviceType::varToSlot(const juce::var& obj) const {
             inst.wtFine = readFloat("wtFine", 0.5f);
             inst.wtUnison = readFloat("wtUnison", 0.0f);
             inst.wtDetune = readFloat("wtDetune", 0.0f);
+            inst.wtSubLevel = readFloat("wtSubLevel", 0.0f);
+            inst.wtSubOctave = readInt("wtSubOctave", 1);
+            inst.wtNoiseLevel = readFloat("wtNoiseLevel", 0.0f);
+            inst.wtNoiseColor = readFloat("wtNoiseColor", 0.5f);
+            inst.wtWarp = readFloat("wtWarp", 0.0f);
+            inst.wtWarpMode = readInt("wtWarpMode", 0);
+            inst.wtPhase = readFloat("wtPhase", 0.0f);
+            inst.wtPhaseRandom = readFloat("wtPhaseRandom", 0.0f);
+            inst.wtSubShape = readInt("wtSubShape", 0);
+            inst.filterDrive = readFloat("filterDrive", 0.0f);
+            inst.wtFeedback = readFloat("wtFeedback", 0.0f);
+            inst.wtStereoSpread = readFloat("wtStereoSpread", 0.0f);
+            inst.wtGlide = readFloat("wtGlide", 0.0f);
 
             slot.config.instance = inst;
         }
@@ -309,6 +351,19 @@ uint16_t WavetableSynthDeviceType::paramIdFromString(std::string_view name) cons
     if (auto v = s("wtFine", WavetableParam::WtFine); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("wtUnison", WavetableParam::WtUnison); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("wtDetune", WavetableParam::WtDetune); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtSubLevel", WavetableParam::WtSubLevel); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtSubOctave", WavetableParam::WtSubOctave); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtNoiseLevel", WavetableParam::WtNoiseLevel); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtNoiseColor", WavetableParam::WtNoiseColor); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtWarp", WavetableParam::WtWarp); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtWarpMode", WavetableParam::WtWarpMode); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtPhase", WavetableParam::WtPhase); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtPhaseRandom", WavetableParam::WtPhaseRandom); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtSubShape", WavetableParam::WtSubShape); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("filterDrive", WavetableParam::FilterDrive); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtFeedback", WavetableParam::WtFeedback); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtStereoSpread", WavetableParam::WtStereoSpread); v != static_cast<uint16_t>(-1)) return v;
+    if (auto v = s("wtGlide", WavetableParam::WtGlide); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("filterEnvAmount", WavetableParam::FilterEnvAmount); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("filterAttack", WavetableParam::FilterAttack); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = s("filterDecay", WavetableParam::FilterDecay); v != static_cast<uint16_t>(-1)) return v;
@@ -332,6 +387,19 @@ std::string_view WavetableSynthDeviceType::paramIdToString(uint16_t localId) con
     case WavetableParam::WtFine: return "wtFine";
     case WavetableParam::WtUnison: return "wtUnison";
     case WavetableParam::WtDetune: return "wtDetune";
+    case WavetableParam::WtSubLevel: return "wtSubLevel";
+    case WavetableParam::WtSubOctave: return "wtSubOctave";
+    case WavetableParam::WtNoiseLevel: return "wtNoiseLevel";
+    case WavetableParam::WtNoiseColor: return "wtNoiseColor";
+    case WavetableParam::WtWarp: return "wtWarp";
+    case WavetableParam::WtWarpMode: return "wtWarpMode";
+    case WavetableParam::WtPhase: return "wtPhase";
+    case WavetableParam::WtPhaseRandom: return "wtPhaseRandom";
+    case WavetableParam::WtSubShape: return "wtSubShape";
+    case WavetableParam::FilterDrive: return "filterDrive";
+    case WavetableParam::WtFeedback: return "wtFeedback";
+    case WavetableParam::WtStereoSpread: return "wtStereoSpread";
+    case WavetableParam::WtGlide: return "wtGlide";
     case WavetableParam::FilterEnvAmount: return "filterEnvAmount";
     case WavetableParam::FilterAttack: return "filterAttack";
     case WavetableParam::FilterDecay: return "filterDecay";
@@ -356,6 +424,19 @@ std::span<const ParamDescriptor> WavetableSynthDeviceType::paramDescriptors() co
         {static_cast<uint16_t>(WavetableParam::WtFine), "wtFine", "Fine", 0.5f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::WtUnison), "wtUnison", "Unison", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::WtDetune), "wtDetune", "Detune", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtSubLevel), "wtSubLevel", "Sub Level", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtSubOctave), "wtSubOctave", "Sub Octave", 1.0f, 0.0f, 2.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(WavetableParam::WtNoiseLevel), "wtNoiseLevel", "Noise Level", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtNoiseColor), "wtNoiseColor", "Noise Color", 0.5f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtWarp), "wtWarp", "Warp", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtWarpMode), "wtWarpMode", "Warp Mode", 0.0f, 0.0f, 4.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(WavetableParam::WtPhase), "wtPhase", "Phase", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtPhaseRandom), "wtPhaseRandom", "Phase Random", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtSubShape), "wtSubShape", "Sub Shape", 0.0f, 0.0f, 2.0f, true, true, ParameterUpdateRate::Discrete},
+        {static_cast<uint16_t>(WavetableParam::FilterDrive), "filterDrive", "Filter Drive", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtFeedback), "wtFeedback", "Feedback", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtStereoSpread), "wtStereoSpread", "Stereo Spread", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(WavetableParam::WtGlide), "wtGlide", "Glide", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::FilterEnvAmount), "filterEnvAmount", "Filter Env Amt", 0.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::FilterAttack), "filterAttack", "Filter Attack", 0.1f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(WavetableParam::FilterDecay), "filterDecay", "Filter Decay", 0.3f, 0.0f, 1.0f, true, true},
