@@ -8,7 +8,7 @@ part 'piano_roll_context_strip_segment_tab.dart';
 part 'piano_roll_context_strip_context_chip.dart';
 part 'piano_roll_context_strip_mode_chip.dart';
 
-/// Secondary chrome row below the MIDI editor app bar: mode segment + context chips.
+/// Secondary chrome row: mode segment + context chips (+ optional trailing).
 class PianoRollContextStrip extends StatelessWidget {
   const PianoRollContextStrip({
     super.key,
@@ -21,6 +21,7 @@ class PianoRollContextStrip extends StatelessWidget {
     this.scaleLabel,
     required this.onViewTap,
     this.modeChip,
+    this.trailing,
   });
 
   static const height = 44.0;
@@ -37,6 +38,9 @@ class PianoRollContextStrip extends StatelessWidget {
   /// `COMP` or `EDIT` when the clip has a multi-take comp workflow.
   final String? modeChip;
 
+  /// Optional trailing control (view / overflow).
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -44,7 +48,7 @@ class PianoRollContextStrip extends StatelessWidget {
       child: SizedBox(
         height: height,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.fromLTRB(44, 0, 8, 0),
           child: Row(
             children: [
               _ModeSegment(
@@ -81,6 +85,10 @@ class PianoRollContextStrip extends StatelessWidget {
                   ),
                 ),
               ),
+              if (trailing != null) ...[
+                const SizedBox(width: 4),
+                trailing!,
+              ],
             ],
           ),
         ),

@@ -9,5 +9,6 @@ void _onOctaveDelta(int delta) {
         _padBank = bank * 16;
       }
     });
+    _notifyChrome();
   }
 }

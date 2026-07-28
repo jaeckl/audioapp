@@ -11,6 +11,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   final TimelineViewportScrollController _timelineScrollController = TimelineViewportScrollController();
   final List<List<MidiNoteSnapshot>> _undoStack = [];
   final List<List<MidiNoteSnapshot>> _redoStack = [];
+  final GlobalKey<PlayDeckState> _playDeckKey = GlobalKey<PlayDeckState>();
 
   PianoRollGridSettings _grid = const PianoRollGridSettings();
   late PianoRollScaleSettings _scale;

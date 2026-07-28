@@ -11,8 +11,8 @@ extension _PianoRollScreenStateOpendrawsheet on _PianoRollScreenState {
       showScaleControls: _editorMode == MidiEditorMode.piano,
       drawPattern: _drawPattern,
       onDrawPatternChanged: (value) => setState(() => _drawPattern = value),
-      bottomInset:
-          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+      bottomInset: PianoRollMetrics.toolDockHeight +
+          PlayDeckLayout.chromeHeightFor(MediaQuery.sizeOf(context)),
     );
   }
 }

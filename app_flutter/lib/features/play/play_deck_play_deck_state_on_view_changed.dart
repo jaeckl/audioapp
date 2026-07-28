@@ -8,5 +8,6 @@ void _onViewChanged(PlayContextView view) {
         _highlightedPitches.clear();
       }
     });
+    _notifyChrome();
   }
 }

@@ -27,108 +27,40 @@ class _ChromaticPiano extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (rows == 1) {
-      final whites = List.generate(7, (i) => octaveRoot + _whiteSteps[i]);
-      return _ScaleKeyGrid(
-        pitches: whites,
-        scale: PlayScale.chromatic,
-        rows: 1,
-        scrollOffset: 0,
-        held: held,
-        highlighted: highlighted,
-        onDown: onDown,
-        onUp: onUp,
-        onPointerDown: onPointerDown,
-        onPointerMove: onPointerMove,
-        onPointerEnd: onPointerEnd,
-      );
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final gap = PlayDeckTheme.cellGap;
-        const whiteCount = 7;
-        final blackH = constraints.maxHeight * 0.34;
-        final whiteH = constraints.maxHeight - blackH - gap;
-        final whiteW =
-            (constraints.maxWidth - gap * (whiteCount - 1)) / whiteCount;
+        final size = MediaQuery.sizeOf(context);
+        final landscape = PlayDeckLayout.isLandscape(size);
+        final octaveCount = landscape
+            ? PlayDeckLayout.octaveCountForWidth(constraints.maxWidth)
+            : rows.clamp(1, PlayDeckLayout.maxKeyboardOctaves);
 
+        // Landscape: octaves side-by-side (more keys by width).
+        // Portrait: one octave per row, stacked (higher octave on top).
+        if (landscape || octaveCount == 1) {
+          return _octaveStrip(
+            root: octaveRoot,
+            octaveCount: octaveCount,
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+          );
+        }
+
+        final gap = PlayDeckTheme.cellGap;
+        final rowH =
+            (constraints.maxHeight - gap * (octaveCount - 1)) / octaveCount;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox(
-              height: blackH,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  for (var i = 0; i < whiteCount - 1; i++)
-                    if (_whiteSteps[i + 1] - _whiteSteps[i] == 2)
-                      Positioned(
-                        left: i * (whiteW + gap) + whiteW * 0.66,
-                        width: whiteW * 0.68,
-                        top: 0,
-                        bottom: 0,
-                        child: _KeyCell(
-                          dark: true,
-                          isRoot: false,
-                          active: held
-                                  .contains(octaveRoot + _whiteSteps[i] + 1) ||
-                              highlighted
-                                  .contains(octaveRoot + _whiteSteps[i] + 1),
-                          onDown: (y, h) =>
-                              onDown(octaveRoot + _whiteSteps[i] + 1, y, h),
-                          onUp: () => onUp(octaveRoot + _whiteSteps[i] + 1),
-                          onPointerDown: (pointer, local) => onPointerDown(
-                              octaveRoot + _whiteSteps[i] + 1, pointer, local),
-                          onPointerMove: onPointerMove,
-                          onPointerEnd: onPointerEnd,
-                        ),
-                      ),
-                ],
-              ),
-            ),
-            SizedBox(height: gap),
-            SizedBox(
-              height: whiteH,
-              child: Row(
-                children: [
-                  for (var i = 0; i < whiteCount; i++) ...[
-                    if (i > 0) SizedBox(width: gap),
-                    Expanded(
-                      child: _KeyCell(
-                        light: true,
-                        isRoot: _whiteSteps[i] == 0,
-                        active: held.contains(octaveRoot + _whiteSteps[i]) ||
-                            highlighted.contains(octaveRoot + _whiteSteps[i]),
-                        onDown: (y, h) =>
-                            onDown(octaveRoot + _whiteSteps[i], y, h),
-                        onUp: () => onUp(octaveRoot + _whiteSteps[i]),
-                        onPointerDown: (pointer, local) => onPointerDown(
-                            octaveRoot + _whiteSteps[i], pointer, local),
-                        onPointerMove: onPointerMove,
-                        onPointerEnd: onPointerEnd,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (rows == 3) ...[
-              SizedBox(height: gap),
-              Expanded(
-                child: _ScaleKeyGrid(
-                  pitches:
-                      List.generate(7, (i) => octaveRoot + 12 + _whiteSteps[i]),
-                  scale: PlayScale.chromatic,
-                  rows: 1,
-                  scrollOffset: 0,
-                  held: held,
-                  highlighted: highlighted,
-                  onDown: onDown,
-                  onUp: onUp,
-                  onPointerDown: onPointerDown,
-                  onPointerMove: onPointerMove,
-                  onPointerEnd: onPointerEnd,
+            for (var o = octaveCount - 1; o >= 0; o--) ...[
+              if (o < octaveCount - 1) SizedBox(height: gap),
+              SizedBox(
+                height: rowH,
+                child: _octaveStrip(
+                  root: octaveRoot + o * 12,
+                  octaveCount: 1,
+                  width: constraints.maxWidth,
+                  height: rowH,
                 ),
               ),
             ],
@@ -136,5 +68,87 @@ class _ChromaticPiano extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _octaveStrip({
+    required int root,
+    required int octaveCount,
+    required double width,
+    required double height,
+  }) {
+    final gap = PlayDeckTheme.cellGap;
+    final whiteCount = _whiteSteps.length * octaveCount;
+    final whiteW = (width - gap * (whiteCount - 1)) / whiteCount;
+    final blackH = height * 0.58;
+    final blackW = whiteW * 0.62;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Row(
+          children: [
+            for (var i = 0; i < whiteCount; i++) ...[
+              if (i > 0) SizedBox(width: gap),
+              Expanded(
+                child: _KeyCell(
+                  light: true,
+                  isRoot: _whiteSteps[i % _whiteSteps.length] == 0,
+                  active: _isActive(_pitchAt(root, i)),
+                  onDown: (y, h) => onDown(_pitchAt(root, i), y, h),
+                  onUp: () => onUp(_pitchAt(root, i)),
+                  onPointerDown: (pointer, local) =>
+                      onPointerDown(_pitchAt(root, i), pointer, local),
+                  onPointerMove: onPointerMove,
+                  onPointerEnd: onPointerEnd,
+                ),
+              ),
+            ],
+          ],
+        ),
+        for (var i = 0; i < whiteCount; i++)
+          if (_hasBlackAfter(i % _whiteSteps.length))
+            Positioned(
+              left: _blackLeft(i, whiteW, gap, blackW),
+              width: blackW,
+              top: 0,
+              height: blackH,
+              child: _KeyCell(
+                dark: true,
+                isRoot: false,
+                active: _isActive(_pitchAt(root, i) + 1),
+                onDown: (y, h) => onDown(_pitchAt(root, i) + 1, y, h),
+                onUp: () => onUp(_pitchAt(root, i) + 1),
+                onPointerDown: (pointer, local) =>
+                    onPointerDown(_pitchAt(root, i) + 1, pointer, local),
+                onPointerMove: onPointerMove,
+                onPointerEnd: onPointerEnd,
+              ),
+            ),
+      ],
+    );
+  }
+
+  int _pitchAt(int root, int whiteIndex) {
+    final octave = whiteIndex ~/ _whiteSteps.length;
+    final step = _whiteSteps[whiteIndex % _whiteSteps.length];
+    return root + octave * 12 + step;
+  }
+
+  bool _isActive(int pitch) =>
+      held.contains(pitch) || highlighted.contains(pitch);
+
+  static bool _hasBlackAfter(int whiteStepIndex) {
+    if (whiteStepIndex >= _whiteSteps.length - 1) return false;
+    return _whiteSteps[whiteStepIndex + 1] - _whiteSteps[whiteStepIndex] == 2;
+  }
+
+  static double _blackLeft(
+    int whiteIndex,
+    double whiteW,
+    double gap,
+    double blackW,
+  ) {
+    final whiteRight = whiteIndex * (whiteW + gap) + whiteW;
+    return whiteRight + gap / 2 - blackW / 2;
   }
 }

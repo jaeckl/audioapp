@@ -95,9 +95,9 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
   @override
   Widget build(BuildContext context) {
     final rows = widget.rowCount.clamp(1, 3);
-    final usePianoLayout = !widget.inKeyOnly && rows >= 2;
 
-    if (usePianoLayout) {
+    // Keys mode = real piano (white + black). In-key keeps equal note bars.
+    if (!widget.inKeyOnly) {
       return _ChromaticPiano(
         octaveRoot: _rootMidi + widget.octaveOffset * 12,
         rows: rows,
@@ -113,7 +113,7 @@ class _PlayKeyboardState extends State<PlayKeyboard> {
 
     return _ScaleKeyGrid(
       pitches: _allPitches,
-      scale: widget.inKeyOnly ? widget.scale : PlayScale.chromatic,
+      scale: widget.scale,
       rows: rows,
       scrollOffset: widget.scrollOffset,
       held: _heldPitches,

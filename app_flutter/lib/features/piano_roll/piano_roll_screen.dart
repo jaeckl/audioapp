@@ -17,6 +17,7 @@ import '../drum_assistant/drum_tool_panels.dart';
 import '../music_theory/progression_templates.dart';
 import '../play/play_deck.dart';
 import '../play/play_deck_layout.dart';
+import '../play/play_deck_rail.dart';
 import 'piano_roll_center_mode.dart';
 import 'piano_roll_context_strip.dart';
 import 'piano_roll_edit_sheet.dart';

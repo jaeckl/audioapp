@@ -7,7 +7,8 @@ class PlayDeckState extends State<PlayDeck> {
   int _keyboardRows = PlayDeckLayout.defaultKeyboardRows;
   int _padBank = 0;
   String _scaleId = PlayScale.major.id;
-  bool _inKeyOnly = true;
+  // Chromatic piano by default — In Key still available via Octave panel.
+  bool _inKeyOnly = false;
 
   ChordQuality _chord = ChordQuality.major;
   ArpMode _arp = ArpMode.off;
@@ -42,13 +43,22 @@ class PlayDeckState extends State<PlayDeck> {
   bool get metronome => _metronome;
   CaptureQuantize get quantize => _quantize;
 
+  PlaySurfaceMode get surfaceMode => _surfaceMode;
+  PlayContextView get activeView => _view;
+  int get octaveDisplay => _octaveDisplay;
+
   int get _octaveDisplay => (2 + _octaveOffset).clamp(-2, 8);
+
+  void setView(PlayContextView view) => _onViewChanged(view);
+
+  void _notifyChrome() => widget.onChromeChanged?.call();
 
   @override
   void initState() {
     super.initState();
     _surfaceMode = widget.initialSurfaceMode ?? PlaySurfaceMode.keys;
     _octaveOffset = widget.initialOctaveOffset;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _notifyChrome());
   }
 
   @override
@@ -62,6 +72,11 @@ class PlayDeckState extends State<PlayDeck> {
   @override
   Widget build(BuildContext context) {
     final scale = PlayScale.byId(_scaleId, custom: _customScales);
+    final size = MediaQuery.sizeOf(context);
+    final deckH = PlayDeckLayout.deckHeightFor(
+      size,
+      showModStrip: widget.showModStrip,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -71,24 +86,38 @@ class PlayDeckState extends State<PlayDeck> {
         ColoredBox(
           color: PlayDeckTheme.deckBackground,
           child: SizedBox(
-            height: PlayDeckLayout.deckHeight,
+            height: deckH,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                PlayDeckRail(
-                  surfaceMode: _surfaceMode,
-                  activeView: _view,
-                  octaveDisplay: _octaveDisplay,
-                  enabled: widget.enabled,
-                  onSurfaceModeChanged: _onSurfaceModeChanged,
-                  onViewChanged: _onViewChanged,
-                ),
+                if (widget.showRail)
+                  PlayDeckRail(
+                    surfaceMode: _surfaceMode,
+                    activeView: _view,
+                    octaveDisplay: _octaveDisplay,
+                    enabled: widget.enabled,
+                    onSurfaceModeChanged: _onSurfaceModeChanged,
+                    onViewChanged: _onViewChanged,
+                  ),
                 Expanded(child: _buildContextArea(scale)),
               ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  int get _effectiveKeyboardRows {
+    final size = MediaQuery.sizeOf(context);
+    // Landscape: width-fit; rail may be external so use full width estimate.
+    final keyWidth = widget.showRail
+        ? size.width - PlayDeckTheme.railWidth
+        : size.width;
+    return PlayDeckLayout.keyboardRowsFor(
+      size,
+      _keyboardRows,
+      keyboardWidth: keyWidth,
     );
   }
 }

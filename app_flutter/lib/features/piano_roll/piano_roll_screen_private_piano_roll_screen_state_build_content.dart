@@ -2,7 +2,9 @@ part of 'piano_roll_screen.dart';
 
 extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
   Widget _buildContent(BuildContext context) {
-    final barCount = (_clipLengthBeats / PianoRollMetrics.beatsPerBar).ceil();
+    final size = MediaQuery.sizeOf(context);
+    final landscape = PlayDeckLayout.isLandscape(size);
+    final deck = _playDeckKey.currentState;
 
     return PopScope(
       canPop: false,
@@ -12,91 +14,60 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: PianoRollTheme.background,
-        appBar: AppBar(
-          backgroundColor: PianoRollTheme.background,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _closeEditor,
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                widget.trackName,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Text(
-                _appBarSubtitle(barCount),
-                style: const TextStyle(
-                  color: PianoRollTheme.labelMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            IconButton(
-              tooltip: 'View',
-              icon: const Icon(Icons.grid_view_rounded, size: 22),
-              color: Colors.white70,
-              onPressed: _openViewSheet,
-            ),
-            if (_takes.length > 1)
-              PopupMenuButton<String>(
-                tooltip: 'More',
-                icon: const Icon(Icons.more_vert, color: Colors.white70),
-                color: const Color(0xFF1A1A22),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  side: const BorderSide(color: Color(0xFF343442)),
-                ),
-                onSelected: (value) {
-                  switch (value) {
-                    case 'flatten':
-                      unawaited(_flattenMidiComp());
-                    case 'reopen':
-                      unawaited(_reopenMidiComp());
-                  }
-                },
-                itemBuilder: (context) => [
-                  if (_takes.length > 1 && !_compFlattened)
-                    const PopupMenuItem(
-                      value: 'flatten',
-                      child: Text('Flatten comp'),
+        body: SafeArea(
+          bottom: false,
+          child: MediaQuery.removePadding(
+            context: context,
+            removeBottom: true,
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    PianoRollContextStrip(
+                      centerMode: _centerMode,
+                      onCenterModeChanged: _onCenterModeChanged,
+                      showCompTab: _takes.length > 1,
+                      showHarmonicTab: _editorMode == MidiEditorMode.piano,
+                      showDrumTab: _editorMode == MidiEditorMode.drums,
+                      snapLabel: _snapChipLabel,
+                      scaleLabel: _scaleChipLabel,
+                      onViewTap: _openViewSheet,
+                      modeChip: _modeChip,
+                      // Snap/scale chips open View — no duplicate grid icon.
+                      trailing: _takes.length > 1
+                          ? PopupMenuButton<String>(
+                              tooltip: 'More',
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(Icons.more_vert,
+                                  color: Colors.white70, size: 20),
+                              color: const Color(0xFF1A1A22),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: const BorderSide(color: Color(0xFF343442)),
+                              ),
+                              onSelected: (value) {
+                                switch (value) {
+                                  case 'flatten':
+                                    unawaited(_flattenMidiComp());
+                                  case 'reopen':
+                                    unawaited(_reopenMidiComp());
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                if (!_compFlattened)
+                                  const PopupMenuItem(
+                                    value: 'flatten',
+                                    child: Text('Flatten comp'),
+                                  ),
+                                if (_compFlattened)
+                                  const PopupMenuItem(
+                                    value: 'reopen',
+                                    child: Text('Re-open comp'),
+                                  ),
+                              ],
+                            )
+                          : null,
                     ),
-                  if (_compFlattened)
-                    const PopupMenuItem(
-                      value: 'reopen',
-                      child: Text('Re-open comp'),
-                    ),
-                ],
-              ),
-            const SizedBox(width: 4),
-          ],
-        ),
-        body: MediaQuery.removePadding(
-          context: context,
-          removeBottom: true,
-          child: Column(
-            children: [
-              PianoRollContextStrip(
-                centerMode: _centerMode,
-                onCenterModeChanged: _onCenterModeChanged,
-                showCompTab: _takes.length > 1,
-                showHarmonicTab: _editorMode == MidiEditorMode.piano,
-                showDrumTab: _editorMode == MidiEditorMode.drums,
-                snapLabel: _snapChipLabel,
-                scaleLabel: _scaleChipLabel,
-                onViewTap: _openViewSheet,
-                modeChip: _modeChip,
-              ),
               if (_toolMode == PianoRollCenterMode.harmonic && !_showTakes)
                 HarmonicToolPanel(
                   scale: _scale.scale,
@@ -366,16 +337,66 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                   }),
                   onDrawSettings: _openDrawSheet,
                   hideNoteTools: _isHarmonyTool,
+                  leading: landscape && deck != null
+                      ? PlayDeckRail(
+                          axis: Axis.horizontal,
+                          surfaceMode: deck.surfaceMode,
+                          activeView: deck.activeView,
+                          octaveDisplay: deck.octaveDisplay,
+                          enabled: true,
+                          onSurfaceModeChanged: deck.setSurfaceMode,
+                          onViewChanged: deck.setView,
+                        )
+                      : null,
                 ),
                 PlayDeck(
+                  key: _playDeckKey,
                   bridge: widget.bridge,
+                  showRail: !landscape,
                   initialSurfaceMode: PlaySurfaceMode.keys,
                   initialOctaveOffset: _initialOctaveOffset,
                   padPitchBase: widget.drumAnchorPitch,
+                  onChromeChanged: () {
+                    if (mounted) setState(() {});
+                  },
                 ),
               ],
-            ],
+                  ],
+                ),
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: _FloatingCloseButton(onPressed: _closeEditor),
+                ),
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingCloseButton extends StatelessWidget {
+  const _FloatingCloseButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xCC1A1A22),
+      shape: const CircleBorder(
+        side: BorderSide(color: Color(0xFF3A3A48)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 36,
+          height: 36,
+          child: Icon(Icons.close, size: 18, color: Colors.white),
         ),
       ),
     );

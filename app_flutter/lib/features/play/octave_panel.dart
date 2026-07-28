@@ -26,6 +26,7 @@ class OctavePanel extends StatelessWidget {
     required this.onVelocityCurveChanged,
     required this.onQuantizeChanged,
     required this.onEditCustomScales,
+    this.rowsLocked = false,
   });
 
   final int octaveOffset;
@@ -43,6 +44,7 @@ class OctavePanel extends StatelessWidget {
   final ValueChanged<VelocityCurve> onVelocityCurveChanged;
   final ValueChanged<CaptureQuantize> onQuantizeChanged;
   final VoidCallback onEditCustomScales;
+  final bool rowsLocked;
 
   static const _scaleOptions = [
     {'id': 'chromatic', 'label': 'Chrom'},
@@ -87,7 +89,7 @@ class OctavePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
-          const _SectionTitle(text: 'Rows (1–3)'),
+          const _SectionTitle(text: 'Octaves (1–3)'),
           Wrap(
             spacing: 6,
             runSpacing: 6,
@@ -95,15 +97,23 @@ class OctavePanel extends StatelessWidget {
               for (var r = 1; r <= 3; r++)
                 _Pill(
                   label: r == 1
-                      ? '1 row'
+                      ? '1 oct'
                       : r == 2
-                          ? '2 rows'
-                          : '3 rows',
+                          ? '2 oct'
+                          : '3 oct',
                   selected: rowCount == r,
-                  onTap: () => onRowCountChanged(r),
+                  onTap: rowsLocked ? null : () => onRowCountChanged(r),
                 ),
             ],
           ),
+          if (rowsLocked) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Landscape: auto ($rowCount oct by width)',
+              style: const TextStyle(
+                  fontSize: 11, color: PlayDeckTheme.railLabel),
+            ),
+          ],
           const SizedBox(height: 14),
           const _SectionTitle(text: 'Scale'),
           Wrap(

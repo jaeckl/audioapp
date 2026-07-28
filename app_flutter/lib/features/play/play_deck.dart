@@ -40,21 +40,29 @@ class PlayDeck extends StatefulWidget {
     required this.bridge,
     this.enabled = true,
     this.showModStrip = true,
+    this.showRail = true,
     this.initialSurfaceMode,
     this.initialOctaveOffset = 0,
     this.padPitchBase,
     this.onPerformanceChanged,
+    this.onChromeChanged,
   });
 
   final EngineBridge bridge;
   final bool enabled;
   final bool showModStrip;
+
+  /// When false, rail hosted elsewhere (e.g. piano-roll tool dock in landscape).
+  final bool showRail;
   final PlaySurfaceMode? initialSurfaceMode;
   final int initialOctaveOffset;
 
   /// When set (drum tracks), pad 0 fires this MIDI note instead of C3 (48).
   final int? padPitchBase;
   final VoidCallback? onPerformanceChanged;
+
+  /// Fired when rail-visible state changes (mode / view / octave).
+  final VoidCallback? onChromeChanged;
 
   @override
   State<PlayDeck> createState() => PlayDeckState();
