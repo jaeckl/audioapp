@@ -50,6 +50,7 @@ add_library(audioapp_engine STATIC
   src/KickAlgorithm.cpp
   src/SubtractiveSynthAlgorithm.cpp
   src/SubtractiveOscSimd.cpp
+  src/SubtractiveMorphTable.cpp
   src/WavetableSynthAlgorithm.cpp
   src/WavetableOscSimd.cpp
   src/WavetableBank.cpp
@@ -394,6 +395,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/project_archive_test.cpp
     tests/project_engine_test.cpp
     tests/project_serialization_test.cpp
+    tests/project_template_load_test.cpp
     tests/remove_device_test.cpp
     tests/sample_bank_test.cpp
     tests/sample_clip_test.cpp
@@ -415,6 +417,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/granular_control_rate_test.cpp
     tests/granular_grain_simd_test.cpp
     tests/subtractive_osc_simd_test.cpp
+    tests/subtractive_morph_table_test.cpp
     tests/subtractive_preset_apply_test.cpp
     tests/subtractive_synth_test.cpp
     tests/phase_mod_synth_test.cpp
