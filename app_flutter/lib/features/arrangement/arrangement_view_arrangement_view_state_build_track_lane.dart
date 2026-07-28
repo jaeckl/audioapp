@@ -8,6 +8,10 @@ extension ArrangementViewStateBuildTrackLaneOperation on ArrangementViewState {
       onDrop: _commitTrackDrop,
       child: _TrackLane(
         track: track,
+        trackAccent: TrackLaneColor.colorForTrack(
+          track,
+          widget.snapshot.tracks.indexWhere((t) => t.id == track.id),
+        ),
         selected: track.id == widget.snapshot.selectedTrackId,
         onTap: () {
           if (_selectedClipId != null) {

@@ -36,6 +36,28 @@ abstract final class ArrangementClipTheme {
     return Color.lerp(clipBackground, Colors.black, 0.38)!;
   }
 
+  /// Clip body tinted from track highlight (readable on dark timeline).
+  static Color clipBackgroundFromAccent(Color accent) {
+    return Color.lerp(const Color(0xFF141418), accent, 0.45)!;
+  }
+
+  static Color clipBorderFromAccent(Color accent) {
+    return accent.withValues(alpha: 0.55);
+  }
+
+  static Color clipHighlightFromAccent(Color accent) {
+    return Color.lerp(accent, Colors.white, 0.35)!;
+  }
+
+  /// Condensed note / waveform / curve fill from track accent.
+  static Color clipContentFillFromAccent(Color accent) {
+    return Color.lerp(Colors.white, accent, 0.28)!;
+  }
+
+  static Color clipContentFillRepeatFromAccent(Color accent) {
+    return clipContentFillFromAccent(accent).withValues(alpha: 0.48);
+  }
+
   /// Clip-edge rails use the clip type's content color so the affordance is
   /// discoverable without reading as a separate button.
   static const Color resizeHandleMidiIdleColor = Color(0xFF8EB4FF);

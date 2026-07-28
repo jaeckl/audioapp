@@ -3,6 +3,7 @@ part of 'arrangement_view.dart';
 class _SampleClipBlock extends StatefulWidget {
   const _SampleClipBlock({
     required this.clip,
+    required this.trackAccent,
     required this.highlighted,
     required this.selected,
     required this.onTap,
@@ -14,6 +15,7 @@ class _SampleClipBlock extends StatefulWidget {
   });
 
   final SampleClipSnapshot clip;
+  final Color trackAccent;
   final bool highlighted;
   final bool selected;
   final VoidCallback onTap;

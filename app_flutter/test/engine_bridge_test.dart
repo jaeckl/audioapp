@@ -103,6 +103,11 @@ void main() {
         case 'setMasterGain':
           return {'ok': true};
         case 'createMidiClip':
+          final callArgs = call.arguments is Map
+              ? Map<dynamic, dynamic>.from(call.arguments as Map)
+              : <dynamic, dynamic>{};
+          final length =
+              (callArgs['lengthBeats'] as num?)?.toDouble() ?? 16.0;
           return {
             'ok': true,
             'snapshot': {
@@ -125,7 +130,7 @@ void main() {
                     {
                       'id': 'clip-1',
                       'startBeat': 0.0,
-                      'lengthBeats': 4.0,
+                      'lengthBeats': length,
                       'notes': [],
                     },
                   ],
@@ -478,7 +483,7 @@ void main() {
     await bridge.addTrack(name: 'Track 1');
     final snapshot = await bridge.createMidiClip(trackId: 'track-1');
     expect(snapshot.selectedTrack?.midiClips.length, 1);
-    expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 4.0);
+    expect(snapshot.selectedTrack?.midiClips.first.lengthBeats, 16.0);
     expect(snapshot.selectedTrack?.midiClips.first.notes, isEmpty);
   });
 

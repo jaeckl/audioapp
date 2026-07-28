@@ -11,6 +11,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
   bool _didInitialScroll = false;
   double _lastViewportHeight = 0;
   double _drumViewportHeight = -1;
+  double _pianoViewportHeight = -1;
 
   final Map<int, Offset> _canvasPointers = {};
   double? _pinchStartSpanX;
@@ -138,6 +139,7 @@ class PianoRollViewportState extends State<PianoRollViewport> {
       _pinchStartRowH = _rowHeight;
       _didInitialScroll = false;
       _drumViewportHeight = -1;
+      _pianoViewportHeight = -1;
     }
   }
 
@@ -175,6 +177,15 @@ class PianoRollViewportState extends State<PianoRollViewport> {
             (_lastViewportHeight - _drumViewportHeight).abs() > 0.5) {
           _drumViewportHeight = _lastViewportHeight;
           _rowHeight = _lastViewportHeight / 8;
+          _pinchStartRowH = _rowHeight;
+        } else if (widget.laneLayout == null &&
+            !_didInitialScroll &&
+            (_lastViewportHeight - _pianoViewportHeight).abs() > 0.5) {
+          // Default vertical zoom: one octave (C4-centered via initial scroll).
+          _pianoViewportHeight = _lastViewportHeight;
+          _rowHeight = PianoRollMetrics.rowHeightForVisibleSemitones(
+            _lastViewportHeight,
+          );
           _pinchStartRowH = _rowHeight;
         }
         _scheduleInitialScroll(_lastViewportHeight);

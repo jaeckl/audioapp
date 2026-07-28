@@ -3,6 +3,7 @@ part of 'arrangement_view.dart';
 class _TrackLane extends StatelessWidget {
   const _TrackLane({
     required this.track,
+    required this.trackAccent,
     required this.selected,
     required this.onTap,
     required this.pixelsPerBeat,
@@ -36,6 +37,7 @@ class _TrackLane extends StatelessWidget {
   });
 
   final TrackSnapshot track;
+  final Color trackAccent;
   final bool selected;
   final VoidCallback onTap;
   final double pixelsPerBeat;
@@ -214,6 +216,7 @@ class _TrackLane extends StatelessWidget {
                   clip: previewLengthFor(clip.id) != null
                       ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                       : clip,
+                  trackAccent: trackAccent,
                   highlighted: draggingClipId == clip.id,
                   selected: selectedClipId == clip.id,
                   onTap: () => selectedClipId == clip.id
@@ -254,6 +257,7 @@ class _TrackLane extends StatelessWidget {
                           notes: liveMidiPreviewNotes[clip.id],
                         )
                       : clip,
+                  trackAccent: trackAccent,
                   highlighted: draggingClipId == clip.id,
                   selected: selectedClipId == clip.id,
                   onTap: liveMidiPreviewClips.any((c) => c.id == clip.id)
@@ -293,6 +297,7 @@ class _TrackLane extends StatelessWidget {
                   clip: previewLengthFor(clip.id) != null
                       ? clip.copyWith(lengthBeats: previewLengthFor(clip.id)!)
                       : clip,
+                  trackAccent: trackAccent,
                   highlighted: draggingClipId == clip.id,
                   selected: selectedClipId == clip.id,
                   linkActive: automationLinkClipId == clip.id,

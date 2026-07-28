@@ -100,6 +100,7 @@ class _MasterLane extends StatelessWidget {
       ),
       child: _TrackLane(
         track: track,
+        trackAccent: TrackLaneColor.master,
         selected: selected,
         onTap: onTap,
         pixelsPerBeat: pixelsPerBeat,

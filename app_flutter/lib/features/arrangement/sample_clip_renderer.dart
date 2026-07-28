@@ -10,16 +10,32 @@ import 'clip_renderer.dart';
 
 /// Waveform preview for arrangement audio/sample clips.
 class SampleClipRenderer extends ClipRenderer {
-  const SampleClipRenderer(this.clip);
+  const SampleClipRenderer(this.clip, {this.trackAccent});
 
   final SampleClipSnapshot clip;
+  final Color? trackAccent;
 
   @override
-  Color get clipBackgroundColor => ArrangementClipTheme.sampleClipBackground;
+  Color get clipBackgroundColor => trackAccent != null
+      ? ArrangementClipTheme.clipBackgroundFromAccent(trackAccent!)
+      : ArrangementClipTheme.sampleClipBackground;
 
   @override
   Color get clipContentBackgroundColor =>
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
+
+  @override
+  Color get clipBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipBorderFromAccent(trackAccent!)
+      : ArrangementClipTheme.sampleClipBorder;
+
+  @override
+  Color get highlightBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipHighlightFromAccent(trackAccent!)
+      : ArrangementClipTheme.highlightBorder;
+
+  @override
+  Color get highlightShadowColor => highlightBorderColor;
 
   @override
   bool get loopContentEnabled => clip.loopContent;
@@ -103,8 +119,13 @@ class SampleClipRenderer extends ClipRenderer {
       required bool isRepeat,
     }) {
       paint.color = isRepeat
-          ? ArrangementClipTheme.sampleWaveformRepeat
-          : ArrangementClipTheme.sampleWaveform;
+          ? (trackAccent != null
+              ? ArrangementClipTheme.clipContentFillRepeatFromAccent(
+                  trackAccent!)
+              : ArrangementClipTheme.sampleWaveformRepeat)
+          : (trackAccent != null
+              ? ArrangementClipTheme.clipContentFillFromAccent(trackAccent!)
+              : ArrangementClipTheme.sampleWaveform);
       final tileLeft = ArrangementClipBeatLayout.beatToX(
         beat: tileOriginBeat,
         contentRect: contentRect,

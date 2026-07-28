@@ -10,20 +10,36 @@ import 'clip_renderer.dart';
 
 /// Condensed mini piano-roll preview for arrangement MIDI clips.
 class MidiClipRenderer extends ClipRenderer {
-  const MidiClipRenderer(this.clip);
+  const MidiClipRenderer(this.clip, {this.trackAccent});
 
   final MidiClipSnapshot clip;
+  final Color? trackAccent;
 
   static const double _minNoteWidthPx = 1;
   static const double _minNoteHeightPx = 1;
   static const double _verticalPaddingPx = 1.5;
 
   @override
-  Color get clipBackgroundColor => ArrangementClipTheme.midiClipBackground;
+  Color get clipBackgroundColor => trackAccent != null
+      ? ArrangementClipTheme.clipBackgroundFromAccent(trackAccent!)
+      : ArrangementClipTheme.midiClipBackground;
 
   @override
   Color get clipContentBackgroundColor =>
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
+
+  @override
+  Color get clipBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipBorderFromAccent(trackAccent!)
+      : ArrangementClipTheme.midiClipBorder;
+
+  @override
+  Color get highlightBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipHighlightFromAccent(trackAccent!)
+      : ArrangementClipTheme.highlightBorder;
+
+  @override
+  Color get highlightShadowColor => highlightBorderColor;
 
   @override
   bool get loopContentEnabled => clip.loopContent;
@@ -82,8 +98,14 @@ class MidiClipRenderer extends ClipRenderer {
       lengthBeats: clip.lengthBeats,
     );
 
-    final fill = Paint()..color = ArrangementClipTheme.midiNoteFill;
-    final repeatFill = Paint()..color = ArrangementClipTheme.midiNoteFillRepeat;
+    final fillColor = trackAccent != null
+        ? ArrangementClipTheme.clipContentFillFromAccent(trackAccent!)
+        : ArrangementClipTheme.midiNoteFill;
+    final repeatColor = trackAccent != null
+        ? ArrangementClipTheme.clipContentFillRepeatFromAccent(trackAccent!)
+        : ArrangementClipTheme.midiNoteFillRepeat;
+    final fill = Paint()..color = fillColor;
+    final repeatFill = Paint()..color = repeatColor;
     final border = Paint()
       ..color = Colors.white.withValues(alpha: 0.12)
       ..style = PaintingStyle.stroke
