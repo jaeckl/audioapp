@@ -19,6 +19,12 @@ class ExampleProject {
 
 const List<ExampleProject> kExampleProjects = [
   ExampleProject(
+    id: 'example-midi-take-comp-lab',
+    name: 'MIDI Take Comp Lab',
+    subtitle: '3 takes · open Comp + flattened pad',
+    assetPath: 'assets/example_projects/midi_take_comp_lab.json',
+  ),
+  ExampleProject(
     id: 'example-neon-break-pressure',
     name: 'Neon Break Pressure',
     subtitle: 'F minor DnB · full 144-bar arrangement',

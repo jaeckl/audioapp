@@ -269,7 +269,9 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                   listenable: _previewTransport,
                   builder: (context, _) {
                     if (_compFlattened) {
-                      return const MidiCompLockedBar();
+                      return MidiCompLockedBar(
+                        onReopen: () => unawaited(_reopenMidiComp()),
+                      );
                     }
                     return Column(
                       mainAxisSize: MainAxisSize.min,
@@ -293,6 +295,9 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                         MidiCompToolDock(
                           tool: _compTool,
                           previewPlaying: _previewTransport.isPlaying,
+                          compFlattened: _compFlattened,
+                          onFlatten: () => unawaited(_flattenMidiComp()),
+                          onReopen: () => unawaited(_reopenMidiComp()),
                           onToolChanged: (tool) {
                             setState(() {
                               _compTool = tool;
@@ -310,7 +315,7 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                     );
                   },
                 ),
-              if (!_showTakes) ...[
+              if (!_showTakes)
                 PianoRollToolDock(
                   tool: _tool,
                   canUndo: _undoStack.isNotEmpty,
@@ -349,18 +354,17 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                         )
                       : null,
                 ),
-                PlayDeck(
-                  key: _playDeckKey,
-                  bridge: widget.bridge,
-                  showRail: !landscape,
-                  initialSurfaceMode: PlaySurfaceMode.keys,
-                  initialOctaveOffset: _initialOctaveOffset,
-                  padPitchBase: widget.drumAnchorPitch,
-                  onChromeChanged: () {
-                    if (mounted) setState(() {});
-                  },
-                ),
-              ],
+              PlayDeck(
+                key: _playDeckKey,
+                bridge: widget.bridge,
+                showRail: !landscape,
+                initialSurfaceMode: PlaySurfaceMode.keys,
+                initialOctaveOffset: _initialOctaveOffset,
+                padPitchBase: widget.drumAnchorPitch,
+                onChromeChanged: () {
+                  if (mounted) setState(() {});
+                },
+              ),
                   ],
                 ),
                 Positioned(

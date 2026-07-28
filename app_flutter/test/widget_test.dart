@@ -656,10 +656,11 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
+    expect(find.text('MIDI Take Comp Lab'), findsOneWidget);
     expect(find.text('Neon Break Pressure'), findsOneWidget);
     expect(find.text('Afterburner Neuro Run'), findsOneWidget);
     expect(find.text('Supersaw Flutter Rush'), findsOneWidget);
-    expect(find.text('EXAMPLE'), findsNWidgets(3));
+    expect(find.text('EXAMPLE'), findsNWidgets(4));
 
     await tester.tap(find.text('Neon Break Pressure'));
     await tester.pumpAndSettle();
