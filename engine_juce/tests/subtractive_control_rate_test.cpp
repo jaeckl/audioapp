@@ -1,5 +1,6 @@
-/// Subtractive synth control-rate (S&H) regression: global automation/LFO targets are
-/// held every kSubtractiveControlSubBlockFrames while envelopes and phase stay per-sample.
+/// Subtractive synth control-rate (S&H) regression: global automation/LFO targets and
+/// filter-coeff / osc-Hz holds are refreshed every kSubtractiveControlSubBlockFrames
+/// while amp envelopes and oscillator phase stay per-sample.
 
 #include <juce_core/juce_core.h>
 #include "TestHelpers.h"

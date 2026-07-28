@@ -370,7 +370,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
     const bool needsHeldParams = useAutomation || useModulation;
 
-    auto renderFrame = [&](int frame, const SubtractiveSynthParams& heldParams, int activeMonoPitch) {
+    auto renderFrame = [&](int frame,
+                           const SubtractiveSynthParams& heldParams,
+                           int activeMonoPitch,
+                           bool refreshControlRate) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
         float mix = 0.0f;
         int renderedCount = 0;
@@ -454,7 +457,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             mix += subtractiveVoiceSample(voice, voiceParams,
                                           ampGain * velGain,
                                           filterGain,
-                                          sampleRate, glideCoeff) *
+                                          sampleRate, glideCoeff,
+                                          refreshControlRate) *
                    voiceParams.gain * panelGain * kInstrumentOutputGain;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
@@ -469,41 +473,32 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         monoOut[frame] += mix;
     };
 
-    if (!needsHeldParams) {
-        for (int frame = 0; frame < numFrames; ++frame) {
-            int activeMonoPitch = -1;
-            if (params.synthMono >= 0.5f) {
-                activeMonoPitch = activeMonoPitchAtBeat(
-                    notes, noteCount, beatAtFrame(blockStartBeat, frame, sampleRate, bpm),
-                    bpm, ampReleaseSec);
-            }
-            renderFrame(frame, params, activeMonoPitch);
-        }
-        return;
-    }
-
+    // Always walk control-rate sub-blocks so filter cook + osc Hz S&H even without
+    // global automation/LFO (those already used this path).
     for (int sub = 0; sub < numFrames; sub += kSubtractiveControlSubBlockFrames) {
         const int subLen = std::min(kSubtractiveControlSubBlockFrames, numFrames - sub);
-        const SubtractiveSynthParams heldParams = heldSubtractiveParamsAtFrame(
-            params,
-            sub,
-            blockStartBeat,
-            sampleRate,
-            bpm,
-            useAutomation,
-            automationClips,
-            automationClipCount,
-            automationDeviceIndex,
-            automationTargetNodeId,
-            useModulation,
-            lfoValues,
-            lfoCount,
-            lfoStride,
-            modEdges,
-            modEdgeCount,
-            modulationDeviceIndex,
-            modulationTargetNodeId,
-            instMod);
+        const SubtractiveSynthParams heldParams = needsHeldParams
+            ? heldSubtractiveParamsAtFrame(
+                  params,
+                  sub,
+                  blockStartBeat,
+                  sampleRate,
+                  bpm,
+                  useAutomation,
+                  automationClips,
+                  automationClipCount,
+                  automationDeviceIndex,
+                  automationTargetNodeId,
+                  useModulation,
+                  lfoValues,
+                  lfoCount,
+                  lfoStride,
+                  modEdges,
+                  modEdgeCount,
+                  modulationDeviceIndex,
+                  modulationTargetNodeId,
+                  instMod)
+            : params;
 
         int activeMonoPitch = -1;
         if (heldParams.synthMono >= 0.5f) {
@@ -513,7 +508,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         }
 
         for (int frame = sub; frame < sub + subLen; ++frame) {
-            renderFrame(frame, heldParams, activeMonoPitch);
+            renderFrame(frame, heldParams, activeMonoPitch, frame == sub);
         }
     }
 }

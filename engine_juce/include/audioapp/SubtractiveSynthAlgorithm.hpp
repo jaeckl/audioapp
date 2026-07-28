@@ -95,6 +95,11 @@ struct SubtractiveVoiceRuntime {
     float cachedPreHpQ = -1.0f;
     float currentHz = 440.0f;
     float targetHz = 440.0f;
+    // Control-rate held oscillator frequencies (refreshed every
+    // kSubtractiveControlSubBlockFrames when glide is off).
+    float heldOsc1Hz = 440.0f;
+    float heldOsc2Hz = 440.0f;
+    bool controlPitchValid = false;
     float noiseSeed = 0.123f;
     BiquadState filterState{};
     BiquadState filterState2{};
@@ -157,6 +162,12 @@ float subtractiveWaveSample(int wave, float phase) noexcept;
 /// Continuous shape 0..1 morphs sine -> tri -> saw -> square -> pulse.
 float subtractiveMorphWaveSample(float shape, float phase) noexcept;
 
+/// Morph via mipmapped wavetable (preferred). Falls back to mip 0 when sr/hz invalid.
+float subtractiveMorphWaveSample(float shape,
+                                 float phase,
+                                 float rootHz,
+                                 float sampleRate) noexcept;
+
 int subtractiveUnisonCount(float normalized) noexcept;
 
 float subtractiveOscPitchHz(int rootPitch,
@@ -166,12 +177,17 @@ float subtractiveOscPitchHz(int rootPitch,
 
 float subtractiveMixOscPair(float osc1, float osc2, int mixMode, float osc2Level) noexcept;
 
+/// Per-sample voice render. When refreshControlRate is true, recompute held
+/// oscillator Hz (if not gliding) and cook filter/preHP coeffs from filterGain.
+/// Amp env stays sample-rate; set refreshControlRate on control-rate boundaries
+/// (and always for single-sample live voices).
 float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                              const SubtractiveSynthParams& params,
                              float ampGain,
                              float filterGain,
                              double sampleRate,
-                             float glideCoeff) noexcept;
+                             float glideCoeff,
+                             bool refreshControlRate = true) noexcept;
 
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,
