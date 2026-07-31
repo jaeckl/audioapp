@@ -138,10 +138,10 @@ bool renderOscBankNoSyncSimd(float shape,
     }
 
     const auto& table = SubtractiveMorphTable::instance();
-    const int mip = table.pickMip(rootHz, sampleRate);
+    const auto morph = table.prepareLookup(shape, table.pickMip(rootHz, sampleRate));
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
-        sum += table.lookupMip(shape, phaseLanes[u], mip);
+        sum += table.lookupPrepared(morph, phaseLanes[u]);
     }
     sumOut = (sum / static_cast<float>(unisonCount)) * level;
     return true;

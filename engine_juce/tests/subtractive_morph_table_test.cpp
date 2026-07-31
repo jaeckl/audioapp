@@ -42,6 +42,20 @@ public:
             const float b = table.lookup(0.0f, 0.0f, 110.0f, 48000.0f);
             expectWithinAbsoluteError(a, b, 1.0e-6f, "deterministic lookup");
         }
+
+        beginTest("prepared lookup matches lookupMip");
+        {
+            const auto& table = SubtractiveMorphTable::instance();
+            const int mip = table.pickMip(440.0f, 48000.0f);
+            const auto prep = table.prepareLookup(0.37f, mip);
+            for (int i = 0; i < 16; ++i) {
+                const float phase = 6.28318530718f * static_cast<float>(i) / 16.0f;
+                const float direct = table.lookupMip(0.37f, phase, mip);
+                const float prepared = table.lookupPrepared(prep, phase);
+                expectWithinAbsoluteError(prepared, direct, 1.0e-6f,
+                                          juce::String("prep parity i=") + juce::String(i));
+            }
+        }
     }
 };
 

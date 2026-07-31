@@ -605,6 +605,7 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         deviceHasPerNoteModEdges(nodeId, di, ctx.modEdges, ctx.modEdgeCount,
                                  ctx.modulators, ctx.lfoCount);
 
+    // Bass native polyphony is mono; treat unset policy as 1 replacing voice.
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
         std::get<SubtractiveSynthParams>(*ctx.modulatedParams), runtime,
@@ -615,8 +616,8 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         hasMod ? &di : nullptr,
         nullptr,
         instModPtr,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices,
-        ctx.voicePolicy.retriggerReplacesVoice,
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : 1,
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.retriggerReplacesVoice : true,
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId,
         nodeId);

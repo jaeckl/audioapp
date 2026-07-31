@@ -65,9 +65,9 @@ SubtractiveSynthParams BassSynthModel::toPlaybackParams() const {
     p.preDrive = drive * 0.5f;
     // Feedback
     p.mixFeedback = squash;
-    // Unison
-    p.unisonVoices = 0.35f;         // ~2 voices
-    p.unisonDetune = 0.15f;
+    // Lean mono bass: single unison (sub still via osc2 mix).
+    p.unisonVoices = 0.0f;
+    p.unisonDetune = 0.0f;
     return p;
 }
 
@@ -172,6 +172,7 @@ void BassSynthDeviceType::buildPlaybackNode(const DeviceSlot& slot,
     params.gain = 1.0f; // output-panel gain is applied by the device-chain stage
     out.kind = DeviceNodeKind::BassSynth;
     out.params = params;
+    out.voicePolicy = InstrumentVoicePolicy{1, true};
 }
 
 bool BassSynthDeviceType::buildLiveInstrument(const DeviceSlot& slot,

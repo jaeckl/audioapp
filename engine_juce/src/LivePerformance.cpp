@@ -79,11 +79,26 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         return -1;
     }
     const uint64_t now = sampleClock();
-    const bool subtractive = instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
-                             instrument.kind == LiveInstrumentKind::BassSynth;
+    const bool bassMono = instrument.kind == LiveInstrumentKind::BassSynth;
 
-    // Live keyboard stays polyphonic; synthMono only affects clip/arrangement playback.
-    (void)subtractive;
+    // Bass is hard-mono live (same as arrangement synthMono). Steal any other
+    // bass voice immediately so envelopes never overlap — keeps CPU at 1 voice.
+    float bassGlideFromHz = -1.0f;
+    if (bassMono) {
+        for (auto& voice : voices_) {
+            if (voice.active.load(std::memory_order_acquire) == 0) {
+                continue;
+            }
+            if (voice.instrument.kind != LiveInstrumentKind::BassSynth) {
+                continue;
+            }
+            if (bassGlideFromHz < 0.0f) {
+                bassGlideFromHz = voice.subtractive.currentHz;
+            }
+            voice.active.store(0, std::memory_order_release);
+            voice.releasing = false;
+        }
+    }
 
     for (auto& voice : voices_) {
         if (voice.active.load(std::memory_order_acquire) != 0 && voice.pitch == pitch && !voice.releasing) {
@@ -123,6 +138,9 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
                 instrument.kind == LiveInstrumentKind::BassSynth) {
             initSubtractiveVoice(voice.subtractive, pitch, voice.velocity);
+            if (bassMono && bassGlideFromHz > 0.0f && instrument.subtractive.glideMs > 0.0f) {
+                voice.subtractive.currentHz = bassGlideFromHz;
+            }
         } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
             triggerKickVoice(voice.kick, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
@@ -187,6 +205,9 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
                 instrument.kind == LiveInstrumentKind::BassSynth) {
         initSubtractiveVoice(steal.subtractive, pitch, steal.velocity);
+        if (bassMono && bassGlideFromHz > 0.0f && instrument.subtractive.glideMs > 0.0f) {
+            steal.subtractive.currentHz = bassGlideFromHz;
+        }
     } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
         triggerKickVoice(steal.kick, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {

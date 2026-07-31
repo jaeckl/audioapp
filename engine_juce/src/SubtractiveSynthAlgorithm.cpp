@@ -118,6 +118,10 @@ float renderOscBank(float shape,
         }
     }
 
+    // Mip + morph frames once per osc bank; only phase index differs per unison.
+    const auto& table = SubtractiveMorphTable::instance();
+    const auto morph = table.prepareLookup(shape, table.pickMip(rootHz, sampleRate));
+
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
         const float phaseInc = rootHz * phaseIncPerUnit[u];
@@ -132,7 +136,7 @@ float renderOscBank(float shape,
             if (wrappedOut != nullptr) {
                 wrappedOut[u] = wrapped;
             }
-            sum += subtractiveMorphWaveSample(shape, phases[u], rootHz, sampleRate);
+            sum += table.lookupPrepared(morph, phases[u]);
             continue;
         }
 
@@ -151,8 +155,8 @@ float renderOscBank(float shape,
             }
         }
 
-        const float hardSample = subtractiveMorphWaveSample(shape, phases[u], rootHz, sampleRate);
-        const float freeSample = subtractiveMorphWaveSample(shape, freePhase, rootHz, sampleRate);
+        const float hardSample = table.lookupPrepared(morph, phases[u]);
+        const float freeSample = table.lookupPrepared(morph, freePhase);
         sum += hardSample * sync + freeSample * (1.0f - sync);
     }
     return (sum / static_cast<float>(unisonCount)) * level;
@@ -181,11 +185,11 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     const int unisonCount = subtractiveUnisonCount(params.unisonVoices);
     const float spreadCents = params.unisonDetune * 50.0f;
 
-    // Refresh precomputed per-unison increments when unison count or detune changes
+    // Refresh shared unison increments when unison count or detune changes.
+    // Osc1/osc2 pitch offsets live in heldOsc*Hz, not this table.
     if (unisonCount != voice.cachedUnisonCount ||
         std::abs(spreadCents - voice.cachedUnisonSpreadCents) > 0.01f) {
-        precomputeBankIncrements(voice.osc1PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
-        precomputeBankIncrements(voice.osc2PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
+        precomputeBankIncrements(voice.phaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
         voice.cachedUnisonCount = unisonCount;
         voice.cachedUnisonSpreadCents = spreadCents;
     }
@@ -225,7 +229,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
         osc1 = renderOscBank(params.osc1Shape,
                              voice.heldOsc1Hz,
                              sr,
-                             voice.osc1PhaseIncPerUnit,
+                             voice.phaseIncPerUnit,
                              unisonCount,
                              1.0f,
                              voice.osc1Phases,
@@ -233,7 +237,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     } else {
         // Keep phase continuous if mix returns from osc2-only.
         for (int u = 0; u < unisonCount; ++u) {
-            voice.osc1Phases[u] += voice.heldOsc1Hz * voice.osc1PhaseIncPerUnit[u];
+            voice.osc1Phases[u] += voice.heldOsc1Hz * voice.phaseIncPerUnit[u];
             if (voice.osc1Phases[u] >= kSubtractiveTwoPi) {
                 voice.osc1Phases[u] -= kSubtractiveTwoPi;
             }
@@ -245,7 +249,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
         osc2 = renderOscBank(params.osc2Shape,
                              voice.heldOsc2Hz,
                              sr,
-                             voice.osc2PhaseIncPerUnit,
+                             voice.phaseIncPerUnit,
                              unisonCount,
                              1.0f,
                              voice.osc2Phases,
@@ -255,7 +259,7 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                              needOsc1 ? syncAmount : 0.0f);
     } else {
         for (int u = 0; u < unisonCount; ++u) {
-            voice.osc2Phases[u] += voice.heldOsc2Hz * voice.osc2PhaseIncPerUnit[u];
+            voice.osc2Phases[u] += voice.heldOsc2Hz * voice.phaseIncPerUnit[u];
             if (voice.osc2Phases[u] >= kSubtractiveTwoPi) {
                 voice.osc2Phases[u] -= kSubtractiveTwoPi;
             }

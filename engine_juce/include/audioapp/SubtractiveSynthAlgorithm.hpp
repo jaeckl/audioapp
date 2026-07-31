@@ -75,11 +75,10 @@ struct SubtractiveVoiceRuntime {
     float osc1Phases[kSubtractiveMaxUnison]{};
     float osc2Phases[kSubtractiveMaxUnison]{};
     float osc2FreePhases[kSubtractiveMaxUnison]{};
-    // Precomputed oscillator phase increment scale per unison voice.
-    // phaseInc[u] = kTwoPi * pow(2.0f, cents / 1200.0f) / sampleRate
-    // Then per-sample: inc = rootHz * phaseIncPerUnit[u]  (no pow per sample)
-    float osc1PhaseIncPerUnit[kSubtractiveMaxUnison]{};
-    float osc2PhaseIncPerUnit[kSubtractiveMaxUnison]{};
+    // Precomputed unison spread phase-inc scale (shared by osc1+osc2).
+    // Osc pitch diff lives in heldOsc1Hz / heldOsc2Hz:
+    //   inc = heldOscXHz * phaseIncPerUnit[u]
+    float phaseIncPerUnit[kSubtractiveMaxUnison]{};
     int cachedUnisonCount = 0;
     float cachedUnisonSpreadCents = -1.0f;
     // Cached key-track ratio (recomputed on note-on or param change)

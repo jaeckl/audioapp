@@ -198,6 +198,11 @@ public:
             expect(sp.filterMode == 0, "filterMode == 0 (LP12)");
             expectWithinAbsoluteError(sp.synthMono, 1.0f, 0.001f);
             expectWithinAbsoluteError(sp.synthLegato, 1.0f, 0.001f);
+            expectWithinAbsoluteError(sp.unisonVoices, 0.0f, 0.001f,
+                                      "unisonVoices == 0 (lean bass)");
+            expect(out.voicePolicy.maxVoices == 1, "voicePolicy.maxVoices == 1");
+            expect(out.voicePolicy.retriggerReplacesVoice,
+                   "voicePolicy.retriggerReplacesVoice");
             expect(sp.oscMixMode == 0, "oscMixMode == 0");
             expectWithinAbsoluteError(sp.filterSustain, 0.0f, 0.001f,
                                       "filterSustain == 0.0 (ADR)");
@@ -328,6 +333,8 @@ public:
             expectWithinAbsoluteError(out.subtractive.ampAttack, 0.02f, 0.001f);
             expectWithinAbsoluteError(out.subtractive.synthMono, 1.0f, 0.001f);
             expectWithinAbsoluteError(out.subtractive.synthLegato, 1.0f, 0.001f);
+            expectWithinAbsoluteError(out.subtractive.unisonVoices, 0.0f, 0.001f,
+                                      "live unisonVoices == 0");
             expectWithinAbsoluteError(out.subtractive.glideMs, 0.0f, 0.001f);
         }
 

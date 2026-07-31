@@ -158,37 +158,51 @@ const float* SubtractiveMorphTable::frameData(int mip, int frame) const noexcept
     return pcm_ + mipOffsets_[m] + f * len;
 }
 
-float SubtractiveMorphTable::lookupMip(float shape, float phaseRadians, int mip) const noexcept {
+SubtractiveMorphTable::PreparedLookup
+SubtractiveMorphTable::prepareLookup(float shape, int mip) const noexcept {
+    PreparedLookup prep;
     const int m = std::clamp(mip, 0, kMipCount - 1);
-    const int len = kBaseLength >> m;
+    prep.len = kBaseLength >> m;
     const float fi = safeClamp(shape, 0.0f, 1.0f) * static_cast<float>(kFrames - 1);
     const int frameA = static_cast<int>(fi);
     const int frameB = std::min(frameA + 1, kFrames - 1);
-    const float frameFrac = fi - static_cast<float>(frameA);
+    prep.frameFrac = fi - static_cast<float>(frameA);
+    prep.frameA = frameData(m, frameA);
+    prep.frameB = frameData(m, frameB);
+    return prep;
+}
+
+float SubtractiveMorphTable::lookupPrepared(const PreparedLookup& prep,
+                                            float phaseRadians) const noexcept {
+    if (prep.frameA == nullptr || prep.len <= 0) {
+        return 0.0f;
+    }
 
     float p = phaseRadians * (1.0f / kTwoPi);
     p -= std::floor(p);
     if (p < 0.0f) {
         p += 1.0f;
     }
-    const float pos = p * static_cast<float>(len);
+    const float pos = p * static_cast<float>(prep.len);
     int idx = static_cast<int>(pos);
     float sFrac = pos - static_cast<float>(idx);
     if (idx < 0) {
         idx = 0;
         sFrac = 0.0f;
     }
-    idx %= len;
-    const int idxNext = (idx + 1) % len;
+    idx %= prep.len;
+    const int idxNext = (idx + 1) % prep.len;
 
-    const float* a = frameData(m, frameA);
-    const float* b = frameData(m, frameB);
-    const float sA = a[idx] + sFrac * (a[idxNext] - a[idx]);
-    if (frameA == frameB || frameFrac <= 0.0f) {
+    const float sA = prep.frameA[idx] + sFrac * (prep.frameA[idxNext] - prep.frameA[idx]);
+    if (prep.frameB == nullptr || prep.frameA == prep.frameB || prep.frameFrac <= 0.0f) {
         return sA;
     }
-    const float sB = b[idx] + sFrac * (b[idxNext] - b[idx]);
-    return sA + frameFrac * (sB - sA);
+    const float sB = prep.frameB[idx] + sFrac * (prep.frameB[idxNext] - prep.frameB[idx]);
+    return sA + prep.frameFrac * (sB - sA);
+}
+
+float SubtractiveMorphTable::lookupMip(float shape, float phaseRadians, int mip) const noexcept {
+    return lookupPrepared(prepareLookup(shape, mip), phaseRadians);
 }
 
 float SubtractiveMorphTable::lookup(float shape,

@@ -29,6 +29,7 @@ struct Options {
     std::vector<int> sampleRates{44100, 48000, 96000};
     std::vector<int> blockSizes{512, 1024, 2048, 4096};
     std::string scenarioFilter;
+    bool synthsOnly = false;
 };
 
 struct Scenario {
@@ -83,6 +84,8 @@ Options parseOptions(int argc, char** argv) {
             options.blockSizes = {value};
         } else if (arg == "--scenario" && index + 1 < argc) {
             options.scenarioFilter = argv[++index];
+        } else if (arg == "--synths") {
+            options.synthsOnly = true;
         } else {
             std::cerr << "Unknown benchmark option: " << arg << '\n';
             std::exit(2);
@@ -125,16 +128,33 @@ std::string buildType() {
 #endif
 }
 
-std::string addOscillatorTrack(audioapp::ProjectEngine& engine,
+std::string addInstrumentTrack(audioapp::ProjectEngine& engine,
                                const std::string& name,
+                               const char* deviceType,
                                std::string* createdTrack = nullptr) {
     const auto track = engine.addTrack(name);
     if (createdTrack != nullptr) *createdTrack = track;
-    const auto oscillator = engine.addDeviceToTrack(
-        track, audioapp::device_types::kOscillator);
+    const auto device = engine.addDeviceToTrack(track, deviceType);
     const auto clip = engine.createMidiClip(track, 0.0, 256.0);
     engine.setMidiClipNotes(clip, {{60, 0.0, 256.0, 100.0f}});
-    return oscillator;
+    return device;
+}
+
+std::string addOscillatorTrack(audioapp::ProjectEngine& engine,
+                               const std::string& name,
+                               std::string* createdTrack = nullptr) {
+    return addInstrumentTrack(
+        engine, name, audioapp::device_types::kOscillator, createdTrack);
+}
+
+void assignFilterLfo(audioapp::ProjectEngine& engine,
+                     const std::string& deviceId,
+                     const char* targetParam = "filterCutoff",
+                     float amount = 0.6f) {
+    const int lfo = engine.createLfo(0);
+    engine.updateLfoParam(lfo, "waveform", 0.0f);
+    engine.updateLfoParam(lfo, "rate", 4.0f);
+    engine.assignModulation(lfo, deviceId, targetParam, amount);
 }
 
 Scenario makeScenario(std::string_view name) {
@@ -174,16 +194,24 @@ Scenario makeScenario(std::string_view name) {
             const auto analyzer = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kSpectrumAnalyzer);
             scenario.engine->setMeterSubscriptions({analyzer});
+        } else if (name == "oscillator_synth") {
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "gain", 0.8f);
         } else if (name == "subtractive_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
             scenario.controlledDevice = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kSubtractiveSynth);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "unisonVoices", 0.75f);
-            const int lfo = scenario.engine->createLfo(0);
-            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
-            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
-            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice);
+        } else if (name == "bass_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
+            scenario.controlledDevice = scenario.engine->addDeviceToTrack(
+                trackId, audioapp::device_types::kBasSynth);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "unisonVoices", 0.75f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice);
         } else if (name == "wavetable_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
             scenario.wavetableBank = std::make_unique<audioapp::WavetableBank>();
             constexpr int kFrames = 4;
             constexpr int kLen = 256;
@@ -205,35 +233,38 @@ Scenario makeScenario(std::string_view name) {
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtUnison", 0.75f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "wtDetune", 0.5f);
-            const int lfo = scenario.engine->createLfo(0);
-            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
-            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
-            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice);
         } else if (name == "phasemod_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
             scenario.controlledDevice = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kPhaseModSynth);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "unisonVoices", 0.75f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "unisonDetune", 0.5f);
-            const int lfo = scenario.engine->createLfo(0);
-            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
-            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
-            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "filterCutoff", 0.6f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice);
         } else if (name == "granular_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
             scenario.sampleBank = std::make_unique<audioapp::SampleBank>();
             scenario.sampleBank->registerBundledDefaults();
             scenario.engine->setSampleBank(scenario.sampleBank.get());
             scenario.controlledDevice = scenario.engine->addDeviceToTrack(
                 trackId, audioapp::device_types::kGranular);
-            // Bind bundled formant source sample used by granular.
             scenario.engine->setDeviceStringParameter(scenario.controlledDevice, "sampleId",
                                                       "sample_form_source");
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "density", 0.55f);
             scenario.engine->setDeviceParameter(scenario.controlledDevice, "size", 0.4f);
-            const int lfo = scenario.engine->createLfo(0);
-            scenario.engine->updateLfoParam(lfo, "waveform", 0.0f);
-            scenario.engine->updateLfoParam(lfo, "rate", 4.0f);
-            scenario.engine->assignModulation(lfo, scenario.controlledDevice, "density", 0.5f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice, "density", 0.5f);
+        } else if (name == "sampler_synth") {
+            scenario.engine->removeDeviceFromTrack(scenario.controlledDevice);
+            scenario.sampleBank = std::make_unique<audioapp::SampleBank>();
+            scenario.sampleBank->registerBundledDefaults();
+            scenario.engine->setSampleBank(scenario.sampleBank.get());
+            scenario.controlledDevice = scenario.engine->addDeviceToTrack(
+                trackId, audioapp::device_types::kSampler);
+            scenario.engine->setDeviceStringParameter(scenario.controlledDevice, "sampleId",
+                                                      "sample_form_source");
+            scenario.engine->setDeviceParameter(scenario.controlledDevice, "filterCutoff", 0.35f);
+            assignFilterLfo(*scenario.engine, scenario.controlledDevice);
         }
     }
     scenario.engine->setPlaying(true);
@@ -297,10 +328,15 @@ Result runScenario(const Options& options, std::string_view scenarioName,
 
 int main(int argc, char** argv) {
     const auto options = parseOptions(argc, argv);
-    const std::vector<std::string> scenarios{
+    const std::vector<std::string> allScenarios{
         "static", "manual_ramp", "automation", "modulation", "serial_chain",
-        "parallel_branches", "graph_taps", "analyzer", "subtractive_synth",
-        "wavetable_synth", "phasemod_synth", "granular_synth"};
+        "parallel_branches", "graph_taps", "analyzer", "oscillator_synth",
+        "subtractive_synth", "bass_synth", "wavetable_synth", "phasemod_synth",
+        "granular_synth", "sampler_synth"};
+    const std::vector<std::string> synthScenarios{
+        "oscillator_synth", "subtractive_synth", "bass_synth", "wavetable_synth",
+        "phasemod_synth", "granular_synth", "sampler_synth"};
+    const auto& scenarios = options.synthsOnly ? synthScenarios : allScenarios;
     std::vector<Result> results;
     for (const auto& scenario : scenarios) {
         if (!options.scenarioFilter.empty() && scenario != options.scenarioFilter) continue;
