@@ -22,7 +22,7 @@ Future<void> _showTrackPopupMenu(
       position: menuPosition,
       color: ArrangementTheme.menuBackground,
       items: [
-        if (!track.isGroup && !track.freeze.enabled)
+        if (!track.isGroup && !track.freeze.isManual)
           const PopupMenuItem(
             value: 'midi',
             child: ListTile(
@@ -31,7 +31,7 @@ Future<void> _showTrackPopupMenu(
               title: Text('Add MIDI Clip'),
             ),
           ),
-        if (!track.isGroup && !track.freeze.enabled)
+        if (!track.isGroup && !track.freeze.isManual)
           const PopupMenuItem(
             value: 'audio',
             child: ListTile(
@@ -40,7 +40,7 @@ Future<void> _showTrackPopupMenu(
               title: Text('Add Audio Clip'),
             ),
           ),
-        if (widget.onAddAutomationClip != null && !track.freeze.enabled)
+        if (widget.onAddAutomationClip != null && !track.freeze.isManual)
           const PopupMenuItem(
             value: 'automation',
             child: ListTile(

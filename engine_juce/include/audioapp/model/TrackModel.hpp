@@ -121,9 +121,16 @@ struct AutomationClip {
     std::vector<AutomationPoint> points;
 };
 
+/// How a freeze asset is owned. Auto = invisible CPU cache (no edit lock / chrome).
+/// Manual = user snowflake freeze. Off = not frozen.
+enum class TrackFreezeMode : uint8_t { Off = 0, Auto = 1, Manual = 2 };
+
 struct TrackFreezeData {
     bool enabled = false;
     bool stale = false;
+    TrackFreezeMode mode = TrackFreezeMode::Off;
+    /// Bumped on every invalidate / reschedule; commit drops jobs with a mismatch.
+    uint64_t bakeGeneration = 0;
     std::string assetId;
     double startBeat = 0.0;
     double lengthBeats = 0.0;

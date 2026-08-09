@@ -308,6 +308,8 @@ bool ProjectEngine::commitFreezeJobLocked(const FreezeRenderJob& job,
         return false;
     }
 
+    // Manual path until the auto scheduler lands; Auto commits will set mode=Auto.
+    track->freeze.mode = TrackFreezeMode::Manual;
     track->freeze.enabled = true;
     track->freeze.stale = false;
     track->freeze.assetId = job.assetId;

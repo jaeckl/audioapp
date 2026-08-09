@@ -185,7 +185,7 @@ class _TrackLane extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
             ),
           ),
-          if (track.freeze.enabled)
+          if (track.freeze.showFreezeChrome)
             Positioned(
               left: track.freeze.startBeat * pixelsPerBeat,
               top: 4,

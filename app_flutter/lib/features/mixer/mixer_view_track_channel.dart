@@ -41,7 +41,7 @@ class _TrackChannel extends StatelessWidget {
         ? track.outputTarget
         : 'master';
     final canArm =
-        onRecord != null && !track.isGroup && !track.freeze.enabled;
+        onRecord != null && !track.isGroup && !track.freeze.isManual;
 
     return _MixerChannelFrame(
       selected: selected,

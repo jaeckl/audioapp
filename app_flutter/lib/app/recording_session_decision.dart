@@ -30,7 +30,7 @@ RecordingSessionDecision? decideRecordingSession(ProjectSnapshot? snapshot) {
   if (snapshot?.recordArmed != true ||
       track == null ||
       track.isGroup ||
-      track.freeze.enabled) {
+      track.freeze.isManual) {
     return null;
   }
 

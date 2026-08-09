@@ -51,6 +51,8 @@ struct DeviceMeterState {
 struct TrackFreezeState {
     bool enabled = false;
     bool stale = false;
+    TrackFreezeMode mode = TrackFreezeMode::Off;
+    uint64_t bakeGeneration = 0;
     std::string assetId;
     double startBeat = 0.0;
     double lengthBeats = 0.0;

@@ -6,10 +6,7 @@ Future<void> _toggleTrackFreeze({
     required bool enabled,
     required bool stale,
   }) async {
-    final wasPlaying = _snapshot?.playing ?? false;
-    if (wasPlaying) {
-      await widget.bridge.stop();
-    }
+    // Engine bakes off the project lock; keep transport running.
     try {
       final ProjectSnapshot snapshot;
       if (enabled && stale) {
@@ -23,10 +20,6 @@ Future<void> _toggleTrackFreeze({
     } catch (e) {
       if (!mounted) return;
       setState(() => _projectError = e.toString());
-    } finally {
-      if (wasPlaying && mounted) {
-        await widget.bridge.play();
-      }
     }
   }
 }

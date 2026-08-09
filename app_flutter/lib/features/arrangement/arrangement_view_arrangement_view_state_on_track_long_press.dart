@@ -9,7 +9,7 @@ Future<void> _onTrackLongPress(
     if (_clipDragActive) {
       return;
     }
-    if (lanePress && track.freeze.enabled) {
+    if (lanePress && track.freeze.showFreezeChrome) {
       return;
     }
     final desiredBeat = lanePress

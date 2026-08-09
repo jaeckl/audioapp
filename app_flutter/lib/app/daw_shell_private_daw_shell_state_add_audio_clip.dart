@@ -31,7 +31,7 @@ Future<void> _addAudioClip(String trackId, double desiredStartBeat) async {
 
     final track = _trackById(trackId);
     if (track == null) return;
-    if (track.freeze.enabled) {
+    if (track.freeze.isManual) {
       _showFrozenTrackSnack();
       return;
     }

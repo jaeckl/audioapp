@@ -494,6 +494,10 @@ bool ProjectEngine::selectTrack(const std::string& trackId) {
     }
     if (selectionChanged) {
         liveMixer_.allNotesOff();
+        // Auto-freeze playback is suppressed on the selected track so meters /
+        // presentation params stay live; rebuild so the previous selection can
+        // become cached again and the new one drops to full DSP.
+        rebuildTrackPlaybackLocked();
     }
     syncActiveFrequencyLocked();
     syncProjectTreeLocked();
@@ -2552,6 +2556,8 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         }
         ts.freeze.enabled = track.freeze.enabled;
         ts.freeze.stale = track.freeze.stale;
+        ts.freeze.mode = track.freeze.mode;
+        ts.freeze.bakeGeneration = track.freeze.bakeGeneration;
         ts.freeze.assetId = track.freeze.assetId;
         ts.freeze.startBeat = track.freeze.startBeat;
         ts.freeze.lengthBeats = track.freeze.lengthBeats;
@@ -3738,6 +3744,8 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         }
         ts.freeze.enabled = track.freeze.enabled;
         ts.freeze.stale = track.freeze.stale;
+        ts.freeze.mode = track.freeze.mode;
+        ts.freeze.bakeGeneration = track.freeze.bakeGeneration;
         ts.freeze.assetId = track.freeze.assetId;
         ts.freeze.startBeat = track.freeze.startBeat;
         ts.freeze.lengthBeats = track.freeze.lengthBeats;
@@ -3893,6 +3901,8 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         }
         track.freeze.enabled = trackState.freeze.enabled;
         track.freeze.stale = trackState.freeze.stale;
+        track.freeze.mode = trackState.freeze.mode;
+        track.freeze.bakeGeneration = trackState.freeze.bakeGeneration;
         track.freeze.assetId = trackState.freeze.assetId;
         track.freeze.startBeat = trackState.freeze.startBeat;
         track.freeze.lengthBeats = trackState.freeze.lengthBeats;
@@ -3901,6 +3911,12 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.freeze.contentSignature = trackState.freeze.contentSignature;
         track.freeze.bakeEndDeviceIndex = trackState.freeze.bakeEndDeviceIndex;
         track.freeze.waveformPeaks = trackState.freeze.waveformPeaks;
+        // Auto cache is session-only: never restore as an active freeze from disk.
+        if (track.freeze.mode == TrackFreezeMode::Auto) {
+            track.freeze = {};
+        } else if (track.freeze.enabled && track.freeze.mode == TrackFreezeMode::Off) {
+            track.freeze.mode = TrackFreezeMode::Manual;
+        }
         trackRepo_.tracks().push_back(std::move(track));
     }
 
@@ -4827,16 +4843,26 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
         snap.freeze = {};
         if (sourceTrack.freeze.enabled && freezeAssetStore_ != nullptr) {
             if (FreezeAssetRef asset = freezeAssetStore_->find(sourceTrack.freeze.assetId)) {
-                snap.freeze.active = true;
-                snap.freeze.assetRef = asset;
-                snap.freeze.pcmL = asset->pcmL.data();
-                snap.freeze.pcmR = asset->pcmR.data();
-                snap.freeze.frameCount = static_cast<int>(asset->pcmL.size());
-                snap.freeze.pcmSampleRate = asset->sampleRate;
-                snap.freeze.startBeat = sourceTrack.freeze.startBeat;
-                snap.freeze.lengthBeats = sourceTrack.freeze.lengthBeats;
-                snap.freeze.bakeEndDeviceIndex = std::clamp(
-                    sourceTrack.freeze.bakeEndDeviceIndex, 0, snap.deviceCount);
+                const bool isAuto = sourceTrack.freeze.mode == TrackFreezeMode::Auto;
+                const bool selected =
+                    sourceTrack.id == trackRepo_.selectedTrackId();
+                // Auto cache: never active while stale or while the track is
+                // selected (GUI meters / knobs need live DSP). Manual keeps
+                // today's "play asset even if stale" semantics.
+                const bool useFrozen =
+                    !isAuto || (!sourceTrack.freeze.stale && !selected);
+                if (useFrozen) {
+                    snap.freeze.active = true;
+                    snap.freeze.assetRef = asset;
+                    snap.freeze.pcmL = asset->pcmL.data();
+                    snap.freeze.pcmR = asset->pcmR.data();
+                    snap.freeze.frameCount = static_cast<int>(asset->pcmL.size());
+                    snap.freeze.pcmSampleRate = asset->sampleRate;
+                    snap.freeze.startBeat = sourceTrack.freeze.startBeat;
+                    snap.freeze.lengthBeats = sourceTrack.freeze.lengthBeats;
+                    snap.freeze.bakeEndDeviceIndex = std::clamp(
+                        sourceTrack.freeze.bakeEndDeviceIndex, 0, snap.deviceCount);
+                }
             }
         }
 

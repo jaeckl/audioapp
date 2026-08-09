@@ -4,10 +4,10 @@ extension TrackFreezeDeviceStrip on TrackSnapshot {
   int get trackGainDeviceIndex =>
       devices.indexWhere((device) => device.type == 'track_gain');
 
-  bool get canInsertDevices => !freeze.enabled;
+  bool get canInsertDevices => !freeze.isManual;
 
   bool isPreGainDeviceDimmed(DeviceSnapshot device) {
-    if (!freeze.enabled || device.type == 'track_gain') {
+    if (!freeze.isManual || device.type == 'track_gain') {
       return false;
     }
     final gainIndex = trackGainDeviceIndex;
