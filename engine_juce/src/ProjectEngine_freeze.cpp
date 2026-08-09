@@ -109,6 +109,18 @@ bool ProjectEngine::prepareFreezeJobLocked(Track& track,
     // render so baked DSP state stays out of the live chain.
     job.playback.arena = ProcessorArena(std::max(1, bakeEndIndex));
     buildProcessorChain(job.playback.devices, bakeEndIndex, job.playback.arena);
+    // Fresh processors have empty automation/modulation spans, and the chain
+    // orchestrator uses those spans to decide whether a device is automated or
+    // modulated at all. Without this the bake renders every baked device at its
+    // static parameter values.
+    for (int device = 0; device < bakeEndIndex; ++device) {
+        if (auto* processor = job.playback.arena.get(device)) {
+            processor->bindCompiledParameterSpans(job.playback.automationClips,
+                                                  job.playback.automationClipCount,
+                                                  job.playback.modEdges,
+                                                  job.playback.modEdgeCount);
+        }
+    }
     resetPlaybackStateInArena(job.playback.arena);
 
     const int lfoCount = modulationGraph_.lfoPlaybackCount();

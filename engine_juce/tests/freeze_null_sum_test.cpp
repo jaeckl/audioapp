@@ -165,7 +165,7 @@ int main() {
             return std::string{};
         }
         const int lfoId = host.createLfo();
-        if (lfoId <= 0 || !host.assignModulation(lfoId, filterId, "cutoff", 0.6f)) {
+        if (lfoId <= 0 || !host.assignModulation(lfoId, filterId, "ffxCutoff", 0.6f)) {
             return std::string{};
         }
         return trackId;
@@ -186,7 +186,7 @@ int main() {
         }
         // Retrigger mode 2 = OnNote, the case the bake used to skip entirely.
         host.updateLfoParam(lfoId, "retrigger", 2.0f);
-        if (!host.assignModulation(lfoId, filterId, "cutoff", 0.6f)) {
+        if (!host.assignModulation(lfoId, filterId, "ffxCutoff", 0.6f)) {
             return std::string{};
         }
         return trackId;
@@ -202,7 +202,7 @@ int main() {
             return std::string{};
         }
         const auto clipId = host.createAutomationClip(trackId, 0.0, 4.0);
-        if (clipId.empty() || !host.assignAutomationTarget(clipId, filterId, "cutoff")) {
+        if (clipId.empty() || !host.assignAutomationTarget(clipId, filterId, "ffxCutoff")) {
             return std::string{};
         }
         const std::vector<audioapp::AutomationPointState> points{
