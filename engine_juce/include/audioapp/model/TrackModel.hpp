@@ -130,10 +130,11 @@ struct TrackFreezeData {
     double sampleRate = 48000.0;
     int bpmAtFreeze = 120;
     uint64_t contentSignature = 0;
-    /// Devices [0, bakeEndDeviceIndex) are baked into the asset; the rest still
-    /// run live at playback. Devices that consume or publish cross-track signal
-    /// (routing receivers, sidechain hosts, tapped sources) cannot be baked, so
-    /// the split lands before the first such device rather than at track_gain.
+    /// Exclusive index into the *flattened* playback device array
+    /// (noteFx…, synth, audioFx…): slots [0, bakeEndDeviceIndex) are baked;
+    /// the rest still run live. Cross-track consumers/publishers cannot be
+    /// baked, so the split lands before the first such model device's span
+    /// rather than always at track_gain.
     int bakeEndDeviceIndex = 0;
     std::vector<float> waveformPeaks;
 };

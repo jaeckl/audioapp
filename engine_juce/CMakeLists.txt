@@ -338,6 +338,14 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
   endif()
   add_test(NAME audioapp_freeze_null_sum_test COMMAND audioapp_freeze_null_sum_test)
 
+  add_executable(audioapp_freeze_bake_end_index_test tests/freeze_bake_end_index_test.cpp)
+  target_link_libraries(audioapp_freeze_bake_end_index_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_freeze_bake_end_index_test PRIVATE /EHsc)
+    target_link_options(audioapp_freeze_bake_end_index_test PRIVATE /STACK:16777216)
+  endif()
+  add_test(NAME audioapp_freeze_bake_end_index_test COMMAND audioapp_freeze_bake_end_index_test)
+
   add_executable(audioapp_remove_device_test
     tests/JuceTestRunner.cpp
     tests/remove_device_test.cpp

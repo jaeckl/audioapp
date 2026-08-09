@@ -341,17 +341,8 @@ bool ProjectEngine::trackUsesPerNoteModulatorLocked(const Track& track,
     if (lfoCount <= 0) {
         return false;
     }
-    const int bakedCount =
-        std::clamp(bakeEndDeviceIndex, 0, static_cast<int>(track.devices.size()));
     for (const auto& edge : modulationGraph_.modEdges()) {
-        bool targetsBakedDevice = false;
-        for (int i = 0; i < bakedCount; ++i) {
-            if (track.devices[static_cast<size_t>(i)].id == edge.deviceId) {
-                targetsBakedDevice = true;
-                break;
-            }
-        }
-        if (!targetsBakedDevice) {
+        if (!freezeBakeCoversDeviceId(track, bakeEndDeviceIndex, edge.deviceId)) {
             continue;
         }
         for (int i = 0; i < lfoCount; ++i) {
@@ -372,23 +363,22 @@ bool ProjectEngine::trackUsesPerNoteModulatorLocked(const Track& track,
 uint64_t ProjectEngine::freezeExternalDependencyHashLocked(const Track& track,
                                                            int bakeEndDeviceIndex) const {
     uint64_t hash = 1469598103934665603ull;
-    const int bakedCount =
-        std::clamp(bakeEndDeviceIndex, 0, static_cast<int>(track.devices.size()));
 
     // Serialized configs cover every device parameter, including ones added
     // later, so a new field can never silently escape invalidation.
-    for (int i = 0; i < bakedCount; ++i) {
-        const auto& device = track.devices[static_cast<size_t>(i)];
+    // bakeEndDeviceIndex is flattened — only hash model devices fully inside it.
+    int flat = 0;
+    for (const auto& device : track.devices) {
+        const int slots = flattenedPlaybackSlotCount(device);
+        if (flat + slots > bakeEndDeviceIndex) {
+            break;
+        }
         hash = freezeHashString(hash, deviceSlotToVar(device, deviceRegistry_));
+        flat += slots;
     }
 
     const auto isBakedDevice = [&](const std::string& deviceId) {
-        for (int i = 0; i < bakedCount; ++i) {
-            if (track.devices[static_cast<size_t>(i)].id == deviceId) {
-                return true;
-            }
-        }
-        return false;
+        return freezeBakeCoversDeviceId(track, bakeEndDeviceIndex, deviceId);
     };
 
     const auto& types = modulationGraph_.modulatorTypes();
@@ -511,14 +501,9 @@ void ProjectEngine::markDeviceOwnerFreezeStaleLocked(const std::string& deviceId
         if (!track.freeze.enabled) {
             continue;
         }
-        const int bakedCount = std::clamp(track.freeze.bakeEndDeviceIndex,
-                                          0,
-                                          static_cast<int>(track.devices.size()));
-        for (int i = 0; i < bakedCount; ++i) {
-            if (track.devices[static_cast<size_t>(i)].id == deviceId) {
-                track.freeze.stale = true;
-                return;
-            }
+        if (freezeBakeCoversDeviceId(track, track.freeze.bakeEndDeviceIndex, deviceId)) {
+            track.freeze.stale = true;
+            return;
         }
     }
 }

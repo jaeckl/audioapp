@@ -15,16 +15,28 @@ double trackContentEndBeat(const Track& track) noexcept;
 int findTrackGainDeviceIndex(const std::vector<DeviceSlot>& devices) noexcept;
 bool trackHasRoutingReceivers(const Track& track) noexcept;
 
-/// Highest device index (exclusive) whose output can be baked for `track`.
+/// How many playback slots one model device expands to (noteFx + self + audioFx
+/// for synths; 1 otherwise). Matches ProjectEngine flatten order.
+int flattenedPlaybackSlotCount(const DeviceSlot& device) noexcept;
+
+/// Exclusive flattened playback index where freeze bake ends for `track`.
 ///
-/// Baking replaces devices with recorded audio, which silently breaks any
-/// device that reads signal from another track (routing receiver, ducker with a
-/// sidechain source) or that publishes its own intermediate output to another
-/// track (a device tapped as a graph source). The split therefore lands before
-/// the first such device; everything from there on keeps running live and the
-/// baked audio is fed in as its input. Returns 0 when nothing can be baked.
+/// Index space matches the realtime device array (noteFx…, synth, audioFx…),
+/// not `Track::devices`. Baking replaces those slots with recorded audio, which
+/// silently breaks any device that reads signal from another track (routing
+/// receiver, ducker with a sidechain source) or that publishes its own
+/// intermediate output to another track (a device tapped as a graph source).
+/// The split lands before the first such model device's flattened span;
+/// everything from there on keeps running live and the baked audio is fed in
+/// as its input. Returns 0 when nothing can be baked.
 int computeFreezeBakeEndIndex(const Track& track,
                               const std::vector<Track>& allTracks) noexcept;
+
+/// True when `deviceId` is a top-level or nested slot fully covered by the
+/// flattened bake range `[0, flattenedBakeEnd)`.
+bool freezeBakeCoversDeviceId(const Track& track,
+                              int flattenedBakeEnd,
+                              std::string_view deviceId) noexcept;
 
 struct FreezePlaybackRegion {
     double startBeat = 0.0;
