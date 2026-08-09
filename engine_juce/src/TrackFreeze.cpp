@@ -298,7 +298,10 @@ void mixFreezeStereoBlock(float* leftOut,
         if (!active) {
             continue;
         }
-        const double readPos = progress * static_cast<double>(region.frameCount);
+        // Match sample-clip mixing: map progress onto [0, frameCount-1] so
+        // progress == 1.0 never indexes pcm[frameCount].
+        const double readPos = std::clamp(progress, 0.0, 1.0) *
+                               static_cast<double>(region.frameCount - 1);
         const int index = static_cast<int>(readPos);
         const float frac = static_cast<float>(readPos - static_cast<double>(index));
         const int next = std::min(index + 1, region.frameCount - 1);

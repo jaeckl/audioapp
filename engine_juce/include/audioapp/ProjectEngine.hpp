@@ -790,9 +790,9 @@ private:
     bool freezeTrackLocked(Track& track, int trackIndex, TrackFreezeAssetStore& assets);
     /// Everything the bake reads, copied so the render can run off the lock.
     struct FreezeRenderJob;
-    bool prepareFreezeJobLocked(const Track& track,
+    bool prepareFreezeJobLocked(Track& track,
                                 int trackIndex,
-                                FreezeRenderJob& job) const;
+                                FreezeRenderJob& job);
     /// Renders `job` into `outAsset`. Takes no lock; safe to call from any
     /// non-audio thread. Returns false if cancelled.
     bool renderFreezeJob(FreezeRenderJob& job, FreezeAsset& outAsset);

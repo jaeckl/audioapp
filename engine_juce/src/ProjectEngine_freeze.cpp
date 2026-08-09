@@ -48,11 +48,14 @@ struct ProjectEngine::FreezeRenderJob {
     /// if the project moved on, so an edit during the bake cannot publish audio
     /// that no longer matches the project.
     uint64_t signature = 0;
+    /// Captured via ++track.freeze.bakeGeneration at prepare. Commit rejects if
+    /// the live track's generation moved (unfreeze / reschedule mid-bake).
+    uint64_t bakeGeneration = 0;
 };
 
-bool ProjectEngine::prepareFreezeJobLocked(const Track& track,
+bool ProjectEngine::prepareFreezeJobLocked(Track& track,
                                            int trackIndex,
-                                           FreezeRenderJob& job) const {
+                                           FreezeRenderJob& job) {
     if (track.isGroup || captureActive_) {
         return false;
     }
@@ -84,6 +87,7 @@ bool ProjectEngine::prepareFreezeJobLocked(const Track& track,
     job.assetId = "freeze-" + track.id;
     job.previousAssetId = track.freeze.assetId;
     job.bakeEndIndex = bakeEndIndex;
+    job.bakeGeneration = ++track.freeze.bakeGeneration;
     job.sampleRate = renderSampleRate;
     // Block-rate modulation is held for a whole block, so the bake has to use
     // the same block size the live callback does or the frozen result would
@@ -286,6 +290,11 @@ bool ProjectEngine::commitFreezeJobLocked(const FreezeRenderJob& job,
                                           TrackFreezeAssetStore& assets) {
     Track* track = trackRepo_.findTrack(job.trackId);
     if (track == nullptr) {
+        return false;
+    }
+    // Unfreeze / cancel / newer prepare bumps bakeGeneration; never re-enable
+    // freeze from a job the user already abandoned.
+    if (track->freeze.bakeGeneration != job.bakeGeneration) {
         return false;
     }
     // The project may have changed while the render ran off the lock. Anything
@@ -549,7 +558,7 @@ bool ProjectEngine::freezeTrackWithoutBlocking(const std::string& trackId,
     auto job = std::make_unique<FreezeRenderJob>();
     {
         const juce::ScopedWriteLock lock(mutex_);
-        const Track* track = trackRepo_.findTrack(trackId);
+        Track* track = trackRepo_.findTrack(trackId);
         if (track == nullptr) {
             return false;
         }
@@ -586,7 +595,11 @@ bool ProjectEngine::unfreezeTrack(const std::string& trackId, TrackFreezeAssetSt
     if (!track->freeze.assetId.empty()) {
         assets.remove(track->freeze.assetId);
     }
+    // Preserve a bumped generation so an in-flight bake cannot commit and
+    // resurrect the freeze the user just cleared.
+    const uint64_t nextGeneration = track->freeze.bakeGeneration + 1;
     track->freeze = {};
+    track->freeze.bakeGeneration = nextGeneration;
     syncProjectTreeLocked();
     rebuildTrackPlaybackLocked();
     return true;

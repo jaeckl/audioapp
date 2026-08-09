@@ -4020,12 +4020,36 @@ bool ProjectEngine::removeLfo(int lfoId) {
 
 bool ProjectEngine::updateLfoParam(int lfoId, const std::string& param, float value) {
     const juce::ScopedWriteLock lock(mutex_);
-    return modulationGraph_.updateLfoParam(lfoId, param, value);
+    if (!modulationGraph_.updateLfoParam(lfoId, param, value)) {
+        return false;
+    }
+    // LFO params are part of the freeze signature; mark stale and drop Auto
+    // caches to live so the new modulation is audible immediately.
+    reconcileTrackFreezeStaleLocked();
+    for (const auto& track : trackRepo_.tracks()) {
+        if (track.freeze.enabled && track.freeze.mode == TrackFreezeMode::Auto &&
+            track.freeze.stale) {
+            rebuildTrackPlaybackLocked();
+            break;
+        }
+    }
+    return true;
 }
 
 bool ProjectEngine::batchUpdateLfoParams(int lfoId, const std::vector<std::pair<std::string, float>>& params) {
     const juce::ScopedWriteLock lock(mutex_);
-    return modulationGraph_.batchUpdateLfoParams(lfoId, params);
+    if (!modulationGraph_.batchUpdateLfoParams(lfoId, params)) {
+        return false;
+    }
+    reconcileTrackFreezeStaleLocked();
+    for (const auto& track : trackRepo_.tracks()) {
+        if (track.freeze.enabled && track.freeze.mode == TrackFreezeMode::Auto &&
+            track.freeze.stale) {
+            rebuildTrackPlaybackLocked();
+            break;
+        }
+    }
+    return true;
 }
 
 bool ProjectEngine::assignModulation(int lfoId, const std::string& deviceId,

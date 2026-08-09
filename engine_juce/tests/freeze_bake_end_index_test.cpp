@@ -129,6 +129,30 @@ int main() {
                "tapped nested synth bakeEnd=0 (whole group live)");
     }
 
+    // mixFreezeStereoBlock: progress maps onto [0, frameCount-1] (no OOB).
+    {
+        constexpr int kFrames = 4;
+        float pcmL[kFrames] = {0.1f, 0.2f, 0.3f, 0.4f};
+        float pcmR[kFrames] = {0.5f, 0.6f, 0.7f, 0.8f};
+        float outL[8] = {};
+        float outR[8] = {};
+        FreezePlaybackRegion region;
+        region.startBeat = 0.0;
+        region.lengthBeats = 1.0;
+        region.pcmL = pcmL;
+        region.pcmR = pcmR;
+        region.frameCount = kFrames;
+        region.pcmSampleRate = 48000.0;
+        // 8 frames @ sr=8, bpm=60 → beats [0, 1); last frame at 0.875.
+        mixFreezeStereoBlock(outL, outR, 8, 8.0, 60, 0.0, region);
+        expect(outL[0] == pcmL[0], "mix start L");
+        expect(outR[0] == pcmR[0], "mix start R");
+        expect(outL[7] > 0.0f && outL[7] <= pcmL[kFrames - 1] + 1e-6f,
+               "mix end L within pcm");
+        expect(outR[7] > 0.0f && outR[7] <= pcmR[kFrames - 1] + 1e-6f,
+               "mix end R within pcm");
+    }
+
     if (failures == 0) {
         std::cout << "freeze_bake_end_index_test: ok\n";
         return 0;

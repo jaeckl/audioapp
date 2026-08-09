@@ -8,6 +8,7 @@ class TrackFreezeSnapshot {
     this.mode = 0,
     this.startBeat = 0.0,
     this.lengthBeats = 0.0,
+    this.bakeEndDeviceIndex = 0,
     this.waveformPeaks = const [],
   });
 
@@ -16,6 +17,10 @@ class TrackFreezeSnapshot {
   final int mode;
   final double startBeat;
   final double lengthBeats;
+
+  /// Exclusive flattened playback index of the bake split (engine space).
+  /// Slots `[0, bakeEndDeviceIndex)` are baked; the rest stay live.
+  final int bakeEndDeviceIndex;
   final List<double> waveformPeaks;
 
   bool get isAuto => mode == 1;
@@ -37,6 +42,7 @@ class TrackFreezeSnapshot {
       mode: mode,
       startBeat: (map['startBeat'] as num?)?.toDouble() ?? 0.0,
       lengthBeats: (map['lengthBeats'] as num?)?.toDouble() ?? 0.0,
+      bakeEndDeviceIndex: (map['bakeEndDeviceIndex'] as num?)?.toInt() ?? 0,
       waveformPeaks: peaksRaw.map((p) => (p as num).toDouble()).toList(),
     );
   }
