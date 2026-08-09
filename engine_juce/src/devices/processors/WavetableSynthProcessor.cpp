@@ -225,8 +225,28 @@ void WavetableSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) no
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId);
 
-    StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
-                                        ctx.commonControls, !bakePanelGain);
+    const float spread = safe_clamp(params.wtStereoSpread, 0.0f, 1.0f);
+    if (spread > 1.0e-4f) {
+        constexpr float kPiOver2 = 1.57079632679f;
+        for (int f = 0; f < block.numSamples; ++f) {
+            const float gain = bakePanelGain ? 1.0f : ctx.commonControls.gainAt(f);
+            const float sample = ctx.scratch.scratch[f] * gain;
+            const int delayIdx = runtime.spreadWrite;
+            const float delayed = runtime.spreadDelay[delayIdx];
+            runtime.spreadDelay[delayIdx] = sample;
+            runtime.spreadWrite =
+                (runtime.spreadWrite + 1) % WavetableSynthRuntime::kSpreadDelayLen;
+            const float angle =
+                safe_clamp(ctx.commonControls.panAt(f), 0.0f, 1.0f) * kPiOver2;
+            const float mid = sample * (1.0f - 0.35f * spread);
+            const float side = delayed * spread * 0.55f;
+            block.channelL[f] += mid * std::cos(angle) + side;
+            block.channelR[f] += mid * std::sin(angle) - side;
+        }
+    } else {
+        StereoOutputPanel::applyFromScratch(ctx.scratch.scratch, block, block.numSamples,
+                                            ctx.commonControls, !bakePanelGain);
+    }
 }
 
 } // namespace audioapp

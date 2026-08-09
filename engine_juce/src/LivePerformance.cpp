@@ -10,6 +10,7 @@
 #include "audioapp/DedicatedPercussionAlgorithm.hpp"
 #include "audioapp/CrashAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/GranularAlgorithm.hpp"
 #include "audioapp/instruments/PerNoteModulation.hpp"
 
@@ -28,6 +29,9 @@ void initSubtractiveVoice(SubtractiveVoiceRuntime& voice, int pitch, float veloc
     voice.targetHz = subtractiveOscPitchHz(pitch, 0.5f, 0.0f, 0.5f);
     voice.currentHz = voice.targetHz;
     voice.noiseSeed = 0.2f + static_cast<float>(pitch) * 0.003f;
+    voice.pitchCacheValid = 0;
+    voice.controlPitchValid = false;
+    voice.cachedKeyTrackAmount = -1.0f;
 }
 
 } // namespace
@@ -79,11 +83,26 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         return -1;
     }
     const uint64_t now = sampleClock();
-    const bool subtractive = instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
-                             instrument.kind == LiveInstrumentKind::BassSynth;
+    const bool bassMono = instrument.kind == LiveInstrumentKind::BassSynth;
 
-    // Live keyboard stays polyphonic; synthMono only affects clip/arrangement playback.
-    (void)subtractive;
+    // Bass is hard-mono live (same as arrangement synthMono). Steal any other
+    // bass voice immediately so envelopes never overlap — keeps CPU at 1 voice.
+    float bassGlideFromHz = -1.0f;
+    if (bassMono) {
+        for (auto& voice : voices_) {
+            if (voice.active.load(std::memory_order_acquire) == 0) {
+                continue;
+            }
+            if (voice.instrument.kind != LiveInstrumentKind::BassSynth) {
+                continue;
+            }
+            if (bassGlideFromHz < 0.0f) {
+                bassGlideFromHz = voice.subtractive.currentHz;
+            }
+            voice.active.store(0, std::memory_order_release);
+            voice.releasing = false;
+        }
+    }
 
     for (auto& voice : voices_) {
         if (voice.active.load(std::memory_order_acquire) != 0 && voice.pitch == pitch && !voice.releasing) {
@@ -123,6 +142,9 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
                 instrument.kind == LiveInstrumentKind::BassSynth) {
             initSubtractiveVoice(voice.subtractive, pitch, voice.velocity);
+            if (bassMono && bassGlideFromHz > 0.0f && instrument.subtractive.glideMs > 0.0f) {
+                voice.subtractive.currentHz = bassGlideFromHz;
+            }
         } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
             triggerKickVoice(voice.kick, pitch, voice.velocity);
         } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
@@ -152,6 +174,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
             voice.wavetable = WavetableVoiceRuntime{};
             voice.wavetable.pitch = pitch;
             voice.wavetable.velocity = voice.velocity;
+            voice.wavetable.noiseSeed =
+                0xA341316Cu ^ static_cast<uint32_t>(pitch * 2654435761u);
         }
         voice.active.store(1, std::memory_order_release);
         return i;
@@ -185,6 +209,9 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
     if (instrument.kind == LiveInstrumentKind::SubtractiveSynth ||
                 instrument.kind == LiveInstrumentKind::BassSynth) {
         initSubtractiveVoice(steal.subtractive, pitch, steal.velocity);
+        if (bassMono && bassGlideFromHz > 0.0f && instrument.subtractive.glideMs > 0.0f) {
+            steal.subtractive.currentHz = bassGlideFromHz;
+        }
     } else if (instrument.kind == LiveInstrumentKind::KickGenerator) {
         triggerKickVoice(steal.kick, pitch, steal.velocity);
     } else if (instrument.kind == LiveInstrumentKind::SnareGenerator) {
@@ -214,6 +241,8 @@ int LivePerformanceMixer::noteOn(const LiveInstrumentSnapshot& instrument, int p
         steal.wavetable = WavetableVoiceRuntime{};
         steal.wavetable.pitch = pitch;
         steal.wavetable.velocity = steal.velocity;
+        steal.wavetable.noiseSeed =
+            0xA341316Cu ^ static_cast<uint32_t>(pitch * 2654435761u);
     }
     steal.active.store(1, std::memory_order_release);
     return 0;
@@ -607,15 +636,20 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                               : DeviceNodeKind::SubtractiveSynth,
                                           inst.deviceIndex, perNoteElapsed, perNoteDuration, noteKey,
                                           evalCtx, modCtx);
-                const auto params = std::get<SubtractiveSynthParams>(variant);
-                const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
-                const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
-                const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
-                const float ampSustain = std::clamp(params.ampSustain, 0.0f, 1.0f);
-                const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
-                const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
-                const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
-                const float filterSustain = std::clamp(params.filterSustain, 0.0f, 1.0f);
+                auto params = std::get<SubtractiveSynthParams>(variant);
+                // Live keyboard path: lean caps for small realtime callbacks.
+                int voiceCap = kSubtractiveMaxVoices;
+                applySubtractiveRealtimeCaps(params, numFrames, voiceCap);
+                (void)voiceCap;
+
+                auto& sv = voice.subtractive;
+                const uint64_t localSample = sampleIndex - voice.startSample;
+                const bool refreshControl =
+                    (localSample % static_cast<uint64_t>(kSubtractiveControlSubBlockFrames)) == 0 ||
+                    !sv.controlPitchValid;
+                if (refreshControl) {
+                    refreshSubtractiveControlCaches(sv, params, sampleRate);
+                }
 
                 const double voiceElapsed =
                     static_cast<double>(sampleIndex - voice.startSample) / sampleRate;
@@ -627,10 +661,10 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
 
                 const float ampGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
                                                       noteDurationSec,
-                                                      ampAttackSec,
-                                                      ampDecaySec,
-                                                      ampSustain,
-                                                      ampReleaseSec);
+                                                      sv.cachedAmpAttackSec,
+                                                      sv.cachedAmpDecaySec,
+                                                      sv.cachedAmpSustain,
+                                                      sv.cachedAmpReleaseSec);
                 if (ampGain <= 0.0f) {
                     if (voice.releasing) {
                         voice.active.store(0, std::memory_order_release);
@@ -640,22 +674,14 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
 
                 const float filterGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
                                                          noteDurationSec,
-                                                         filterAttackSec,
-                                                         filterDecaySec,
-                                                         filterSustain,
-                                                         filterReleaseSec);
+                                                         sv.cachedFilterAttackSec,
+                                                         sv.cachedFilterDecaySec,
+                                                         sv.cachedFilterSustain,
+                                                         sv.cachedFilterReleaseSec);
                 const float vel = std::clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
                 const float velAmount =
                     1.0f - params.velocitySensitivity * (1.0f - vel);
-                const float glideMs = params.glideMs * 2000.0f;
-                const float glideCoeff =
-                    glideMs > 0.0f
-                        ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
-                        : 1.0f;
 
-                auto& sv = voice.subtractive;
-                sv.targetHz =
-                    subtractiveOscPitchHz(voice.pitch, 0.5f, 0.0f, 0.5f);
                 sv.pitch = voice.pitch;
                 sv.velocity = voice.velocity;
                 mix += subtractiveVoiceSample(sv,
@@ -663,7 +689,8 @@ void LivePerformanceMixer::readMix(float* monoOut, int numFrames, double sampleR
                                                 ampGain * velAmount,
                                                 filterGain,
                                                 sampleRate,
-                                                glideCoeff) *
+                                                sv.cachedGlideCoeff,
+                                                refreshControl) *
                         perNoteGain * kInstrumentOutputGain;
             } else if (inst.kind == LiveInstrumentKind::Oscillator) {
                 const float hz = midiNoteToHz(voice.pitch);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -8,16 +10,7 @@ import 'features/settings/audio_engine_settings.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarDividerColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
+  await _enableFullscreenSystemUi();
   var showWelcomeOnLaunch = true;
   var audioEngineProfile = AudioEngineProfile.balanced;
   var customAudioSettings = const AudioEngineCustomSettings();
@@ -36,7 +29,21 @@ Future<void> main() async {
   ));
 }
 
-class AudioApp extends StatelessWidget {
+Future<void> _enableFullscreenSystemUi() async {
+  // Hide status + nav bars; swipe edge briefly reveals them.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarDividerColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
+  );
+}
+
+class AudioApp extends StatefulWidget {
   const AudioApp({
     super.key,
     this.showWelcomeOnLaunch = true,
@@ -47,6 +54,30 @@ class AudioApp extends StatelessWidget {
   final bool showWelcomeOnLaunch;
   final AudioEngineProfile audioEngineProfile;
   final AudioEngineCustomSettings customAudioSettings;
+
+  @override
+  State<AudioApp> createState() => _AudioAppState();
+}
+
+class _AudioAppState extends State<AudioApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_enableFullscreenSystemUi());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,9 +96,9 @@ class AudioApp extends StatelessWidget {
       ),
       home: DawShell(
         bridge: EngineBridge(),
-        showWelcomeOnLaunch: showWelcomeOnLaunch,
-        initialAudioEngineProfile: audioEngineProfile,
-        initialCustomAudioSettings: customAudioSettings,
+        showWelcomeOnLaunch: widget.showWelcomeOnLaunch,
+        initialAudioEngineProfile: widget.audioEngineProfile,
+        initialCustomAudioSettings: widget.customAudioSettings,
       ),
     );
   }

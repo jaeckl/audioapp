@@ -350,7 +350,7 @@ void mixGranularMidiNotesBlock(float* leftOut,
                                const uint16_t* modulationDeviceIndex,
                                const InstrumentModulationContext* instMod,
                                 const CommonControlBlock* commonControls,
-                                uint64_t automationTargetNodeId = 0) noexcept {
+                                uint64_t automationTargetNodeId) noexcept {
     if (leftOut == nullptr || rightOut == nullptr || numFrames <= 0 || notes == nullptr ||
         noteCount <= 0 || bpm <= 0 || params.pcm == nullptr || params.frameCount < 4) {
         return;

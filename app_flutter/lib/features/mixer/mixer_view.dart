@@ -55,65 +55,66 @@ class MixerView extends StatelessWidget {
           height: panelHeight,
           child: ValueListenableBuilder<Map<String, DeviceMeterReading>>(
             valueListenable: liveMeters,
-            builder: (context, meters, _) => ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              children: [
-                for (var i = 0; i < snapshot.tracks.length; i++)
-                  _TrackChannel(
-                    track: snapshot.tracks[i],
-                    icon: TrackLaneIcon.iconForTrack(snapshot.tracks[i], i),
-                    accent: TrackLaneColor.colorForTrack(snapshot.tracks[i], i),
-                    selected:
-                        snapshot.tracks[i].id == snapshot.selectedTrackId,
-                    recordArmed: snapshot.tracks[i].id ==
-                            snapshot.selectedTrackId &&
-                        snapshot.recordArmed,
-                    meter: snapshot.tracks[i].trackGainDevice == null
-                        ? null
-                        : meters[snapshot.tracks[i].trackGainDevice!.id],
-                    outputChoices: _outputChoicesFor(
-                      snapshot: snapshot,
-                      selfId: snapshot.tracks[i].id,
+            builder: (context, meters, _) {
+              final tracks = snapshot.nestedTracksForDisplay();
+              return ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                children: [
+                  for (var i = 0; i < tracks.length; i++)
+                    _TrackChannel(
+                      track: tracks[i],
+                      icon: TrackLaneIcon.iconForTrack(tracks[i], i),
+                      accent: TrackLaneColor.colorForTrack(tracks[i], i),
+                      selected: tracks[i].id == snapshot.selectedTrackId,
+                      recordArmed: tracks[i].id == snapshot.selectedTrackId &&
+                          snapshot.recordArmed,
+                      meter: tracks[i].trackGainDevice == null
+                          ? null
+                          : meters[tracks[i].trackGainDevice!.id],
+                      outputChoices: _outputChoicesFor(
+                        snapshot: snapshot,
+                        selfId: tracks[i].id,
+                      ),
+                      onGainChanged: (value) {
+                        final device = tracks[i].trackGainDevice;
+                        if (device != null) onTrackGainChanged(device.id, value);
+                      },
+                      onPanChanged: (value) {
+                        final device = tracks[i].trackGainDevice;
+                        if (device != null) onTrackPanChanged(device.id, value);
+                      },
+                      onSelect: () => onTrackSelected(tracks[i].id),
+                      onMute: () => onTrackMuted(
+                        tracks[i].id,
+                        !tracks[i].muted,
+                      ),
+                      onSolo: () => onTrackSoloed(
+                        tracks[i].id,
+                        !tracks[i].soloed,
+                      ),
+                      onRecord: () => onTrackRecordArmed(
+                        tracks[i].id,
+                        !(tracks[i].id == snapshot.selectedTrackId &&
+                            snapshot.recordArmed),
+                      ),
+                      onOutputChanged: (target) =>
+                          onTrackOutputChanged(tracks[i].id, target),
                     ),
-                    onGainChanged: (value) {
-                      final device = snapshot.tracks[i].trackGainDevice;
-                      if (device != null) onTrackGainChanged(device.id, value);
-                    },
-                    onPanChanged: (value) {
-                      final device = snapshot.tracks[i].trackGainDevice;
-                      if (device != null) onTrackPanChanged(device.id, value);
-                    },
-                    onSelect: () => onTrackSelected(snapshot.tracks[i].id),
-                    onMute: () => onTrackMuted(
-                      snapshot.tracks[i].id,
-                      !snapshot.tracks[i].muted,
-                    ),
-                    onSolo: () => onTrackSoloed(
-                      snapshot.tracks[i].id,
-                      !snapshot.tracks[i].soloed,
-                    ),
-                    onRecord: () => onTrackRecordArmed(
-                      snapshot.tracks[i].id,
-                      !(snapshot.tracks[i].id == snapshot.selectedTrackId &&
-                          snapshot.recordArmed),
-                    ),
-                    onOutputChanged: (target) =>
-                        onTrackOutputChanged(snapshot.tracks[i].id, target),
+                  _MasterChannel(
+                    title: snapshot.master.name,
+                    gain: snapshot.master.gain,
+                    muted: snapshot.master.muted,
+                    selected: snapshot.selectedTrackId == 'master',
+                    meter: meters['master'],
+                    onGainChanged: onMasterGainChanged,
+                    onSelect: () => onTrackSelected('master'),
+                    onMute: () =>
+                        onTrackMuted('master', !snapshot.master.muted),
                   ),
-                _MasterChannel(
-                  title: snapshot.master.name,
-                  gain: snapshot.master.gain,
-                  muted: snapshot.master.muted,
-                  selected: snapshot.selectedTrackId == 'master',
-                  meter: meters['master'],
-                  onGainChanged: onMasterGainChanged,
-                  onSelect: () => onTrackSelected('master'),
-                  onMute: () =>
-                      onTrackMuted('master', !snapshot.master.muted),
-                ),
-              ],
-            ),
+                ],
+              );
+            },
           ),
         ),
       );

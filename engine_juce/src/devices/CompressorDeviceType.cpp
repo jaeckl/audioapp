@@ -45,7 +45,12 @@ DeviceParameterResult CompressorDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<CompressorParam>(id)) {
-    case CompressorParam::InputGain: instance.inputGain = clamped; break;
+    case CompressorParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case CompressorParam::Threshold: instance.compThreshold = clamped; break;
     case CompressorParam::Ratio: instance.compRatio = clamped; break;
     case CompressorParam::Attack: instance.compAttack = clamped; break;
@@ -164,9 +169,10 @@ DeviceSlot CompressorDeviceType::varToSlot(const juce::var& obj) const {
 
         }
 
-        // Input panel: new format or legacy fallback
-        const auto inputPanelVar = object->getProperty("inputPanel");
-        if (const auto* ip = inputPanelVar.getDynamicObject()) {
+        // Input panel: new format or legacy fallback. Always install
+        // DynamicsInputPanel — empty/missing panels used to leave EmptyPanel
+        // and abort later via std::get<DynamicsInputPanel>.
+        {
             auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
                 if (!src) return fallback;
                 const auto v = src->getProperty(key);
@@ -174,22 +180,24 @@ DeviceSlot CompressorDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            const std::string type = ip->getProperty("type").toString().toStdString();
-            if (type == "dynamics") {
-                slot.config.inputPanel = DynamicsInputPanel{readFloat(ip, "trim", 1.0f)};
+            float trim = 1.0f;
+            bool set = false;
+            const auto inputPanelVar = object->getProperty("inputPanel");
+            if (const auto* ip = inputPanelVar.getDynamicObject()) {
+                const std::string type = ip->getProperty("type").toString().toStdString();
+                if (type == "dynamics") {
+                    trim = readFloat(ip, "trim", 1.0f);
+                    set = true;
+                }
             }
-        } else if (p) {
-            auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
-                if (!src) return fallback;
-                const auto v = src->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-            const float ig = readFloat(p, "inputGain", -1.0f);
-            if (ig >= 0.0f) {
-                slot.config.inputPanel = DynamicsInputPanel{ig};
+            if (!set && p) {
+                const float ig = readFloat(p, "inputGain", -1.0f);
+                if (ig >= 0.0f) {
+                    trim = ig;
+                    set = true;
+                }
             }
+            slot.config.inputPanel = DynamicsInputPanel{trim};
         }
 
         // Bypass from root
@@ -238,6 +246,7 @@ uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const no
     auto c = [&](std::string_view n, CompressorParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = c("inputGain", CompressorParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compInputGain", CompressorParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compThreshold", CompressorParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = c("compRatio", CompressorParam::Ratio); v != static_cast<uint16_t>(-1)) return v;
@@ -250,7 +259,7 @@ uint16_t CompressorDeviceType::paramIdFromString(std::string_view name) const no
 
 std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<CompressorParam>(localId)) {
-    case CompressorParam::InputGain: return "compInputGain";
+    case CompressorParam::InputGain: return "inputGain";
     case CompressorParam::Threshold: return "compThreshold";
     case CompressorParam::Ratio: return "compRatio";
     case CompressorParam::Attack: return "compAttack";
@@ -263,7 +272,7 @@ std::string_view CompressorDeviceType::paramIdToString(uint16_t localId) const n
 
 std::span<const ParamDescriptor> CompressorDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(CompressorParam::InputGain), "compInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(CompressorParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Threshold), "compThreshold", "Threshold", 0.55f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Ratio), "compRatio", "Ratio", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(CompressorParam::Attack), "compAttack", "Attack", 0.20f, 0.0f, 1.0f, true, true},

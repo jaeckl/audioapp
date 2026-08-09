@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import 'device_drag_data.dart';
@@ -34,6 +37,10 @@ class DeviceToolRail extends StatelessWidget {
     this.onBypassAutomationLinkTap,
     this.onAutomateBypass,
     this.reorderDragData,
+    this.reorderDragRepaintKey,
+    this.onReorderDragStarted,
+    this.onReorderDragUpdate,
+    this.onReorderDragEnded,
   });
 
   final String deviceName;
@@ -54,6 +61,10 @@ class DeviceToolRail extends StatelessWidget {
   final VoidCallback? onBypassAutomationLinkTap;
   final VoidCallback? onAutomateBypass;
   final DeviceDragData? reorderDragData;
+  final GlobalKey? reorderDragRepaintKey;
+  final VoidCallback? onReorderDragStarted;
+  final ValueChanged<Offset>? onReorderDragUpdate;
+  final VoidCallback? onReorderDragEnded;
 
   @override
   Widget build(BuildContext context) {
@@ -79,31 +90,19 @@ class DeviceToolRail extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            if (reorderDragData != null)
-              Positioned.fill(
-                child: LongPressDraggable<DeviceDragData>(
-                  data: reorderDragData!,
-                  dragAnchorStrategy: pointerDragAnchorStrategy,
-                  feedback: _DeviceDragFeedback(
-                    deviceName: deviceName,
-                    accentColor: accentColor,
+            IgnorePointer(
+              child: RotatedBox(
+                quarterTurns: 3,
+                child: Text(
+                  deviceName.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: accentColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.2,
+                    height: 1,
                   ),
-                  childWhenDragging: const SizedBox.expand(),
-                  onDragStarted: HapticFeedback.selectionClick,
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            RotatedBox(
-              quarterTurns: 3,
-              child: Text(
-                deviceName.toUpperCase(),
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: accentColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.2,
-                  height: 1,
                 ),
               ),
             ),
@@ -163,6 +162,53 @@ class DeviceToolRail extends StatelessWidget {
                 ],
               ),
             ),
+            // Grip sits above label, between button clusters — long-press to reorder.
+            if (reorderDragData != null && reorderDragRepaintKey != null)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 52,
+                bottom: 52,
+                child: LongPressDraggable<DeviceDragData>(
+                  data: reorderDragData!,
+                  delay: const Duration(milliseconds: 250),
+                  // Finger on rail grip → pin feedback so rail center stays under finger.
+                  dragAnchorStrategy: (draggable, context, position) {
+                    final data = reorderDragData!;
+                    return Offset(
+                      DeviceStripMetrics.toolRailWidth / 2,
+                      data.feedbackHeight / 2,
+                    );
+                  },
+                  rootOverlay: true,
+                  feedback: _DeviceDragFeedback(
+                    key: const ValueKey('device-drag-feedback'),
+                    repaintKey: reorderDragRepaintKey!,
+                    width: reorderDragData!.feedbackWidth,
+                    height: reorderDragData!.feedbackHeight,
+                    pixelRatio: MediaQuery.devicePixelRatioOf(context),
+                    accentColor: accentColor,
+                  ),
+                  childWhenDragging: const ColoredBox(
+                    color: Color(0x44FFFFFF),
+                    child: SizedBox.expand(),
+                  ),
+                  onDragStarted: () {
+                    HapticFeedback.mediumImpact();
+                    onReorderDragStarted?.call();
+                  },
+                  onDragUpdate: (details) {
+                    onReorderDragUpdate?.call(details.globalPosition);
+                  },
+                  onDragCompleted: () => onReorderDragEnded?.call(),
+                  onDragEnd: (_) => onReorderDragEnded?.call(),
+                  onDraggableCanceled: (_, __) => onReorderDragEnded?.call(),
+                  child: const ColoredBox(
+                    color: Color(0x01FFFFFF),
+                    child: SizedBox.expand(),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

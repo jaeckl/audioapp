@@ -11,6 +11,7 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
   final TimelineViewportScrollController _timelineScrollController = TimelineViewportScrollController();
   final List<List<MidiNoteSnapshot>> _undoStack = [];
   final List<List<MidiNoteSnapshot>> _redoStack = [];
+  final GlobalKey<PlayDeckState> _playDeckKey = GlobalKey<PlayDeckState>();
 
   PianoRollGridSettings _grid = const PianoRollGridSettings();
   late PianoRollScaleSettings _scale;
@@ -127,11 +128,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
     if (_editorMode != MidiEditorMode.piano) return null;
     final scale = _scale.scale.label;
     return '${_scale.rootLabel} $scale';
-  }
-
-  String? get _modeChip {
-    if (_takes.length <= 1) return null;
-    return _compFlattened ? 'EDIT' : 'COMP';
   }
 
   bool get _needsCompFlatten => !_compFlattened && _takes.length > 1;

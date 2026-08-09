@@ -273,7 +273,7 @@ std::string ClipRepository::createMidiClip(const std::string& trackId,
     MidiClip clip;
     clip.id = "clip-" + std::to_string(nextClipNum_++);
     clip.startBeat = startBeat < 0.0 ? 0.0 : startBeat;
-    clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 4.0;
+    clip.lengthBeats = lengthBeats > 0.0 ? lengthBeats : 16.0;
     clip.naturalLengthBeats = clip.lengthBeats;
 
     MidiClipTake take;

@@ -3,82 +3,119 @@
   "name": "House Floor",
   "bpm": 124,
   "selectedTrackId": "tpl-kick",
-  "loopEnabled": true,
+  "loopEnabled": false,
   "loopRegionStartBeat": 0.0,
-  "loopRegionEndBeat": 4.0,
-  "master": {"id": "master", "name": "Master", "gain": 0.86},
+  "loopRegionEndBeat": 16.0,
+  "master": {
+    "id": "master",
+    "name": "Master",
+    "gain": 0.86
+  },
   "samples": [],
   "tracks": [
     {
       "id": "tpl-kick",
       "name": "Kick",
       "devices": [
-        {"id": "tpl-kick-dev", "type": "kick_generator", "parameters": {"kickPitch": 0.4, "kickPunch": 0.78, "kickDecay": 0.32, "gain": 0.96, "bypass": 0.0}},
-        {"id": "tpl-kick-gain", "type": "track_gain", "parameters": {"gain": 0.9, "bypass": 0.0}}
+        {
+          "id": "tpl-kick-dev",
+          "type": "kick_generator",
+          "parameters": {
+            "kickPitch": 0.4,
+            "kickPunch": 0.78,
+            "kickDecay": 0.32,
+            "gain": 0.96,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-kick-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.9,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-kick-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 118.0},
-          {"pitch": 36, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 108.0},
-          {"pitch": 36, "startBeat": 2.0, "durationBeats": 0.1, "velocity": 118.0},
-          {"pitch": 36, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 108.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     },
     {
       "id": "tpl-clap",
       "name": "Clap",
       "devices": [
-        {"id": "tpl-clap-dev", "type": "clap_generator", "parameters": {"clapTone": 0.55, "clapDecay": 0.34, "gain": 0.88, "bypass": 0.0}},
-        {"id": "tpl-clap-gain", "type": "track_gain", "parameters": {"gain": 0.82, "bypass": 0.0}}
+        {
+          "id": "tpl-clap-dev",
+          "type": "clap_generator",
+          "parameters": {
+            "clapTone": 0.55,
+            "clapDecay": 0.34,
+            "gain": 0.88,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-clap-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.82,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-clap-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 39, "startBeat": 1.0, "durationBeats": 0.16, "velocity": 104.0},
-          {"pitch": 39, "startBeat": 3.0, "durationBeats": 0.16, "velocity": 104.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     },
     {
       "id": "tpl-hat",
       "name": "Hats",
       "devices": [
-        {"id": "tpl-hat-dev", "type": "hihat_generator", "parameters": {"hihatDecay": 0.18, "hihatColor": 0.62, "gain": 0.7, "bypass": 0.0}},
-        {"id": "tpl-hat-gain", "type": "track_gain", "parameters": {"gain": 0.68, "bypass": 0.0}}
+        {
+          "id": "tpl-hat-dev",
+          "type": "hihat_generator",
+          "parameters": {
+            "hihatDecay": 0.18,
+            "hihatColor": 0.62,
+            "gain": 0.7,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-hat-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.68,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-hat-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.06, "velocity": 70.0},
-          {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.06, "velocity": 66.0},
-          {"pitch": 42, "startBeat": 2.5, "durationBeats": 0.06, "velocity": 72.0},
-          {"pitch": 42, "startBeat": 3.5, "durationBeats": 0.06, "velocity": 68.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     },
     {
       "id": "tpl-chords",
       "name": "Chords",
       "devices": [
-        {"id": "tpl-chord-synth", "type": "subtractive_synth", "parameters": {"gain": 0.72, "filterCutoff": 0.55, "filterResonance": 0.2, "bypass": 0.0}},
-        {"id": "tpl-chord-gain", "type": "track_gain", "parameters": {"gain": 0.74, "bypass": 0.0}}
+        {
+          "id": "tpl-chord-synth",
+          "type": "subtractive_synth",
+          "parameters": {
+            "gain": 0.72,
+            "filterCutoff": 0.55,
+            "filterResonance": 0.2,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-chord-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.74,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-chord-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 60, "startBeat": 0.0, "durationBeats": 0.5, "velocity": 88.0},
-          {"pitch": 64, "startBeat": 0.0, "durationBeats": 0.5, "velocity": 84.0},
-          {"pitch": 67, "startBeat": 0.0, "durationBeats": 0.5, "velocity": 82.0},
-          {"pitch": 60, "startBeat": 2.0, "durationBeats": 0.5, "velocity": 90.0},
-          {"pitch": 64, "startBeat": 2.0, "durationBeats": 0.5, "velocity": 86.0},
-          {"pitch": 67, "startBeat": 2.0, "durationBeats": 0.5, "velocity": 84.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     }
   ]

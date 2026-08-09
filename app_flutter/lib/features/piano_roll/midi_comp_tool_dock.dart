@@ -14,12 +14,18 @@ class MidiCompToolDock extends StatelessWidget {
     required this.previewPlaying,
     required this.onToolChanged,
     required this.onPreviewPlayStop,
+    this.compFlattened = false,
+    this.onFlatten,
+    this.onReopen,
   });
 
   final MidiCompTool tool;
   final bool previewPlaying;
   final ValueChanged<MidiCompTool> onToolChanged;
   final VoidCallback onPreviewPlayStop;
+  final bool compFlattened;
+  final VoidCallback? onFlatten;
+  final VoidCallback? onReopen;
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +54,26 @@ class MidiCompToolDock extends StatelessWidget {
                 onTap: () => onToolChanged(MidiCompTool.markers),
               ),
               const Spacer(),
+              if (!compFlattened && onFlatten != null)
+                _DockButton(
+                  icon: Icons.layers_clear_outlined,
+                  activeIcon: Icons.layers_clear,
+                  label: 'FLAT',
+                  tooltip: 'Flatten comp into editable notes',
+                  active: false,
+                  compact: true,
+                  onTap: onFlatten!,
+                ),
+              if (compFlattened && onReopen != null)
+                _DockButton(
+                  icon: Icons.lock_open_outlined,
+                  activeIcon: Icons.lock_open,
+                  label: 'OPEN',
+                  tooltip: 'Re-open comp takes and markers',
+                  active: false,
+                  compact: true,
+                  onTap: onReopen!,
+                ),
               _DockButton(
                 icon: Icons.play_arrow,
                 activeIcon: Icons.stop,

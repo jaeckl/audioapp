@@ -12,17 +12,21 @@ extension _MidiTakeCompViewStateLane on _MidiTakeCompViewState {
     final winningTake = _takeIdAtPlayhead;
     final isWinningLane =
         compMode && activeTakeId != null && activeTakeId == winningTake;
-    final isCompLane = compMode && activeTakeId != null;
-    final laneBorder = isWinningLane
-        ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.72)
-        : isCompLane
-            ? Colors.white.withValues(alpha: 0.16)
-            : Colors.white.withValues(alpha: 0.052);
-    final laneFill = isWinningLane
-        ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.12)
-        : isCompLane
-            ? Colors.white.withValues(alpha: 0.04)
-            : Colors.white.withValues(alpha: 0.018);
+    final takeAccent = activeTakeId == null
+        ? null
+        : MidiTakeColor.forTakeId(activeTakeId, widget.takes);
+    final laneBorder = takeAccent != null
+        ? MidiTakeColor.laneAccentBorder(
+            takeAccent,
+            highlighted: isWinningLane,
+          )
+        : Colors.white.withValues(alpha: 0.08);
+    final laneFill = takeAccent != null
+        ? MidiTakeColor.laneAccentFill(
+            takeAccent,
+            highlighted: isWinningLane,
+          )
+        : Colors.white.withValues(alpha: 0.018);
     return Positioned(
       left: 0,
       top: top,
@@ -48,6 +52,7 @@ extension _MidiTakeCompViewStateLane on _MidiTakeCompViewState {
               painter: _MidiTakeLanePainter(
                 notes: notes,
                 regions: widget.regions,
+                takes: widget.takes,
                 activeTakeId: activeTakeId,
                 pitchRows: pitchRows,
                 clipLengthBeats: widget.clipLengthBeats,

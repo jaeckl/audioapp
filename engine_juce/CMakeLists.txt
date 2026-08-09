@@ -50,6 +50,7 @@ add_library(audioapp_engine STATIC
   src/KickAlgorithm.cpp
   src/SubtractiveSynthAlgorithm.cpp
   src/SubtractiveOscSimd.cpp
+  src/SubtractiveMorphTable.cpp
   src/WavetableSynthAlgorithm.cpp
   src/WavetableOscSimd.cpp
   src/WavetableBank.cpp
@@ -226,26 +227,10 @@ if(NOT ANDROID)
     tests/routing_device_test.cpp
   )
   target_link_libraries(routing_device_tests PRIVATE audioapp_engine)
-  add_executable(audioapp_dsp_benchmarks EXCLUDE_FROM_ALL
-    benchmarks/dsp_benchmark.cpp
-  )
-  target_link_libraries(audioapp_dsp_benchmarks PRIVATE audioapp_engine)
   add_executable(device_correctness_matrix_tests EXCLUDE_FROM_ALL
     tests/device_correctness_matrix_test.cpp
   )
   target_link_libraries(device_correctness_matrix_tests PRIVATE audioapp_engine)
-  execute_process(
-    COMMAND git rev-parse --short HEAD
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE AUDIOAPP_BENCHMARK_COMMIT
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET
-  )
-  if(AUDIOAPP_BENCHMARK_COMMIT)
-    target_compile_definitions(audioapp_dsp_benchmarks PRIVATE
-      AUDIOAPP_BENCHMARK_COMMIT="${AUDIOAPP_BENCHMARK_COMMIT}"
-    )
-  endif()
   add_executable(clip_playback_regression_tests EXCLUDE_FROM_ALL
     tests/clip_playback_regression_test.cpp
   )
@@ -258,6 +243,27 @@ if(NOT ANDROID)
   if(MSVC)
     target_compile_options(live_performance_regression_tests PRIVATE /EHsc)
     target_link_options(live_performance_regression_tests PRIVATE /STACK:16777216)
+  endif()
+endif()
+
+# Host by default; Android when -DAUDIOAPP_BUILD_BENCHMARKS=ON (ADR-0014 mobile ARM).
+option(AUDIOAPP_BUILD_BENCHMARKS "Build DSP benchmark harness" OFF)
+if((NOT ANDROID) OR AUDIOAPP_BUILD_BENCHMARKS)
+  add_executable(audioapp_dsp_benchmarks EXCLUDE_FROM_ALL
+    benchmarks/dsp_benchmark.cpp
+  )
+  target_link_libraries(audioapp_dsp_benchmarks PRIVATE audioapp_engine)
+  execute_process(
+    COMMAND git rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    OUTPUT_VARIABLE AUDIOAPP_BENCHMARK_COMMIT
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+  )
+  if(AUDIOAPP_BENCHMARK_COMMIT)
+    target_compile_definitions(audioapp_dsp_benchmarks PRIVATE
+      AUDIOAPP_BENCHMARK_COMMIT="${AUDIOAPP_BENCHMARK_COMMIT}"
+    )
   endif()
 endif()
 
@@ -323,6 +329,22 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     target_link_options(audioapp_track_freeze_test PRIVATE /STACK:16777216)
   endif()
   add_test(NAME audioapp_track_freeze_test COMMAND audioapp_track_freeze_test)
+
+  add_executable(audioapp_freeze_null_sum_test tests/freeze_null_sum_test.cpp)
+  target_link_libraries(audioapp_freeze_null_sum_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_freeze_null_sum_test PRIVATE /EHsc)
+    target_link_options(audioapp_freeze_null_sum_test PRIVATE /STACK:16777216)
+  endif()
+  add_test(NAME audioapp_freeze_null_sum_test COMMAND audioapp_freeze_null_sum_test)
+
+  add_executable(audioapp_freeze_bake_end_index_test tests/freeze_bake_end_index_test.cpp)
+  target_link_libraries(audioapp_freeze_bake_end_index_test PRIVATE audioapp_engine)
+  if(MSVC)
+    target_compile_options(audioapp_freeze_bake_end_index_test PRIVATE /EHsc)
+    target_link_options(audioapp_freeze_bake_end_index_test PRIVATE /STACK:16777216)
+  endif()
+  add_test(NAME audioapp_freeze_bake_end_index_test COMMAND audioapp_freeze_bake_end_index_test)
 
   add_executable(audioapp_remove_device_test
     tests/JuceTestRunner.cpp
@@ -394,6 +416,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/project_archive_test.cpp
     tests/project_engine_test.cpp
     tests/project_serialization_test.cpp
+    tests/project_template_load_test.cpp
     tests/remove_device_test.cpp
     tests/sample_bank_test.cpp
     tests/sample_clip_test.cpp
@@ -415,6 +438,7 @@ if(AUDIOAPP_BUILD_TESTS AND NOT ANDROID)
     tests/granular_control_rate_test.cpp
     tests/granular_grain_simd_test.cpp
     tests/subtractive_osc_simd_test.cpp
+    tests/subtractive_morph_table_test.cpp
     tests/subtractive_preset_apply_test.cpp
     tests/subtractive_synth_test.cpp
     tests/phase_mod_synth_test.cpp

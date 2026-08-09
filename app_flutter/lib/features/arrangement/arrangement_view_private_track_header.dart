@@ -99,14 +99,14 @@ class _TrackHeader extends StatelessWidget {
               TrackMixButton(
                 tooltip: 'Freeze',
                 icon: Icons.ac_unit,
-                active: track.freeze.enabled,
+                active: track.freeze.showFreezeChrome,
                 onTap: onToggleFreeze!,
                 color: track.freeze.stale
                     ? Colors.amber
                     : const Color(0xFF8EB4FF),
                 height: h,
               ),
-              if (track.freeze.enabled && track.freeze.stale)
+              if (track.freeze.showFreezeChrome && track.freeze.stale)
                 const Positioned(
                   right: 2,
                   top: 2,
@@ -220,7 +220,7 @@ class _TrackHeader extends StatelessWidget {
                       ),
                     Padding(
                       padding: EdgeInsets.only(
-                        left: track.parentGroupId.isNotEmpty ? 6 : 0,
+                        left: track.parentGroupId.isNotEmpty ? 14 : 0,
                       ),
                       child: Icon(icon, size: 22, color: iconColor),
                     ),

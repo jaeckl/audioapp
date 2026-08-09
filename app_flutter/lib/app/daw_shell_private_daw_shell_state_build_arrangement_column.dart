@@ -79,7 +79,8 @@ Widget _buildArrangementColumn(ProjectSnapshot snapshot) {
             onBypassToggle: (deviceId, bypassed) =>
                 _setDeviceBypass(deviceId, bypassed),
             onRemoveDevice: _confirmRemoveDevice,
-            onMoveDevice: _moveDeviceInTrack,
+            onMoveDevice: (deviceId, toIndex) =>
+                _moveDeviceInTrack(deviceId: deviceId, toIndex: toIndex),
             onOpenDeviceLibrary: _openDeviceLibrary,
             onOpenDrumPadLibrary: _openDrumPadLibrary,
             onPickDeviceType: _pickDeviceFromLibrary,

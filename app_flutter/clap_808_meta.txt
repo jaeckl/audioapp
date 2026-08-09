@@ -1,0 +1,5 @@
+clap_808_p025.f32 bodyHz=700
+clap_808_p050.f32 bodyHz=1008
+clap_808_p075.f32 bodyHz=1700
+clap_808_m39.f32 bodyHz=1008
+clap_808_m51.f32 bodyHz=1700

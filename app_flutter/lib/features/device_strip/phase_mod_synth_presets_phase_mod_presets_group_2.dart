@@ -1,6 +1,6 @@
 part of 'phase_mod_synth_presets.dart';
 
-final Map<String, dynamic> _phase_mod_presetsGroup2 = {
+final Map<String, Map<String, dynamic>> _phase_mod_presetsGroup2 = {
   'preset:pm-lead-wire': PhaseModSynthPresets._patch({
     'pmOp1Ratio': 0.0625,
     'pmOp1Level': 0.9,

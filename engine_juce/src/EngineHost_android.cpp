@@ -1,5 +1,6 @@
 #include "audioapp/EngineHost.hpp"
 #include "audioapp/TestOscillator.hpp"
+#include "audioapp/SubtractiveMorphTable.hpp"
 
 #include <aaudio/AAudio.h>
 
@@ -138,6 +139,10 @@ struct EngineHost::Impl {
         if (stream != nullptr) {
             return true;
         }
+
+        // Bake subtractive morph mips off the audio thread (first lookup otherwise
+        // can stall a callback for hundreds of ms).
+        (void)SubtractiveMorphTable::instance();
 
         AAudioStreamBuilder* builder = nullptr;
         aaudio_result_t result = AAudio_createStreamBuilder(&builder);

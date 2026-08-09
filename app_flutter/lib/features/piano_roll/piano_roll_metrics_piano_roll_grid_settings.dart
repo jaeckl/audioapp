@@ -2,7 +2,7 @@ part of 'piano_roll_metrics.dart';
 
 class PianoRollGridSettings {
   const PianoRollGridSettings({
-    this.snap = PianoRollSnap.sixteenth,
+    this.snap = PianoRollSnap.quarter,
     this.triplet = false,
     this.defaultNoteBeats = PianoRollMetrics.defaultNoteBeats,
   });

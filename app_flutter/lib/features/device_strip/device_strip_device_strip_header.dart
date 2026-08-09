@@ -34,7 +34,7 @@ class _DeviceStripHeader extends StatelessWidget {
                 ),
           ),
           const SizedBox(width: 8),
-          if (track.freeze.enabled) ...[
+          if (track.freeze.showFreezeChrome) ...[
             _FreezeStripBadge(stale: track.freeze.stale),
             const SizedBox(width: 6),
           ],

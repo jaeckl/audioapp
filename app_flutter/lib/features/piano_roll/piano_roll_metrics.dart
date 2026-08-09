@@ -55,7 +55,18 @@ class PianoRollMetrics {
 
   static const int beatsPerBar = 4;
 
-  static const double defaultNoteBeats = 0.25;
+  static const double defaultNoteBeats = 1.0; // 1/4 note
+
+  static const int defaultVisibleSemitones = 12; // one octave
+
+  /// Row height so [semitones] fill the piano-roll body viewport.
+  static double rowHeightForVisibleSemitones(
+    double viewportHeight, {
+    int semitones = defaultVisibleSemitones,
+  }) {
+    if (viewportHeight <= 0 || semitones <= 0) return rowHeight;
+    return (viewportHeight / semitones).clamp(minRowHeight, maxRowHeight);
+  }
 
   static int pitchCount(int minP, int maxP) => maxP - minP + 1;
 

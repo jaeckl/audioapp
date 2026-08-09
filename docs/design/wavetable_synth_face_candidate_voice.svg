@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- VOICE tab — Amp ADSR + Glide + Stereo Spread + Feedback.
+     SOURCE voicing stays on SOURCE v2. Card 420x320; header 40; face 420x280. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="400"
+     viewBox="0 0 620 400" font-family="Inter,Arial,sans-serif">
+  <rect width="620" height="400" fill="#0E0E14"/>
+  <defs>
+    <symbol id="knob44" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 0 1 26 3.2" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="26" cy="3.2" r="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="knob44lo" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 0 1 7.5 16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="7.5" cy="16" r="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="knob44hi" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 1 1 42 20" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="42" cy="20" r="2" fill="currentColor"/>
+    </symbol>
+  </defs>
+
+  <g transform="translate(48 42)">
+    <text y="-14" fill="#E8E8F0" font-size="14" font-weight="700">VOICE — Amp ADSR + Glide + Spread + Feedback</text>
+
+    <rect width="30" height="320" fill="#16161E"/>
+    <text x="15" y="206" transform="rotate(-90 15 206)" text-anchor="middle"
+          fill="#8A8A98" font-size="9" font-weight="700" letter-spacing="1.2">WAVETABLE</text>
+    <rect x="30" width="4" height="320" fill="#3B82F6"/>
+    <rect x="34" width="420" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <rect x="34" width="420" height="40" fill="#22222E"/>
+    <g font-size="11" font-weight="700" text-anchor="middle">
+      <text x="104" y="25" fill="#8A8A98">SOURCE</text>
+      <text x="244" y="25" fill="#8A8A98">TONE</text>
+      <text x="384" y="25" fill="#FFFFFF">VOICE</text>
+    </g>
+    <rect x="362" y="36" width="44" height="2.5" fill="#3B82F6"/>
+
+    <rect x="34" y="40" width="420" height="280" fill="#1A1A24"/>
+
+    <!-- AMP ADSR — dominant full-width plate -->
+    <rect x="40" y="46" width="408" height="148" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(52 66)">
+        <use href="#knob44lo" width="70" height="80"/>
+        <text x="35" y="36" fill="#E8E8F0" font-size="10" font-weight="700">3 ms</text>
+        <text x="35" y="78" fill="#8A8A98" font-size="8" font-weight="700">ATTACK</text>
+      </g>
+      <g transform="translate(150 66)">
+        <use href="#knob44lo" width="70" height="80"/>
+        <text x="35" y="36" fill="#E8E8F0" font-size="10" font-weight="700">210 ms</text>
+        <text x="35" y="78" fill="#8A8A98" font-size="8" font-weight="700">DECAY</text>
+      </g>
+      <g transform="translate(248 66)">
+        <use href="#knob44hi" width="70" height="80"/>
+        <text x="35" y="36" fill="#E8E8F0" font-size="10" font-weight="700">80%</text>
+        <text x="35" y="78" fill="#8A8A98" font-size="8" font-weight="700">SUSTAIN</text>
+      </g>
+      <g transform="translate(346 66)">
+        <use href="#knob44lo" width="70" height="80"/>
+        <text x="35" y="36" fill="#E8E8F0" font-size="10" font-weight="700">340 ms</text>
+        <text x="35" y="78" fill="#8A8A98" font-size="8" font-weight="700">RELEASE</text>
+      </g>
+    </g>
+
+    <!-- Bottom: Glide | Feedback | Stereo Spread — equal thirds -->
+    <rect x="40" y="200" width="128" height="114" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(78 220)">
+        <use href="#knob44lo" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="9" font-weight="700">0 ms</text>
+        <text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">GLIDE</text>
+      </g>
+    </g>
+
+    <rect x="174" y="200" width="140" height="114" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(218 220)">
+        <use href="#knob44lo" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="9" font-weight="700">0%</text>
+        <text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">FEEDBACK</text>
+      </g>
+    </g>
+
+    <rect x="320" y="200" width="128" height="114" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(358 220)">
+        <use href="#knob44" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="9" font-weight="700">0%</text>
+        <text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">SPREAD</text>
+      </g>
+    </g>
+
+    <path d="M458 0H512a10 10 0 0 1 10 10v300a10 10 0 0 1-10 10h-54z"
+          fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+    <text x="490" y="18" text-anchor="middle" fill="#6A6A78" font-size="8" font-weight="700">OUT</text>
+    <g transform="translate(464 42)" color="#3B82F6" text-anchor="middle">
+      <use href="#knob44" width="52" height="60"/>
+      <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">C</text>
+      <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">PAN</text>
+    </g>
+    <g transform="translate(464 132)" color="#3B82F6" text-anchor="middle">
+      <use href="#knob44" width="52" height="60"/>
+      <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">0dB</text>
+      <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">GAIN</text>
+    </g>
+  </g>
+</svg>

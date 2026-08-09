@@ -7,6 +7,7 @@ import 'live_meters_dto.dart';
 import 'param_descriptor.dart';
 import 'project_snapshot.dart';
 import 'transport_state.dart';
+import '../features/arrangement/arrangement_timeline_metrics.dart';
 import '../features/settings/audio_engine_settings.dart';
 
 part 'engine_bridge_recent_project_entry.dart';

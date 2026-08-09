@@ -35,11 +35,11 @@ class GateDeviceSnapshot extends DynamicsDeviceSnapshot {
           (meters['gainReductionDb'] as num?)?.toDouble() ?? 0.0,
       meterInputLevel: (meters['inputLevel'] as num?)?.toDouble() ?? 0.0,
       inputGain: (params['inputGain'] as num?)?.toDouble() ?? 1.0,
-      gateThreshold: (params['gateThreshold'] as num?)?.toDouble() ?? 0.45,
+      gateThreshold: (params['gateThreshold'] as num?)?.toDouble() ?? 0.28,
       gateAttack: (params['gateAttack'] as num?)?.toDouble() ?? 0.25,
       gateRelease: (params['gateRelease'] as num?)?.toDouble() ?? 0.50,
       gateHold: (params['gateHold'] as num?)?.toDouble() ?? 0.20,
-      gateRange: (params['gateRange'] as num?)?.toDouble() ?? 0.0,
+      gateRange: (params['gateRange'] as num?)?.toDouble() ?? 0.30,
     );
   }
 

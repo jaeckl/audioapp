@@ -1,3 +1,4 @@
+import '../../bridge/device_capabilities.dart';
 import '../../bridge/project_snapshot.dart';
 
 part 'device_strip_device_kind_track_device_strip_kind.dart';

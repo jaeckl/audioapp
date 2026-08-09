@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('DawShellNavGeometry pins bar to left in landscape', (tester) async {
+  testWidgets('DawShellNavGeometry pins bar to right in landscape', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: MediaQuery(
@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(DawShellNavGeometry.of(tester.element(find.byType(Stack))).edge,
-        DawShellNavEdge.left);
+        DawShellNavEdge.right);
     expect(find.byType(RotatedBox), findsAtLeastNWidgets(4));
     expect(find.byType(NavigationRail), findsNothing);
     expect(find.byType(NavigationBar), findsNothing);

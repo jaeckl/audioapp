@@ -50,23 +50,27 @@ bool isKickNoteAudible(const audioapp::KickMidiNoteRegion& note,
     return loopedBeat < noteEnd + releaseBeats;
 }
 
+} // namespace
+
+namespace audioapp {
+
 void mixKickMidiNotesBlock(float* monoOut,
-                            int numFrames,
-                            double sampleRate,
-                            int bpm,
-                            double playheadStartBeat,
-                            const audioapp::KickMidiNoteRegion* notes,
-                            int noteCount,
-                            const audioapp::KickGeneratorParams& params,
-                            audioapp::KickGeneratorRuntime& runtime,
-                            const audioapp::InstrumentModulationContext* instMod = nullptr,
-                            const audioapp::CommonControlBlock* commonControls = nullptr,
-                            uint16_t deviceIndex = 0) noexcept {
+                           int numFrames,
+                           double sampleRate,
+                           int bpm,
+                           double playheadStartBeat,
+                           const KickMidiNoteRegion* notes,
+                           int noteCount,
+                           const KickGeneratorParams& params,
+                           KickGeneratorRuntime& runtime,
+                           const InstrumentModulationContext* instMod,
+                           const CommonControlBlock* commonControls,
+                           uint16_t deviceIndex) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
 
-    const float releaseSec = audioapp::normalizedToAmpDecaySec(params.kickDecay) + 0.05f;
+    const float releaseSec = normalizedToAmpDecaySec(params.kickDecay) + 0.05f;
 
     for (int frame = 0; frame < numFrames; ++frame) {
         const double beat = beatAtFrame(playheadStartBeat, frame, sampleRate, bpm);
@@ -108,25 +112,21 @@ void mixKickMidiNotesBlock(float* monoOut,
         float panelGain = commonControls != nullptr ? commonControls->gainAt(frame) : 1.0f;
         if (instMod != nullptr && activeNoteIndex >= 0) {
             const auto& note = notes[activeNoteIndex];
-            const audioapp::NoteModKey key = audioapp::noteModKeyFromRegion(
+            const NoteModKey key = noteModKeyFromRegion(
                 note.pitch, note.clipStartBeat, note.noteStartBeat);
-            const audioapp::ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
-            panelGain = audioapp::applyPerNoteCommonGain(panelGain,
-                                                         deviceIndex,
-                                                         activeElapsed,
-                                                         -1.0,
-                                                         key,
-                                                         evalCtx,
-                                                         *instMod);
+            const ModulationEvalContext evalCtx = instMod->evalContextForFrame(frame);
+            panelGain = applyPerNoteCommonGain(panelGain,
+                                               deviceIndex,
+                                               activeElapsed,
+                                               -1.0,
+                                               key,
+                                               evalCtx,
+                                               *instMod);
         }
-        monoOut[frame] += audioapp::kickGeneratorSample(runtime.voice, params, sampleRate, velGain)
+        monoOut[frame] += kickGeneratorSample(runtime.voice, params, sampleRate, velGain)
             * panelGain;
     }
 }
-
-} // anonymous namespace
-
-namespace audioapp {
 
 void KickProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcept {
     if (!ctx.suppressInstruments && ctx.noteCount > 0) {

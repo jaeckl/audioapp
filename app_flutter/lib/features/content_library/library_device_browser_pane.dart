@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../devices/device_repository.dart';
 import '../welcome/welcome_theme.dart';
+import 'factory_preset_json.dart';
 import 'library_device_catalog.dart';
 import 'library_device_family.dart';
 import 'library_manifest.dart';
+import 'library_catalog.dart';
 import 'library_theme.dart';
 
 part 'library_device_browser_pane_path_bar.dart';
@@ -21,6 +23,7 @@ class LibraryDeviceBrowserPane extends StatefulWidget {
     required this.manifest,
     required this.onSelectDeviceType,
     required this.onSelectPreset,
+    this.onPresetPreviewTap,
     this.selectedItemId,
     this.onItemSelected,
     this.percussionOnly = false,
@@ -31,6 +34,8 @@ class LibraryDeviceBrowserPane extends StatefulWidget {
   final LibraryManifest? manifest;
   final ValueChanged<String> onSelectDeviceType;
   final ValueChanged<LibraryDevicePresetBrowseItem> onSelectPreset;
+  final void Function(LibraryPresetItem item, {double startBeat, bool loop})?
+      onPresetPreviewTap;
   final String? selectedItemId;
   final ValueChanged<String?>? onItemSelected;
   final bool percussionOnly;
@@ -186,10 +191,17 @@ class _LibraryDeviceBrowserPaneState extends State<LibraryDeviceBrowserPane> {
             switch (item) {
               case LibraryDeviceTypeItem():
                 widget.onSelectDeviceType(item.typeId);
-              case LibraryDevicePresetBrowseItem():
+              case LibraryDevicePresetBrowseItem(:final preset):
                 widget.onSelectPreset(item);
+                final previewType =
+                    FactoryPresetJson.previewDeviceType(preset.id) ??
+                        preset.deviceType;
+                if (FactoryPresetJson.supportsAudioPreview(previewType)) {
+                  widget.onPresetPreviewTap?.call(preset);
+                }
             }
           },
+          onPresetPreviewTap: widget.onPresetPreviewTap,
         ),
     };
   }

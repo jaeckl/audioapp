@@ -16,7 +16,9 @@ extension DeviceStripSlotStateOntabselectedOperation on _DeviceStripSlotState {
       widget.onPmTabChanged?.call(PhaseModSynthDeviceTab.values[index]);
     }
     if (widget.device.type == 'wavetable_synth') {
-      widget.onWtTabChanged?.call(WavetableSynthDeviceTab.values[index]);
+      final clamped =
+          index.clamp(0, WavetableSynthDeviceTab.values.length - 1);
+      widget.onWtTabChanged?.call(WavetableSynthDeviceTab.values[clamped]);
     }
   }
 }

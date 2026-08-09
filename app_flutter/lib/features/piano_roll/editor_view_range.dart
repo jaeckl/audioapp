@@ -6,7 +6,7 @@ part 'editor_view_range_editor_view_range_dropdown.dart';
 /// Horizontal zoom presets for MIDI and automation clip editors.
 abstract final class EditorViewRange {
   static const bars = [1, 2, 4, 8, 16];
-  static const defaultBars = 4;
+  static const defaultBars = 2;
 
   static double visibleBeatsForBars(int bars) =>
       bars * PianoRollMetrics.beatsPerBar.toDouble();

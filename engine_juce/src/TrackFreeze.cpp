@@ -4,6 +4,7 @@
 #include "audioapp/DeviceChain.hpp"
 #include "audioapp/devices/DevicePanelTypes.hpp"
 #include "audioapp/devices/DeviceTypeIds.hpp"
+#include "audioapp/devices/DeviceTreeWalk.hpp"
 #include "audioapp/playback/Clip.hpp"
 #include "audioapp/SampleBank.hpp"
 #include "audioapp/TrackFreezeAssetStore.hpp"
@@ -55,38 +56,179 @@ int freezeWaveformBinCount(int frameCount, double lengthBeats) noexcept {
                       kMaxFreezeWaveformBins);
 }
 
-uint64_t computeTrackFreezeSignature(const Track& track, int bpm) noexcept {
+uint64_t freezeHashBytes(uint64_t seed, const void* data, size_t size) noexcept {
+    const auto* bytes = static_cast<const unsigned char*>(data);
+    uint64_t hash = seed;
+    for (size_t i = 0; i < size; ++i) {
+        hash = fnvMix(hash, static_cast<uint64_t>(bytes[i]));
+    }
+    return hash;
+}
+
+uint64_t freezeHashString(uint64_t seed, std::string_view text) noexcept {
+    return freezeHashBytes(seed, text.data(), text.size());
+}
+
+int flattenedPlaybackSlotCount(const DeviceSlot& device) noexcept {
+    if (!device_types::isSynthType(device.config.typeId)) {
+        return 1;
+    }
+    int slots = 1;
+    for (const auto& fx : device.noteFxDevices) {
+        if (fx) {
+            ++slots;
+        }
+    }
+    for (const auto& fx : device.audioFxDevices) {
+        if (fx) {
+            ++slots;
+        }
+    }
+    return slots;
+}
+
+bool freezeBakeCoversDeviceId(const Track& track,
+                              int flattenedBakeEnd,
+                              std::string_view deviceId) noexcept {
+    if (flattenedBakeEnd <= 0 || deviceId.empty()) {
+        return false;
+    }
+    int flat = 0;
+    for (const auto& device : track.devices) {
+        const int slots = flattenedPlaybackSlotCount(device);
+        if (flat + slots > flattenedBakeEnd) {
+            return false;
+        }
+        bool found = false;
+        walkDeviceTree(device, [&](const DeviceSlot& node) {
+            if (node.id == deviceId) {
+                found = true;
+            }
+        });
+        if (found) {
+            return true;
+        }
+        flat += slots;
+    }
+    return false;
+}
+
+uint64_t computeTrackFreezeSignature(const Track& track,
+                                     int bpm,
+                                     double renderSampleRate,
+                                     int bakeEndDeviceIndex,
+                                     uint64_t externalDependencyHash) noexcept {
     uint64_t hash = 14695981039346656037ull;
     hash = fnvMix(hash, static_cast<uint64_t>(std::max(bpm, 1)));
-    const int gainIdx = findTrackGainDeviceIndex(track.devices);
-    const int preGainCount = gainIdx < 0 ? static_cast<int>(track.devices.size()) : gainIdx;
-    hash = fnvMix(hash, static_cast<uint64_t>(preGainCount));
-    for (int i = 0; i < preGainCount; ++i) {
-        const auto& device = track.devices[static_cast<size_t>(i)];
-        for (unsigned char c : device.config.typeId) {
-            hash = fnvMix(hash, static_cast<uint64_t>(c));
+    hash = fnvMix(hash, static_cast<uint64_t>(renderSampleRate));
+    hash = fnvMix(hash, static_cast<uint64_t>(bakeEndDeviceIndex));
+    hash = fnvMix(hash, externalDependencyHash);
+    // bakeEndDeviceIndex is flattened; only hash model devices fully inside it.
+    int flat = 0;
+    int bakedModelCount = 0;
+    for (const auto& device : track.devices) {
+        const int slots = flattenedPlaybackSlotCount(device);
+        if (flat + slots > bakeEndDeviceIndex) {
+            break;
         }
-        hash = fnvMix(hash, device.config.bypassed ? 1ull : 0ull);
-        hashOutputPanel(hash, device.config.outputPanel);
+        walkDeviceTree(device, [&](const DeviceSlot& node) {
+            hash = freezeHashString(hash, node.id);
+            hash = freezeHashString(hash, node.config.typeId);
+            hash = fnvMix(hash, node.config.bypassed ? 1ull : 0ull);
+            hashOutputPanel(hash, node.config.outputPanel);
+        });
+        ++bakedModelCount;
+        flat += slots;
     }
+    hash = fnvMix(hash, static_cast<uint64_t>(bakedModelCount));
     for (const auto& clip : track.midiClips) {
+        hash = freezeHashString(hash, clip.id);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.startBeat * 1000.0));
         hash = fnvMix(hash, static_cast<uint64_t>(clip.lengthBeats * 1000.0));
+        hash = fnvMix(hash, static_cast<uint64_t>(clip.naturalLengthBeats * 1000.0));
+        hash = fnvMix(hash, clip.loopContent ? 1ull : 0ull);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.notes.size()));
         for (const auto& note : clip.notes) {
             hash = fnvMix(hash, static_cast<uint64_t>(note.pitch));
             hash = fnvMix(hash, static_cast<uint64_t>(note.startBeat * 1000.0));
             hash = fnvMix(hash, static_cast<uint64_t>(note.durationBeats * 1000.0));
+            hash = fnvMix(hash, floatBits(note.velocity));
         }
     }
     for (const auto& clip : track.sampleClips) {
+        hash = freezeHashString(hash, clip.id);
+        hash = freezeHashString(hash, clip.sampleId);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.startBeat * 1000.0));
         hash = fnvMix(hash, static_cast<uint64_t>(clip.lengthBeats * 1000.0));
-        for (unsigned char c : clip.sampleId) {
-            hash = fnvMix(hash, static_cast<uint64_t>(c));
-        }
+        hash = fnvMix(hash, static_cast<uint64_t>(clip.naturalLengthBeats * 1000.0));
+        hash = fnvMix(hash, clip.loopContent ? 1ull : 0ull);
+        hash = fnvMix(hash, floatBits(clip.sourceStart));
+        hash = fnvMix(hash, floatBits(clip.sourceEnd));
+        hash = fnvMix(hash, floatBits(clip.gain));
+        hash = fnvMix(hash, floatBits(clip.fadeIn));
+        hash = fnvMix(hash, floatBits(clip.fadeOut));
+        hash = fnvMix(hash, floatBits(clip.fadeInCurve));
+        hash = fnvMix(hash, floatBits(clip.fadeOutCurve));
+        hash = fnvMix(hash, clip.reversed ? 1ull : 0ull);
+        hash = fnvMix(hash, clip.warpRepitch ? 1ull : 0ull);
     }
     return hash;
+}
+
+int computeFreezeBakeEndIndex(const Track& track,
+                              const std::vector<Track>& allTracks) noexcept {
+    const int gainIndex = findTrackGainDeviceIndex(track.devices);
+    if (gainIndex <= 0) {
+        return 0;
+    }
+
+    // A device that another track reads from must keep running live, otherwise
+    // its intermediate output is never published to the routing graph.
+    const auto isTappedSource = [&](const std::string& deviceId) noexcept {
+        if (deviceId.empty()) {
+            return false;
+        }
+        for (const auto& candidate : allTracks) {
+            for (const auto& device : candidate.devices) {
+                if (device.config.bypassed) {
+                    continue;
+                }
+                if (const auto* routing = std::get_if<RoutingModel>(&device.config.instance)) {
+                    if (routing->sourceId == deviceId) {
+                        return true;
+                    }
+                } else if (const auto* ducker =
+                               std::get_if<DuckerModel>(&device.config.instance)) {
+                    if (ducker->sidechainSourceId == deviceId) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+
+    // Walk model devices but accumulate the flattened playback cursor so the
+    // returned split matches processChain / bake arena indexing.
+    int flattenedCursor = 0;
+    for (int i = 0; i < gainIndex; ++i) {
+        const auto& device = track.devices[static_cast<size_t>(i)];
+        const auto kind = deviceNodeKindFromTypeId(device.config.typeId);
+        if (kind == DeviceNodeKind::AudioReceiver || kind == DeviceNodeKind::MidiReceiver) {
+            return flattenedCursor;
+        }
+        // Barrier even when bypassed: un-bypassing later must not leave a baked
+        // stem that never saw the sidechain input.
+        const auto* ducker = std::get_if<DuckerModel>(&device.config.instance);
+        if (ducker != nullptr && !ducker->sidechainSourceId.empty()) {
+            return flattenedCursor;
+        }
+        if (isTappedSource(device.id)) {
+            return flattenedCursor;
+        }
+        flattenedCursor += flattenedPlaybackSlotCount(device);
+    }
+    return flattenedCursor;
 }
 
 double trackContentEndBeat(const Track& track) noexcept {
@@ -156,8 +298,14 @@ void mixFreezeStereoBlock(float* leftOut,
         if (!active) {
             continue;
         }
-        const double readPos = progress * static_cast<double>(region.frameCount);
-        const int index = static_cast<int>(readPos);
+        // The asset holds one frame per rendered frame, so frame N of the bake
+        // must be read at progress N/frameCount. Scaling by frameCount-1 instead
+        // would play the asset (frameCount-1)/frameCount too slow, which drifts
+        // a full sample by the end and destroys null-sum transparency. `index`
+        // is clamped below instead.
+        const double readPos =
+            std::clamp(progress, 0.0, 1.0) * static_cast<double>(region.frameCount);
+        const int index = std::min(static_cast<int>(readPos), region.frameCount - 1);
         const float frac = static_cast<float>(readPos - static_cast<double>(index));
         const int next = std::min(index + 1, region.frameCount - 1);
         const float l = region.pcmL[index] * (1.0f - frac) + region.pcmL[next] * frac;

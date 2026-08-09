@@ -4,6 +4,7 @@ class _ClipDragPreview extends StatelessWidget {
   const _ClipDragPreview({
     required this.stackKey,
     required this.session,
+    required this.trackAccent,
     required this.visibleTrackIndex,
     required this.pixelsPerBeat,
     required this.scrollOffset,
@@ -16,6 +17,7 @@ class _ClipDragPreview extends StatelessWidget {
 
   final GlobalKey stackKey;
   final ArrangementClipDragSession session;
+  final Color trackAccent;
   final int visibleTrackIndex;
   final double pixelsPerBeat;
   final double scrollOffset;
@@ -74,6 +76,7 @@ class _ClipDragPreview extends StatelessWidget {
                           lengthBeats: session.lengthBeats,
                           notes: const [],
                         ),
+                    trackAccent: trackAccent,
                   ),
                   highlighted: true,
                 )
@@ -90,6 +93,7 @@ class _ClipDragPreview extends StatelessWidget {
                               paramId: '',
                               points: const [],
                             ),
+                        trackAccent: trackAccent,
                       ),
                       highlighted: true,
                     )
@@ -104,6 +108,7 @@ class _ClipDragPreview extends StatelessWidget {
                               lengthBeats: session.lengthBeats,
                               waveformPeaks: const [],
                             ),
+                        trackAccent: trackAccent,
                       ),
                       highlighted: true,
                     ),

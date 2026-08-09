@@ -3,6 +3,7 @@ part of 'arrangement_view.dart';
 class _MidiClipBlock extends StatelessWidget {
   const _MidiClipBlock({
     required this.clip,
+    required this.trackAccent,
     required this.highlighted,
     required this.selected,
     required this.onTap,
@@ -14,6 +15,7 @@ class _MidiClipBlock extends StatelessWidget {
   });
 
   final MidiClipSnapshot clip;
+  final Color trackAccent;
   final bool highlighted;
   final bool selected;
   final VoidCallback onTap;
@@ -40,7 +42,7 @@ class _MidiClipBlock extends StatelessWidget {
             child: Opacity(
               opacity: highlighted ? 0.35 : 1,
               child: ArrangementClipChrome(
-                renderer: MidiClipRenderer(clip),
+                renderer: MidiClipRenderer(clip, trackAccent: trackAccent),
                 highlighted: highlighted || selected,
               ),
             ),

@@ -5,7 +5,7 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
     // ignore: avoid_print
     print(
         'SLOT BUILD: device=${widget.device.type} _modStripVisible=$_modStripVisible _selectedLfo=$_selectedLfo _selectedLfoId=$_selectedLfoId');
-    return DeviceStripTheme.wrapFrozenPreGainDimmed(
+    final content = DeviceStripTheme.wrapFrozenPreGainDimmed(
       dimmed: widget.track.isPreGainDeviceDimmed(widget.device),
       child: Padding(
         padding: EdgeInsets.fromLTRB(
@@ -116,6 +116,12 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
                               libraryFilterForDeviceType(widget.device.type))
                           : null,
                       reorderDragData: widget.reorderDragData,
+                      reorderDragRepaintKey: widget.reorderDragData == null
+                          ? null
+                          : _dragRepaintKey,
+                      onReorderDragStarted: widget.onReorderDragStarted,
+                      onReorderDragUpdate: widget.onReorderDragUpdate,
+                      onReorderDragEnded: widget.onReorderDragEnded,
                       modActive: _modStripVisible,
                       onModToggle: () async {
                         if (!_modStripVisible && _localLfos.isEmpty) {
@@ -190,6 +196,23 @@ extension DeviceStripSlotStateBuildcontentOperation on _DeviceStripSlotState {
           },
         ),
       ),
+    );
+    final painted = RepaintBoundary(
+      key: _dragRepaintKey,
+      child: content,
+    );
+    final listenable = widget.draggingDeviceIdListenable;
+    if (listenable == null) return painted;
+    return ValueListenableBuilder<String?>(
+      valueListenable: listenable,
+      builder: (context, draggingId, child) {
+        final popped = draggingId == widget.device.id;
+        return Opacity(
+          opacity: popped ? 0.18 : 1,
+          child: IgnorePointer(ignoring: popped, child: child),
+        );
+      },
+      child: painted,
     );
   }
 }

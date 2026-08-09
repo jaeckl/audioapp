@@ -1,4 +1,6 @@
 import 'subtractive_synth_presets.dart';
+import 'bass_synth_presets.dart';
+import 'phase_mod_synth_presets.dart';
 
 part 'device_preset_store_device_preset.dart';
 part 'device_preset_store_drums_kick.dart';
@@ -166,12 +168,35 @@ abstract final class DevicePresetStore {
     return result;
   }
 
+  static Map<String, DevicePreset> get _bassSynth {
+    final result = <String, DevicePreset>{};
+    BassSynthPresets.presets.forEach((id, preset) {
+      result[id] =
+          DevicePreset(params: Map<String, double>.from(preset.params));
+    });
+    return result;
+  }
+
+  static Map<String, DevicePreset> get _phaseModSynth {
+    final result = <String, DevicePreset>{};
+    PhaseModSynthPresets.presets.forEach((id, params) {
+      result[id] = DevicePreset(params: {
+        for (final e in params.entries) e.key: (e.value as num).toDouble(),
+      });
+    });
+    return result;
+  }
+
   /// Look up a preset by device type and id. Returns null when the preset
   /// isn't registered; callers can fall back to default device params.
   static DevicePreset? find(String deviceType, String presetId) {
     switch (deviceType) {
       case 'subtractive_synth':
         return _subtractive[presetId];
+      case 'bass_synth':
+        return _bassSynth[presetId];
+      case 'phase_mod_synth':
+        return _phaseModSynth[presetId];
       case 'simple_sampler':
         return _sampler[presetId];
       case 'simple_oscillator':

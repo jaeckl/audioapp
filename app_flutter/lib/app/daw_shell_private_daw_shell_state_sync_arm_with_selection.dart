@@ -6,7 +6,7 @@ Future<void> _syncArmWithSelection() async {
     if (snap == null) return;
     final track = _trackById(snap.selectedTrackId);
     final hasTrack = snap.selectedTrackId.isNotEmpty;
-    final frozen = track?.freeze.enabled ?? false;
+    final frozen = track?.freeze.isManual ?? false;
     if (_tab == _ShellTab.keys && hasTrack && !snap.recordArmed && !frozen) {
       await _store.invokeRaw('setRecordArmed', {'armed': true});
     } else if ((_tab == _ShellTab.devices || frozen) && snap.recordArmed) {

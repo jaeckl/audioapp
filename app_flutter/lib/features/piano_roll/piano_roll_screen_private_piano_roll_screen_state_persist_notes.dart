@@ -4,10 +4,11 @@ extension _PianoRollScreenStatePersistnotes on _PianoRollScreenState {
   Future<void> _persistNotes() async {
     try {
       await _ensureCompFlattened(showToast: true);
-      final snapshot = await widget.bridge.setMidiClipNotes(
+      var snapshot = await widget.bridge.setMidiClipNotes(
         clipId: widget.clip.id,
         notes: _notes,
       );
+      snapshot = await _ensureArrangementCoversContent(snapshot);
       widget.onSnapshot(snapshot);
     } catch (_) {
       if (mounted) {

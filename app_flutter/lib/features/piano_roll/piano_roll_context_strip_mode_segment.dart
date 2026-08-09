@@ -6,6 +6,7 @@ class _ModeSegment extends StatelessWidget {
     required this.showCompTab,
     required this.showHarmonicTab,
     required this.showDrumTab,
+    required this.compactPortrait,
     required this.onChanged,
   });
 
@@ -13,10 +14,13 @@ class _ModeSegment extends StatelessWidget {
   final bool showCompTab;
   final bool showHarmonicTab;
   final bool showDrumTab;
+  /// Portrait: Notes|Comp only. Landscape: full mode tabs.
+  final bool compactPortrait;
   final ValueChanged<PianoRollCenterMode> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final notesActive = centerMode != PianoRollCenterMode.comp;
     return Container(
       height: 30,
       decoration: BoxDecoration(
@@ -29,10 +33,12 @@ class _ModeSegment extends StatelessWidget {
         children: [
           _SegmentTab(
             label: 'Notes',
-            active: centerMode == PianoRollCenterMode.notes,
+            active: compactPortrait
+                ? notesActive
+                : centerMode == PianoRollCenterMode.notes,
             onTap: () => onChanged(PianoRollCenterMode.notes),
           ),
-          if (showHarmonicTab) ...[
+          if (!compactPortrait && showHarmonicTab) ...[
             _SegmentTab(
               label: 'Harmonic',
               active: centerMode == PianoRollCenterMode.harmonic,
@@ -49,7 +55,7 @@ class _ModeSegment extends StatelessWidget {
               onTap: () => onChanged(PianoRollCenterMode.rhythm),
             ),
           ],
-          if (showDrumTab) ...[
+          if (!compactPortrait && showDrumTab) ...[
             _SegmentTab(
               label: 'Pattern',
               active: centerMode == PianoRollCenterMode.pattern,

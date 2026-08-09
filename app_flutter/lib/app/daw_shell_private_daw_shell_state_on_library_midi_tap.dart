@@ -11,7 +11,7 @@ Future<void> _onLibraryMidiTap(LibraryMidiItem item) async {
         );
         return;
       }
-      if (track.freeze.enabled) {
+      if (track.freeze.isManual) {
         _showFrozenTrackSnack();
         return;
       }

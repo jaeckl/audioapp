@@ -13,17 +13,32 @@ part 'automation_clip_renderer_automation_clip_link_chip.dart';
 
 /// Condensed automation curve preview for arrangement clips.
 class AutomationClipRenderer extends ClipRenderer {
-  const AutomationClipRenderer(this.clip);
+  const AutomationClipRenderer(this.clip, {this.trackAccent});
 
   final AutomationClipSnapshot clip;
+  final Color? trackAccent;
 
   @override
-  Color get clipBackgroundColor =>
-      ArrangementClipTheme.automationClipBackground;
+  Color get clipBackgroundColor => trackAccent != null
+      ? ArrangementClipTheme.clipBackgroundFromAccent(trackAccent!)
+      : ArrangementClipTheme.automationClipBackground;
 
   @override
   Color get clipContentBackgroundColor =>
       ArrangementClipTheme.contentBackground(clipBackgroundColor);
+
+  @override
+  Color get clipBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipBorderFromAccent(trackAccent!)
+      : ArrangementClipTheme.automationClipBorder;
+
+  @override
+  Color get highlightBorderColor => trackAccent != null
+      ? ArrangementClipTheme.clipHighlightFromAccent(trackAccent!)
+      : ArrangementClipTheme.highlightBorder;
+
+  @override
+  Color get highlightShadowColor => highlightBorderColor;
 
   @override
   bool get loopContentEnabled => clip.loopContent;
@@ -70,8 +85,13 @@ class AutomationClipRenderer extends ClipRenderer {
 
     void paintCurveTile(double tileOriginBeat, {required bool isRepeat}) {
       stroke.color = isRepeat
-          ? ArrangementClipTheme.automationCurveRepeat
-          : ArrangementClipTheme.automationCurve;
+          ? (trackAccent != null
+              ? ArrangementClipTheme.clipContentFillRepeatFromAccent(
+                  trackAccent!)
+              : ArrangementClipTheme.automationCurveRepeat)
+          : (trackAccent != null
+              ? ArrangementClipTheme.clipContentFillFromAccent(trackAccent!)
+              : ArrangementClipTheme.automationCurve);
 
       final path = Path();
       for (var i = 0; i < points.length; i++) {

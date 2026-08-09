@@ -24,7 +24,7 @@ final class WavetableSynthDefinition extends InstrumentDefinition {
 
   @override
   DeviceLayoutMetadata get layout => const DeviceLayoutMetadata(
-        designWidth: 420,
+        designWidth: 440,
         inputPanelWidth: 0,
         outputPanelWidth: 85,
       );

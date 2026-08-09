@@ -30,15 +30,14 @@ class ArrangementClipChrome extends StatelessWidget {
         borderRadius: BorderRadius.circular(_radius),
         border: Border.all(
           color: highlighted
-              ? ArrangementClipTheme.highlightBorder
-              : _idleBorderColor(renderer),
+              ? renderer.highlightBorderColor
+              : renderer.clipBorderColor,
           width: highlighted ? 2 : 1,
         ),
         boxShadow: highlighted
             ? [
                 BoxShadow(
-                  color: ArrangementClipTheme.highlightShadow
-                      .withValues(alpha: 0.45),
+                  color: renderer.highlightShadowColor.withValues(alpha: 0.45),
                   blurRadius: 8,
                 ),
               ]
@@ -88,21 +87,5 @@ class ArrangementClipChrome extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  static Color _idleBorderColor(ClipRenderer renderer) {
-    if (renderer.clipBackgroundColor ==
-        ArrangementClipTheme.sampleClipBackground) {
-      return ArrangementClipTheme.sampleClipBorder;
-    }
-    if (renderer.clipBackgroundColor ==
-        ArrangementClipTheme.automationClipBackground) {
-      return ArrangementClipTheme.automationClipBorder;
-    }
-    if (renderer.clipBackgroundColor ==
-        ArrangementClipTheme.freezeClipBackground) {
-      return ArrangementClipTheme.freezeClipBorder;
-    }
-    return ArrangementClipTheme.midiClipBorder;
   }
 }

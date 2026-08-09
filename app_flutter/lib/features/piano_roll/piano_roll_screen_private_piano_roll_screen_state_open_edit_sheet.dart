@@ -13,8 +13,8 @@ extension _PianoRollScreenStateOpeneditsheet on _PianoRollScreenState {
       onNudgeUp: () => _nudgeSelected(pitchDelta: 1),
       onNudgeDown: () => _nudgeSelected(pitchDelta: -1),
       onDeleteSelected: _deleteSelected,
-      bottomInset:
-          PianoRollMetrics.toolDockHeight + PlayDeckLayout.chromeHeight,
+      bottomInset: PianoRollMetrics.toolDockHeight +
+          PlayDeckLayout.chromeHeightFor(MediaQuery.sizeOf(context)),
     );
   }
 }

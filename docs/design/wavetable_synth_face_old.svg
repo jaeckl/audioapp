@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WAVETABLE SYNTH - final face architecture after preview-gate reassessment.
+  Only FILTER keeps a preview. OSC and ENV are control-led compositions.
+  Modules use shade separation (#16161E on #1A1A24), not bright outlines.
+  Accent #3B82F6 is reserved for values/arcs/selection/response.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="1200"
+     viewBox="0 0 620 1200" font-family="Inter, sans-serif">
+<rect width="620" height="1200" fill="#0E0E14"/>
+<defs>
+  <symbol id="kMin" viewBox="0 0 65 60">
+    <circle cx="32.5" cy="30.5" r="20.32" fill="#14141C"/>
+    <path fill="none" stroke="#2C2C36" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 1 1 51.04,49.04"/>
+    <path fill="none" stroke="currentColor" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 0 1 11.9,44"/>
+    <circle cx="11.9" cy="44" r="2.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="kLo" viewBox="0 0 65 60">
+    <circle cx="32.5" cy="30.5" r="20.32" fill="#14141C"/>
+    <path fill="none" stroke="#2C2C36" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 1 1 51.04,49.04"/>
+    <path fill="none" stroke="currentColor" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 0 1 8.3,20.5"/>
+    <circle cx="8.3" cy="20.5" r="2.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="kMid" viewBox="0 0 65 60">
+    <circle cx="32.5" cy="30.5" r="20.32" fill="#14141C"/>
+    <path fill="none" stroke="#2C2C36" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 1 1 51.04,49.04"/>
+    <path fill="none" stroke="currentColor" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 0 1 32.5,4.3"/>
+    <circle cx="32.5" cy="4.3" r="2.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="kHi" viewBox="0 0 65 60">
+    <circle cx="32.5" cy="30.5" r="20.32" fill="#14141C"/>
+    <path fill="none" stroke="#2C2C36" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 1 1 51.04,49.04"/>
+    <path fill="none" stroke="currentColor" stroke-width="3.574" stroke-linecap="round" d="M13.96,49.04 A26.2,26.2 0 1 1 58.4,26.4"/>
+    <circle cx="58.4" cy="26.4" r="2.5" fill="currentColor"/>
+  </symbol>
+</defs>
+
+<!-- ================= OSC: SOURCE + VOICE + PITCH ================= -->
+<g transform="translate(48,44)">
+  <text y="-14" fill="#E8E8F0" font-size="14" font-weight="700">OSC - source-led, no decorative preview</text>
+  <rect width="30" height="320" fill="#16161E"/>
+  <text x="15" y="185" transform="rotate(-90 15 185)" text-anchor="middle" fill="#8A8A98" font-size="9" font-weight="700" letter-spacing="1">WAVETABLE</text>
+  <rect x="30" width="4" height="320" fill="#3B82F6"/>
+  <rect x="34" width="420" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+  <rect x="34" width="420" height="40" fill="#22222E"/>
+  <text x="110" y="26" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700">OSC</text>
+  <rect x="86" y="35" width="48" height="2.5" fill="#3B82F6"/>
+  <text x="250" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">FILTER</text>
+  <text x="388" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">ENV</text>
+
+  <!-- SOURCE 266x180 -->
+  <rect x="40" y="46" width="266" height="180" rx="4" fill="#16161E"/>
+  <text x="50" y="62" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">SOURCE</text>
+  <rect x="48" y="70" width="250" height="44" rx="4" fill="#14141C"/>
+  <text x="60" y="88" fill="#8A8A98" font-size="8" font-weight="700">WAVETABLE</text>
+  <text x="60" y="105" fill="#E8E8F0" font-size="11" font-weight="700">Basic Analog</text>
+  <text x="270" y="96" text-anchor="end" fill="#8A8A98" font-size="9" font-weight="700">27 / 64</text>
+  <path d="M280,90 l8,0 l-4,5 Z" fill="#8A8A98"/>
+  <g text-anchor="middle">
+    <g transform="translate(52,124)" color="#3B82F6"><use href="#kMid" width="62" height="58"/>
+      <text x="31" y="61" fill="#E8E8F0" font-size="10" font-weight="700">42%</text>
+      <text x="31" y="74" fill="#8A8A98" font-size="8" font-weight="700">POSITION</text></g>
+    <g transform="translate(126,124)" color="#3B82F6"><use href="#kLo" width="62" height="58"/>
+      <text x="31" y="61" fill="#E8E8F0" font-size="10" font-weight="700">28%</text>
+      <text x="31" y="74" fill="#8A8A98" font-size="8" font-weight="700">WARP</text></g>
+  </g>
+  <rect x="204" y="136" width="94" height="44" rx="4" fill="#14141C"/>
+  <text x="214" y="153" fill="#8A8A98" font-size="8" font-weight="700">WARP MODE</text>
+  <text x="214" y="171" fill="#E8E8F0" font-size="11" font-weight="700">SYNC</text>
+  <path d="M280,157 l8,0 l-4,5 Z" fill="#3B82F6"/>
+
+  <!-- VOICE 136x180 -->
+  <rect x="312" y="46" width="136" height="180" rx="4" fill="#16161E"/>
+  <text x="322" y="62" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">VOICE</text>
+  <g text-anchor="middle">
+    <g transform="translate(318,74)" color="#3B82F6"><use href="#kMin" width="58" height="54"/>
+      <text x="29" y="57" fill="#E8E8F0" font-size="10" font-weight="700">1</text>
+      <text x="29" y="69" fill="#8A8A98" font-size="8" font-weight="700">VOICES</text></g>
+    <g transform="translate(382,74)" color="#3B82F6" opacity=".28"><use href="#kLo" width="58" height="54"/>
+      <text x="29" y="57" fill="#E8E8F0" font-size="10" font-weight="700">12%</text>
+      <text x="29" y="69" fill="#8A8A98" font-size="8" font-weight="700">DETUNE</text></g>
+  </g>
+  <rect x="320" y="162" width="120" height="44" rx="4" fill="#14141C"/>
+  <text x="332" y="180" fill="#8A8A98" font-size="8" font-weight="700">RANDOM PHASE</text>
+  <text x="428" y="190" text-anchor="end" fill="#E8E8F0" font-size="10" font-weight="700">OFF</text>
+
+  <!-- PITCH 408x82 -->
+  <rect x="40" y="232" width="408" height="82" rx="4" fill="#16161E"/>
+  <text x="50" y="248" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">PITCH</text>
+  <g font-weight="700">
+    <rect x="48" y="260" width="92" height="44" rx="4" fill="#14141C"/>
+    <text x="58" y="278" fill="#8A8A98" font-size="8">OCT</text><text x="130" y="290" text-anchor="end" fill="#E8E8F0" font-size="13">+0</text>
+    <rect x="148" y="260" width="92" height="44" rx="4" fill="#14141C"/>
+    <text x="158" y="278" fill="#8A8A98" font-size="8">SEMI</text><text x="230" y="290" text-anchor="end" fill="#E8E8F0" font-size="13">0</text>
+    <rect x="248" y="260" width="92" height="44" rx="4" fill="#14141C"/>
+    <text x="258" y="278" fill="#8A8A98" font-size="8">FINE</text><text x="330" y="290" text-anchor="end" fill="#E8E8F0" font-size="13">0ct</text>
+    <rect x="348" y="260" width="92" height="44" rx="4" fill="#14141C"/>
+    <text x="358" y="278" fill="#8A8A98" font-size="8">PHASE</text><text x="430" y="290" text-anchor="end" fill="#E8E8F0" font-size="13">0 deg</text>
+  </g>
+
+  <path d="M458,0 H512 a10,10 0 0 1 10,10 V310 a10,10 0 0 1 -10,10 H458 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+  <g text-anchor="middle">
+    <g transform="translate(464,60)" color="#3B82F6"><use href="#kMid" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">C</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">PAN</text></g>
+    <g transform="translate(464,160)" color="#3B82F6"><use href="#kHi" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">0dB</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">GAIN</text></g>
+  </g>
+</g>
+
+<!-- ================= FILTER: RESPONSE + MODE + FILTER + FEG ================= -->
+<g transform="translate(48,444)">
+  <text y="-14" fill="#E8E8F0" font-size="14" font-weight="700">FILTER - sole essential preview, supported by three control modules</text>
+  <rect width="30" height="320" fill="#16161E"/>
+  <text x="15" y="185" transform="rotate(-90 15 185)" text-anchor="middle" fill="#8A8A98" font-size="9" font-weight="700" letter-spacing="1">WAVETABLE</text>
+  <rect x="30" width="4" height="320" fill="#3B82F6"/>
+  <rect x="34" width="420" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+  <rect x="34" width="420" height="40" fill="#22222E"/>
+  <text x="110" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">OSC</text>
+  <text x="250" y="26" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700">FILTER</text>
+  <rect x="222" y="35" width="56" height="2.5" fill="#3B82F6"/>
+  <text x="388" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">ENV</text>
+
+  <!-- RESPONSE 270x132 -->
+  <rect x="40" y="46" width="270" height="132" rx="4" fill="#07070A"/>
+  <text x="50" y="62" fill="#8A8A98" font-size="9" font-weight="700">LP24</text>
+  <text x="300" y="62" text-anchor="end" fill="#E8E8F0" font-size="9" font-weight="700">1.24 kHz</text>
+  <path d="M50,145 C110,142 165,108 218,108 C250,108 274,143 300,150" fill="none" stroke="#3B82F6" stroke-width="1.8"/>
+  <path d="M50,145 C110,142 165,88 218,88 C250,88 274,137 300,147" fill="none" stroke="#FFFFFF" stroke-opacity=".2" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <line x1="218" y1="70" x2="218" y2="152" stroke="#3B82F6" stroke-opacity=".28" stroke-dasharray="2 3"/>
+  <circle cx="218" cy="108" r="3" fill="#3B82F6"/>
+  <text x="260" y="84" fill="#8A8A98" font-size="8" font-weight="700">+42% FEG</text>
+  <g fill="#6A6A78" font-size="7" font-weight="700"><text x="50" y="168">20</text><text x="102" y="168">100</text><text x="166" y="168">1k</text><text x="238" y="168">10k</text><text x="286" y="168">20k</text></g>
+
+  <!-- MODE 132x132 -->
+  <rect x="316" y="46" width="132" height="132" rx="4" fill="#16161E"/>
+  <text x="326" y="62" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">MODE</text>
+  <g text-anchor="middle" font-size="10" font-weight="700">
+    <rect x="322" y="70" width="58" height="46" rx="4" fill="#3B82F6" fill-opacity=".12"/><text x="351" y="98" fill="#3B82F6">LP</text><rect x="336" y="112" width="30" height="2" fill="#3B82F6"/>
+    <rect x="384" y="70" width="58" height="46" rx="4" fill="#14141C"/><text x="413" y="98" fill="#8A8A98">HP</text>
+    <rect x="322" y="120" width="58" height="46" rx="4" fill="#14141C"/><text x="351" y="148" fill="#8A8A98">BP</text>
+    <rect x="384" y="120" width="58" height="46" rx="4" fill="#14141C"/><text x="413" y="148" fill="#8A8A98">NCH</text>
+  </g>
+
+  <!-- FILTER 180x130 -->
+  <rect x="40" y="184" width="180" height="130" rx="4" fill="#16161E"/>
+  <text x="50" y="200" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">FILTER</text>
+  <g text-anchor="middle">
+    <g transform="translate(46,208)" color="#3B82F6"><use href="#kHi" width="58" height="54"/><text x="29" y="58" fill="#E8E8F0" font-size="10" font-weight="700">1.24k</text><text x="29" y="70" fill="#8A8A98" font-size="8" font-weight="700">CUTOFF</text></g>
+    <g transform="translate(104,212)" color="#3B82F6"><use href="#kMid" width="50" height="47"/><text x="25" y="51" fill="#E8E8F0" font-size="9" font-weight="700">Q .71</text><text x="25" y="63" fill="#8A8A98" font-size="8" font-weight="700">RES</text></g>
+    <g transform="translate(158,212)" color="#3B82F6"><use href="#kLo" width="50" height="47"/><text x="25" y="51" fill="#E8E8F0" font-size="9" font-weight="700">18%</text><text x="25" y="63" fill="#8A8A98" font-size="8" font-weight="700">DRIVE</text></g>
+  </g>
+
+  <!-- FEG 222x130 -->
+  <rect x="226" y="184" width="222" height="130" rx="4" fill="#16161E"/>
+  <text x="236" y="200" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">FILTER ENVELOPE</text>
+  <rect x="358" y="190" width="82" height="44" rx="4" fill="#14141C"/>
+  <text x="368" y="207" fill="#8A8A98" font-size="8" font-weight="700">AMOUNT</text><text x="430" y="225" text-anchor="end" fill="#E8E8F0" font-size="11" font-weight="700">+42%</text>
+  <g text-anchor="middle">
+    <g transform="translate(230,224)" color="#3B82F6"><use href="#kLo" width="48" height="45"/><text x="24" y="48" fill="#E8E8F0" font-size="8" font-weight="700">10 ms</text><text x="24" y="60" fill="#8A8A98" font-size="8" font-weight="700">A</text></g>
+    <g transform="translate(282,224)" color="#3B82F6"><use href="#kLo" width="48" height="45"/><text x="24" y="48" fill="#E8E8F0" font-size="8" font-weight="700">240 ms</text><text x="24" y="60" fill="#8A8A98" font-size="8" font-weight="700">D</text></g>
+    <g transform="translate(334,238)" color="#3B82F6"><use href="#kMid" width="48" height="45"/><text x="24" y="48" fill="#E8E8F0" font-size="8" font-weight="700">50%</text><text x="24" y="60" fill="#8A8A98" font-size="8" font-weight="700">S</text></g>
+    <g transform="translate(386,238)" color="#3B82F6"><use href="#kMid" width="48" height="45"/><text x="24" y="48" fill="#E8E8F0" font-size="8" font-weight="700">380 ms</text><text x="24" y="60" fill="#8A8A98" font-size="8" font-weight="700">R</text></g>
+  </g>
+
+  <path d="M458,0 H512 a10,10 0 0 1 10,10 V310 a10,10 0 0 1 -10,10 H458 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+  <g text-anchor="middle">
+    <g transform="translate(464,60)" color="#3B82F6"><use href="#kMid" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">C</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">PAN</text></g>
+    <g transform="translate(464,160)" color="#3B82F6"><use href="#kHi" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">0dB</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">GAIN</text></g>
+  </g>
+</g>
+
+<!-- ================= ENV: AMP + SUB + NOISE ================= -->
+<g transform="translate(48,844)">
+  <text y="-14" fill="#E8E8F0" font-size="14" font-weight="700">ENV - controls are the hero; Sub and Noise are equal layers</text>
+  <rect width="30" height="320" fill="#16161E"/>
+  <text x="15" y="185" transform="rotate(-90 15 185)" text-anchor="middle" fill="#8A8A98" font-size="9" font-weight="700" letter-spacing="1">WAVETABLE</text>
+  <rect x="30" width="4" height="320" fill="#3B82F6"/>
+  <rect x="34" width="420" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+  <rect x="34" width="420" height="40" fill="#22222E"/>
+  <text x="110" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">OSC</text>
+  <text x="250" y="26" text-anchor="middle" fill="#8A8A98" font-size="12" font-weight="700">FILTER</text>
+  <text x="388" y="26" text-anchor="middle" fill="#FFF" font-size="12" font-weight="700">ENV</text>
+  <rect x="372" y="35" width="32" height="2.5" fill="#3B82F6"/>
+
+  <!-- AMP ENVELOPE 408x136 -->
+  <rect x="40" y="46" width="408" height="136" rx="4" fill="#16161E"/>
+  <text x="50" y="62" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">AMP ENVELOPE</text>
+  <g text-anchor="middle">
+    <g transform="translate(52,74)" color="#3B82F6"><use href="#kLo" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">3 ms</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">ATTACK</text></g>
+    <g transform="translate(150,74)" color="#3B82F6"><use href="#kLo" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">210 ms</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">DECAY</text></g>
+    <g transform="translate(248,74)" color="#3B82F6"><use href="#kHi" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">80%</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">SUSTAIN</text></g>
+    <g transform="translate(346,74)" color="#3B82F6"><use href="#kLo" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">340 ms</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">RELEASE</text></g>
+  </g>
+
+  <!-- SUB 200x126 -->
+  <rect x="40" y="188" width="200" height="126" rx="4" fill="#16161E"/>
+  <text x="50" y="204" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">SUB</text>
+  <g transform="translate(48,212)" color="#3B82F6" text-anchor="middle"><use href="#kMin" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">0%</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">LEVEL</text></g>
+  <rect x="118" y="216" width="108" height="44" rx="4" fill="#14141C"/>
+  <text x="128" y="233" fill="#8A8A98" font-size="8" font-weight="700">OCTAVE</text><text x="216" y="251" text-anchor="end" fill="#E8E8F0" font-size="12" font-weight="700">-1</text>
+  <rect x="118" y="264" width="108" height="42" rx="4" fill="#14141C"/>
+  <rect x="120" y="266" width="34" height="38" rx="3" fill="#3B82F6" fill-opacity=".12"/>
+  <path d="M126,286 C132,276 140,296 148,286" fill="none" stroke="#3B82F6" stroke-width="1.5"/>
+  <path d="M158,294 L171,276 L184,294" fill="none" stroke="#8A8A98" stroke-width="1.5"/>
+  <path d="M190,294 V278 H216 V294" fill="none" stroke="#8A8A98" stroke-width="1.5"/>
+
+  <!-- NOISE 202x126 -->
+  <rect x="246" y="188" width="202" height="126" rx="4" fill="#16161E"/>
+  <text x="256" y="204" fill="#6A6A78" font-size="8" font-weight="700" letter-spacing=".8">NOISE</text>
+  <g text-anchor="middle">
+    <g transform="translate(266,216)" color="#3B82F6"><use href="#kMin" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">0%</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">LEVEL</text></g>
+    <g transform="translate(360,216)" color="#3B82F6"><use href="#kMid" width="62" height="58"/><text x="31" y="62" fill="#E8E8F0" font-size="10" font-weight="700">0</text><text x="31" y="75" fill="#8A8A98" font-size="8" font-weight="700">COLOR</text></g>
+  </g>
+
+  <path d="M458,0 H512 a10,10 0 0 1 10,10 V310 a10,10 0 0 1 -10,10 H458 Z" fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+  <g text-anchor="middle">
+    <g transform="translate(464,60)" color="#3B82F6"><use href="#kMid" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">C</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">PAN</text></g>
+    <g transform="translate(464,160)" color="#3B82F6"><use href="#kHi" width="52" height="48"/><text x="26" y="60" fill="#E8E8F0" font-size="9" font-weight="700">0dB</text><text x="26" y="72" fill="#8A8A98" font-size="8" font-weight="700">GAIN</text></g>
+  </g>
+</g>
+</svg>

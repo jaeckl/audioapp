@@ -3,11 +3,12 @@ part of 'piano_roll_screen.dart';
 extension _PianoRollScreenStatePersistcliplength on _PianoRollScreenState {
   Future<void> _persistClipLength() async {
     try {
-      final snapshot = await widget.bridge.setClipLength(
+      var snapshot = await widget.bridge.setClipLength(
         clipId: widget.clip.id,
         lengthBeats: _clipLengthBeats,
         target: ClipLengthTarget.content,
       );
+      snapshot = await _ensureArrangementCoversContent(snapshot);
       widget.onSnapshot(snapshot);
     } catch (_) {
       if (mounted) {

@@ -26,7 +26,10 @@ class _SampleClipBlockState extends State<_SampleClipBlock> {
           child: Material(
             color: Colors.transparent,
             child: ArrangementClipChrome(
-              renderer: SampleClipRenderer(widget.clip),
+              renderer: SampleClipRenderer(
+                widget.clip,
+                trackAccent: widget.trackAccent,
+              ),
               highlighted: true,
             ),
           ),
@@ -43,7 +46,10 @@ class _SampleClipBlockState extends State<_SampleClipBlock> {
         childWhenDragging: Opacity(
           opacity: 0.35,
           child: ArrangementClipChrome(
-            renderer: SampleClipRenderer(widget.clip),
+            renderer: SampleClipRenderer(
+              widget.clip,
+              trackAccent: widget.trackAccent,
+            ),
             highlighted: true,
           ),
         ),
@@ -53,7 +59,10 @@ class _SampleClipBlockState extends State<_SampleClipBlock> {
           child: Opacity(
             opacity: widget.highlighted ? 0.35 : 1,
             child: ArrangementClipChrome(
-              renderer: SampleClipRenderer(widget.clip),
+              renderer: SampleClipRenderer(
+                widget.clip,
+                trackAccent: widget.trackAccent,
+              ),
               highlighted: widget.highlighted || widget.selected,
             ),
           ),

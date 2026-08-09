@@ -2,8 +2,11 @@
 
 #include "audioapp/AutomationPlayback.hpp"
 #include "audioapp/DeviceChain.hpp"
+#include "audioapp/DeviceChainScratch.hpp"
 #include "audioapp/MidiUtils.hpp"
+#include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
+#include "audioapp/SubtractiveMorphTable.hpp"
 #include "audioapp/SubtractiveOscSimd.hpp"
 
 #include <algorithm>
@@ -30,6 +33,11 @@ float noiseSample(float& seed) noexcept {
     return (seed / 1073741823.5f) - 1.0f;
 }
 
+/// Same soft-clip as BitcrusherProcessor — cheap stand-in for tanh.
+static inline float softClip(float x) noexcept {
+    return x / (1.0f + std::abs(x));
+}
+
 float applyFilterShaper(float sample, int mode, float amount) noexcept {
     const float amt = safe_clamp(amount, 0.0f, 1.0f);
     const int shaperMode = safe_clamp(mode, 0, 3);
@@ -40,7 +48,7 @@ float applyFilterShaper(float sample, int mode, float amount) noexcept {
     float shaped = sample;
     switch (shaperMode) {
     case 1:
-        shaped = std::tanh(sample * 2.5f);
+        shaped = softClip(sample * 2.5f);
         break;
     case 2:
         shaped = safe_clamp(sample * 3.0f, -1.0f, 1.0f);
@@ -82,6 +90,7 @@ static void precomputeBankIncrements(float* phaseIncPerUnit,
 
 float renderOscBank(float shape,
                     float rootHz,
+                    float sampleRate,
                     const float* phaseIncPerUnit,
                     int unisonCount,
                     float level,
@@ -100,6 +109,7 @@ float renderOscBank(float shape,
         float simdSum = 0.0f;
         if (renderOscBankNoSyncSimd(shape,
                                     rootHz,
+                                    sampleRate,
                                     phaseIncPerUnit,
                                     unisonCount,
                                     level,
@@ -109,6 +119,10 @@ float renderOscBank(float shape,
             return simdSum;
         }
     }
+
+    // Mip + morph frames once per osc bank; only phase index differs per unison.
+    const auto& table = SubtractiveMorphTable::instance();
+    const auto morph = table.prepareLookup(shape, table.pickMip(rootHz, sampleRate));
 
     float sum = 0.0f;
     for (int u = 0; u < unisonCount; ++u) {
@@ -124,7 +138,7 @@ float renderOscBank(float shape,
             if (wrappedOut != nullptr) {
                 wrappedOut[u] = wrapped;
             }
-            sum += subtractiveMorphWaveSample(shape, phases[u]);
+            sum += table.lookupPrepared(morph, phases[u]);
             continue;
         }
 
@@ -143,8 +157,8 @@ float renderOscBank(float shape,
             }
         }
 
-        const float hardSample = subtractiveMorphWaveSample(shape, phases[u]);
-        const float freeSample = subtractiveMorphWaveSample(shape, freePhase);
+        const float hardSample = table.lookupPrepared(morph, phases[u]);
+        const float freeSample = table.lookupPrepared(morph, freePhase);
         sum += hardSample * sync + freeSample * (1.0f - sync);
     }
     return (sum / static_cast<float>(unisonCount)) * level;
@@ -155,13 +169,55 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                   float ampGain,
                   float filterGain,
                   double sampleRate,
-                  float glideCoeff) noexcept {
+                  float glideCoeff,
+                  bool refreshControlRate) noexcept {
     const int globalSemi =
         static_cast<int>(std::lround((params.globalPitch - 0.5f) * 24.0f));
     const int effectivePitch = voice.pitch + globalSemi;
-    const float glideTargetHz =
-        subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
-    if (glideCoeff > 0.0f && glideCoeff < 1.0f) {
+
+    const bool pitchIdentityDirty =
+        voice.pitchCacheValid == 0 ||
+        voice.cachedEffectivePitch != effectivePitch ||
+        std::abs(params.globalPitch - voice.cachedGlobalPitchParam) > 1.0e-6f;
+    const bool osc1Dirty =
+        pitchIdentityDirty ||
+        std::abs(params.osc1Octave - voice.cachedOsc1Octave) > 1.0e-6f ||
+        std::abs(params.osc1Semi - voice.cachedOsc1Semi) > 1.0e-6f ||
+        std::abs(params.osc1Detune - voice.cachedOsc1Detune) > 1.0e-6f;
+    const bool osc2Dirty =
+        pitchIdentityDirty ||
+        std::abs(params.osc2Octave - voice.cachedOsc2Octave) > 1.0e-6f ||
+        std::abs(params.osc2Semi - voice.cachedOsc2Semi) > 1.0e-6f ||
+        std::abs(params.osc2Detune - voice.cachedOsc2Detune) > 1.0e-6f;
+
+    if (pitchIdentityDirty) {
+        voice.cachedEffectivePitch = effectivePitch;
+        voice.cachedGlobalPitchParam = params.globalPitch;
+        voice.cachedRefHz = subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
+        voice.pitchCacheValid = 1;
+        voice.cachedKeyTrackAmount = -1.0f; // pitch moved → key-track ratio dirty
+        voice.controlPitchValid = false;
+    }
+    if (osc1Dirty) {
+        voice.cachedOsc1Octave = params.osc1Octave;
+        voice.cachedOsc1Semi = params.osc1Semi;
+        voice.cachedOsc1Detune = params.osc1Detune;
+        voice.cachedOsc1RootHz =
+            subtractiveOscPitchHz(effectivePitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
+        voice.controlPitchValid = false;
+    }
+    if (osc2Dirty) {
+        voice.cachedOsc2Octave = params.osc2Octave;
+        voice.cachedOsc2Semi = params.osc2Semi;
+        voice.cachedOsc2Detune = params.osc2Detune;
+        voice.cachedOsc2RootHz =
+            subtractiveOscPitchHz(effectivePitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
+        voice.controlPitchValid = false;
+    }
+
+    const float glideTargetHz = voice.cachedRefHz;
+    const bool gliding = glideCoeff > 0.0f && glideCoeff < 1.0f;
+    if (gliding) {
         voice.currentHz += (glideTargetHz - voice.currentHz) * glideCoeff;
     } else {
         voice.currentHz = glideTargetHz;
@@ -171,49 +227,93 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
     const int unisonCount = subtractiveUnisonCount(params.unisonVoices);
     const float spreadCents = params.unisonDetune * 50.0f;
 
-    // Refresh precomputed per-unison increments when unison count or detune changes
+    // Refresh shared unison increments when unison count or detune changes.
+    // Osc1/osc2 pitch offsets live in heldOsc*Hz, not this table.
     if (unisonCount != voice.cachedUnisonCount ||
         std::abs(spreadCents - voice.cachedUnisonSpreadCents) > 0.01f) {
-        precomputeBankIncrements(voice.osc1PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
-        precomputeBankIncrements(voice.osc2PhaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
+        precomputeBankIncrements(voice.phaseIncPerUnit, unisonCount, 0.0f, spreadCents, sampleRate);
         voice.cachedUnisonCount = unisonCount;
         voice.cachedUnisonSpreadCents = spreadCents;
     }
 
-    const float osc1Root =
-        subtractiveOscPitchHz(effectivePitch, params.osc1Octave, params.osc1Semi, params.osc1Detune);
-    const float osc2Root =
-        subtractiveOscPitchHz(effectivePitch, params.osc2Octave, params.osc2Semi, params.osc2Detune);
-    const float pitchRatio =
-        voice.currentHz / subtractiveOscPitchHz(effectivePitch, 0.5f, 0.0f, 0.5f);
+    // Osc Hz: S&H at control rate when not gliding; glide stays sample-rate.
+    const bool refreshPitch = refreshControlRate || gliding || !voice.controlPitchValid;
+    if (refreshPitch) {
+        const float refHz = voice.cachedRefHz > 1.0e-6f ? voice.cachedRefHz : 1.0f;
+        const float pitchRatio = voice.currentHz / refHz;
+        voice.heldOsc1Hz = voice.cachedOsc1RootHz * pitchRatio;
+        voice.heldOsc2Hz = voice.cachedOsc2RootHz * pitchRatio;
+        voice.controlPitchValid = !gliding;
+    }
 
     const float mix = safe_clamp(params.oscMix, 0.0f, 1.0f);
-
-    const float osc1Hz = osc1Root * pitchRatio;
-    bool osc1Wrapped[kSubtractiveMaxUnison]{};
-    const float osc1 = renderOscBank(params.osc1Shape,
-                                     osc1Hz,
-                                     voice.osc1PhaseIncPerUnit,
-                                     unisonCount,
-                                     1.0f,
-                                     voice.osc1Phases,
-                                     osc1Wrapped);
     const float syncAmount =
         safe_clamp(params.osc1Sync, 0.0f, 1.0f) * safe_clamp(params.osc2Sync, 0.0f, 1.0f);
-    const float osc2 = renderOscBank(params.osc2Shape,
-                                     osc2Root * pitchRatio,
-                                     voice.osc2PhaseIncPerUnit,
-                                     unisonCount,
-                                     1.0f,
-                                     voice.osc2Phases,
-                                     nullptr,
-                                     osc1Wrapped,
-                                     voice.osc2FreePhases,
-                                     syncAmount);
+    const float filterFmEarly = safe_clamp(params.filterFm, 0.0f, 1.0f);
+    constexpr float kMixEps = 1.0e-3f;
+    // Linear mix (mode 0): mix≈0 → osc1 only; mix≈1 → osc2 only (unless hard-sync needs master).
+    // Neg mix (mode 1): mix≈0 → osc1 only. AM/ring/max always need both.
+    // Filter FM reads osc2 even when mix hides it.
+    const bool needOsc2 =
+        filterFmEarly > kMixEps ||
+        !((params.oscMixMode == 0 || params.oscMixMode == 1) && mix <= kMixEps);
+    const bool needOsc1 =
+        !(params.oscMixMode == 0 && mix >= 1.0f - kMixEps && syncAmount <= kMixEps);
+
+    bool osc1Wrapped[kSubtractiveMaxUnison]{};
+    const float sr = static_cast<float>(sampleRate);
+    float osc1 = 0.0f;
+    if (needOsc1) {
+        osc1 = renderOscBank(params.osc1Shape,
+                             voice.heldOsc1Hz,
+                             sr,
+                             voice.phaseIncPerUnit,
+                             unisonCount,
+                             1.0f,
+                             voice.osc1Phases,
+                             needOsc2 && syncAmount > kMixEps ? osc1Wrapped : nullptr);
+    } else {
+        // Keep phase continuous if mix returns from osc2-only.
+        for (int u = 0; u < unisonCount; ++u) {
+            voice.osc1Phases[u] += voice.heldOsc1Hz * voice.phaseIncPerUnit[u];
+            if (voice.osc1Phases[u] >= kSubtractiveTwoPi) {
+                voice.osc1Phases[u] -= kSubtractiveTwoPi;
+            }
+        }
+    }
+
+    float osc2 = 0.0f;
+    if (needOsc2) {
+        osc2 = renderOscBank(params.osc2Shape,
+                             voice.heldOsc2Hz,
+                             sr,
+                             voice.phaseIncPerUnit,
+                             unisonCount,
+                             1.0f,
+                             voice.osc2Phases,
+                             nullptr,
+                             needOsc1 && syncAmount > kMixEps ? osc1Wrapped : nullptr,
+                             voice.osc2FreePhases,
+                             needOsc1 ? syncAmount : 0.0f);
+    } else {
+        for (int u = 0; u < unisonCount; ++u) {
+            voice.osc2Phases[u] += voice.heldOsc2Hz * voice.phaseIncPerUnit[u];
+            if (voice.osc2Phases[u] >= kSubtractiveTwoPi) {
+                voice.osc2Phases[u] -= kSubtractiveTwoPi;
+            }
+            voice.osc2FreePhases[u] = voice.osc2Phases[u];
+        }
+    }
 
     float mixed = 0.0f;
     if (params.oscMixMode == 0) {
-        mixed = ((1.0f - mix) * osc1 + mix * osc2) * 0.7f;
+        if (!needOsc2) {
+            mixed = osc1 * 0.7f;
+        } else if (!needOsc1) {
+            mixed = osc2 * 0.7f;
+        } else {
+            mixed = ((1.0f - mix) * osc1 + mix * osc2) * 0.7f;
+        }
     } else {
         mixed = subtractiveMixOscPair(osc1, osc2, params.oscMixMode, mix) * 0.7f;
     }
@@ -223,94 +323,118 @@ float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
 
     const float fbAmt = safe_clamp(params.mixFeedback, 0.0f, 1.0f) * 0.35f;
     if (fbAmt > 0.0f) {
-        mixed += std::tanh(voice.mixFeedbackSample) * fbAmt;
+        mixed += softClip(voice.mixFeedbackSample) * fbAmt;
     }
 
     const float preDrive = safe_clamp(params.preDrive, 0.0f, 1.0f);
     if (preDrive > 0.0f) {
         mixed *= 1.0f + preDrive * 5.0f;
-        mixed = std::tanh(mixed);
+        mixed = softClip(mixed);
     }
 
     const float preHpCut = safe_clamp(params.preHpCutoff, 0.0f, 1.0f);
     if (preHpCut > 0.02f) {
-        const float q = normalizedQToValue(safe_clamp(params.preHpRes, 0.0f, 1.0f));
-        const float hpCutoffHz = safe_clamp(normalizedCutoffToHz(preHpCut), 20.0f, 20000.0f);
-        // Cache preHP coefficients (rarely change per-block)
-        if (std::abs(hpCutoffHz - voice.cachedPreHpCutoffHz) > 0.5f ||
-            std::abs(q - voice.cachedPreHpQ) > 0.001f) {
-            cookSamplerBiquad(voice.cachedPreHpCoeffs, 1,
-                              static_cast<float>(sampleRate),
-                              hpCutoffHz, q);
-            voice.cachedPreHpCutoffHz = hpCutoffHz;
-            voice.cachedPreHpQ = q;
+        if (refreshControlRate) {
+            const float q = normalizedQToValue(safe_clamp(params.preHpRes, 0.0f, 1.0f));
+            const float hpCutoffHz = safe_clamp(normalizedCutoffToHz(preHpCut), 20.0f, 20000.0f);
+            if (std::abs(hpCutoffHz - voice.cachedPreHpCutoffHz) > 0.5f ||
+                std::abs(q - voice.cachedPreHpQ) > 0.001f) {
+                cookSamplerBiquad(voice.cachedPreHpCoeffs, 1,
+                                  static_cast<float>(sampleRate),
+                                  hpCutoffHz, q);
+                voice.cachedPreHpCutoffHz = hpCutoffHz;
+                voice.cachedPreHpQ = q;
+            }
         }
         mixed = processBiquadSample(mixed, voice.cachedPreHpCoeffs, voice.preHpState);
     }
 
-    const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
-    float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
+    // Filter coeff cook: S&H @ control rate unless audio-rate filter FM is on.
     const float filterFm = safe_clamp(params.filterFm, 0.0f, 1.0f);
-    if (filterFm > 0.0f) {
-        const float fmMod = 1.0f + filterFm * osc2 * 3.0f;
-        envCutoff *= safe_clamp(fmMod, 0.2f, 4.0f);
-    }
-    const float keyTrack = safe_clamp(params.filterKeyTrack, 0.0f, 1.0f);
-    const float semitonesFromRef = static_cast<float>(effectivePitch - 60);
-    const float keyTrackRatio = std::pow(2.0f, semitonesFromRef * keyTrack / 12.0f);
-    const float rawCutoffHz =
-        safe_clamp(envCutoff * keyTrackRatio, 20.0f, 20000.0f);
-
-    if (voice.smoothCutoffHz <= 0.0f) {
-        voice.smoothCutoffHz = rawCutoffHz;
-    } else {
-        voice.smoothCutoffHz += (rawCutoffHz - voice.smoothCutoffHz) * 0.05f;
-    }
-    const float cutoffHz = safe_clamp(voice.smoothCutoffHz, 20.0f, 20000.0f);
+    const bool audioRateFilterFm = filterFm > 0.001f;
+    const bool refreshFilter = refreshControlRate || audioRateFilterFm ||
+                               voice.cachedFilterMode < 0;
     const int filterMode = safe_clamp(params.filterMode, 0, 5);
     const float rawQ = normalizedQToValue(params.filterQ);
     const float q = filterMode == 4 ? std::min(rawQ, 4.0f) : rawQ;
-    // Cache filter coefficients when params haven't changed meaningfully
-    // cutoffHz changes per-sample from envelope/FM, so we cook every time
+
+    if (refreshFilter) {
+        const float baseCutoff = normalizedCutoffToHz(params.filterCutoff);
+        float envCutoff = baseCutoff * (1.0f + filterGain * params.filterEnvAmount * 4.0f);
+        if (audioRateFilterFm) {
+            const float fmMod = 1.0f + filterFm * osc2 * 3.0f;
+            envCutoff *= safe_clamp(fmMod, 0.2f, 4.0f);
+        }
+        const float keyTrack = safe_clamp(params.filterKeyTrack, 0.0f, 1.0f);
+        if (std::abs(keyTrack - voice.cachedKeyTrackAmount) > 1.0e-6f) {
+            const float semitonesFromRef = static_cast<float>(effectivePitch - 60);
+            voice.cachedKeyTrackAmount = keyTrack;
+            voice.cachedKeyTrackRatio =
+                std::pow(2.0f, semitonesFromRef * keyTrack / 12.0f);
+        }
+        const float rawCutoffHz =
+            safe_clamp(envCutoff * voice.cachedKeyTrackRatio, 20.0f, 20000.0f);
+
+        if (voice.smoothCutoffHz <= 0.0f) {
+            voice.smoothCutoffHz = rawCutoffHz;
+        } else if (audioRateFilterFm) {
+            voice.smoothCutoffHz += (rawCutoffHz - voice.smoothCutoffHz) * 0.05f;
+        } else {
+            // Control-rate: snap toward held target (no per-sample smoothing tax).
+            voice.smoothCutoffHz = rawCutoffHz;
+        }
+        const float cutoffHz = safe_clamp(voice.smoothCutoffHz, 20.0f, 20000.0f);
+
+        if (filterMode == 4) {
+            // Comb uses delay derived from cutoff; store cutoff so process path can read it.
+            voice.cachedFilterCutoffHz = cutoffHz;
+            voice.cachedFilterQ = q;
+            voice.cachedFilterMode = filterMode;
+        } else if (filterMode == 5) {
+            if (filterMode != voice.cachedFilterMode ||
+                std::abs(cutoffHz - voice.cachedFilterCutoffHz) > 0.5f ||
+                std::abs(q - voice.cachedFilterQ) > 0.001f) {
+                cookSamplerBiquad(voice.cachedFilterCoeffs, 0,
+                                  static_cast<float>(sampleRate), cutoffHz, q);
+                voice.cachedFilterCutoffHz = cutoffHz;
+                voice.cachedFilterQ = q;
+                voice.cachedFilterMode = filterMode;
+            }
+        } else {
+            if (filterMode != voice.cachedFilterMode ||
+                std::abs(cutoffHz - voice.cachedFilterCutoffHz) > 0.5f ||
+                std::abs(q - voice.cachedFilterQ) > 0.001f) {
+                cookSamplerBiquad(voice.cachedFilterCoeffs, filterMode,
+                                  static_cast<float>(sampleRate), cutoffHz, q);
+                voice.cachedFilterCutoffHz = cutoffHz;
+                voice.cachedFilterQ = q;
+                voice.cachedFilterMode = filterMode;
+            }
+        }
+    }
+
     if (filterMode == 4) {
+        const float cutoffHz = safe_clamp(voice.cachedFilterCutoffHz, 20.0f, 20000.0f);
         const int delaySamples = combDelaySamples(static_cast<float>(sampleRate), cutoffHz);
         const float feedback = std::min(0.88f, 0.45f + q * 0.08f);
         mixed = processCombSample(mixed, voice.combState, delaySamples, feedback);
     } else if (filterMode == 5) {
-        if (filterMode != voice.cachedFilterMode ||
-            std::abs(cutoffHz - voice.cachedFilterCutoffHz) > 0.5f ||
-            std::abs(q - voice.cachedFilterQ) > 0.001f) {
-            cookSamplerBiquad(voice.cachedFilterCoeffs, 0,
-                              static_cast<float>(sampleRate), cutoffHz, q);
-            voice.cachedFilterCutoffHz = cutoffHz;
-            voice.cachedFilterQ = q;
-            voice.cachedFilterMode = filterMode;
-        }
         mixed = processBiquadSample(mixed, voice.cachedFilterCoeffs, voice.filterState);
         mixed = processBiquadSample(mixed, voice.cachedFilterCoeffs, voice.filterState2);
     } else {
-        if (filterMode != voice.cachedFilterMode ||
-            std::abs(cutoffHz - voice.cachedFilterCutoffHz) > 0.5f ||
-            std::abs(q - voice.cachedFilterQ) > 0.001f) {
-            cookSamplerBiquad(voice.cachedFilterCoeffs, filterMode,
-                              static_cast<float>(sampleRate), cutoffHz, q);
-            voice.cachedFilterCutoffHz = cutoffHz;
-            voice.cachedFilterQ = q;
-            voice.cachedFilterMode = filterMode;
-        }
         mixed = processBiquadSample(mixed, voice.cachedFilterCoeffs, voice.filterState);
     }
 
-    mixed = std::tanh(mixed * 0.75f) / 0.75f;
+    mixed = softClip(mixed * 0.75f) / 0.75f;
 
     const float filterDrive = safe_clamp(params.filterDrive, 0.0f, 1.0f);
     if (filterDrive > 0.0f) {
-        mixed = std::tanh(mixed * (1.0f + filterDrive * 3.0f));
+        mixed = softClip(mixed * (1.0f + filterDrive * 3.0f));
     }
 
     mixed = applyFilterShaper(mixed, params.filterShaperMode, params.filterShaper);
 
-    voice.mixFeedbackSample = std::tanh(mixed);
+    voice.mixFeedbackSample = softClip(mixed);
     return mixed * ampGain;
 }
 
@@ -334,13 +458,14 @@ float subtractiveWaveSample(int wave, float phase) noexcept {
 }
 
 float subtractiveMorphWaveSample(float shape, float phase) noexcept {
-    const float scaled = safe_clamp(shape, 0.0f, 1.0f) * 4.0f;
-    const int i0 = std::min(4, static_cast<int>(scaled));
-    const int i1 = std::min(4, i0 + 1);
-    const float t = scaled - static_cast<float>(i0);
-    const float a = subtractiveWaveSample(i0, phase);
-    const float b = subtractiveWaveSample(i1, phase);
-    return a * (1.0f - t) + b * t;
+    return SubtractiveMorphTable::instance().lookupMip(shape, phase, 0);
+}
+
+float subtractiveMorphWaveSample(float shape,
+                                 float phase,
+                                 float rootHz,
+                                 float sampleRate) noexcept {
+    return SubtractiveMorphTable::instance().lookup(shape, phase, rootHz, sampleRate);
 }
 
 int subtractiveUnisonCount(float normalized) noexcept {
@@ -375,6 +500,45 @@ float subtractiveMixOscPair(float osc1, float osc2, int mixMode, float osc2Level
     }
 }
 
+void refreshSubtractiveControlCaches(SubtractiveVoiceRuntime& voice,
+                                     const SubtractiveSynthParams& params,
+                                     double sampleRate) noexcept {
+    voice.cachedAmpAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
+    voice.cachedAmpDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
+    voice.cachedAmpReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
+    voice.cachedAmpSustain = safe_clamp(params.ampSustain, 0.0f, 1.0f);
+    voice.cachedFilterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
+    voice.cachedFilterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
+    voice.cachedFilterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
+    voice.cachedFilterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
+
+    const float glideMs = params.glideMs * 2000.0f;
+    voice.cachedGlideCoeff =
+        glideMs > 0.0f
+            ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
+            : 1.0f;
+}
+
+void applySubtractiveRealtimeCaps(SubtractiveSynthParams& params,
+                                  int callbackFrames,
+                                  int& voiceLimit) noexcept {
+    // Small callbacks (low/balanced profiles) cannot afford full unison/poly/FM.
+    if (callbackFrames <= 0 || callbackFrames > 512) {
+        return;
+    }
+    constexpr int kMaxUnisonLive = 2;
+    constexpr float kMaxUnisonNorm =
+        static_cast<float>(kMaxUnisonLive - 1) /
+        static_cast<float>(kSubtractiveMaxUnison - 1);
+    if (params.unisonVoices > kMaxUnisonNorm) {
+        params.unisonVoices = kMaxUnisonNorm;
+    }
+    params.filterFm = 0.0f;
+    if (voiceLimit > 4) {
+        voiceLimit = 4;
+    }
+}
+
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,
                                 const SubtractiveSynthParams& params,
@@ -389,15 +553,13 @@ void renderSubtractiveLiveVoice(float& mix,
         static_cast<double>(sampleIndex - blockStartSample) / sampleRate + voice.startBeat;
     (void)elapsedSec;
 
-    const float ampAttackSec = adsrNormalizedToSeconds(params.ampAttack, 2.0f);
-    const float ampDecaySec = adsrNormalizedToSeconds(params.ampDecay, 2.0f);
-    const float ampReleaseSec = adsrNormalizedToSeconds(params.ampRelease, 3.0f);
-    const float ampSustain = safe_clamp(params.ampSustain, 0.0f, 1.0f);
-
-    const float filterAttackSec = adsrNormalizedToSeconds(params.filterAttack, 2.0f);
-    const float filterDecaySec = adsrNormalizedToSeconds(params.filterDecay, 2.0f);
-    const float filterReleaseSec = adsrNormalizedToSeconds(params.filterRelease, 3.0f);
-    const float filterSustain = safe_clamp(params.filterSustain, 0.0f, 1.0f);
+    const uint64_t localSample = sampleIndex; // absolute clock; control boundary still periodic
+    const bool refreshControl =
+        (localSample % static_cast<uint64_t>(kSubtractiveControlSubBlockFrames)) == 0 ||
+        !voice.controlPitchValid;
+    if (refreshControl) {
+        refreshSubtractiveControlCaches(voice, params, sampleRate);
+    }
 
     const double voiceElapsed =
         static_cast<double>(sampleIndex) / sampleRate - voice.startBeat;
@@ -415,10 +577,10 @@ void renderSubtractiveLiveVoice(float& mix,
 
     const float ampGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
                                           noteDurationSec,
-                                          ampAttackSec,
-                                          ampDecaySec,
-                                          ampSustain,
-                                          ampReleaseSec);
+                                          voice.cachedAmpAttackSec,
+                                          voice.cachedAmpDecaySec,
+                                          voice.cachedAmpSustain,
+                                          voice.cachedAmpReleaseSec);
     if (ampGain <= 0.0f) {
         if (voice.releaseBeat >= 0.0) {
             voice.active = 0;
@@ -428,20 +590,21 @@ void renderSubtractiveLiveVoice(float& mix,
 
     const float filterGain = samplerAdsrGain(static_cast<float>(voiceElapsed),
                                              noteDurationSec,
-                                             filterAttackSec,
-                                             filterDecaySec,
-                                             filterSustain,
-                                             filterReleaseSec);
+                                             voice.cachedFilterAttackSec,
+                                             voice.cachedFilterDecaySec,
+                                             voice.cachedFilterSustain,
+                                             voice.cachedFilterReleaseSec);
 
     const float vel = safe_clamp(voice.velocity / 127.0f, 0.0f, 1.0f);
     const float velGain = 1.0f - params.velocitySensitivity * (1.0f - vel);
 
-    const float glideMs = params.glideMs * 2000.0f;
-    const float glideCoeff =
-        glideMs > 0.0f ? 1.0f - std::exp(-1.0f / (static_cast<float>(sampleRate) * glideMs * 0.001f))
-                       : 1.0f;
-
-    mix += subtractiveVoiceSample(voice, params, ampGain * velGain, filterGain, sampleRate, glideCoeff) *
+    mix += subtractiveVoiceSample(voice,
+                                  params,
+                                  ampGain * velGain,
+                                  filterGain,
+                                  sampleRate,
+                                  voice.cachedGlideCoeff,
+                                  refreshControl) *
            params.gain * kInstrumentOutputGain;
 }
 

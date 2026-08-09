@@ -186,6 +186,7 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                                         setState(
                                             () => _selectedItemId = item.id);
                                       },
+                                      onPresetPreviewTap: _onPresetPreviewTap,
                                     )
                                   : LibraryContentPane(
                                       category: _category,
@@ -219,7 +220,37 @@ class LibraryFlyInPanelState extends State<LibraryFlyInPanel>
                         PresetPreviewBar(
                           snapshot: widget.snapshot,
                           selectedTrackId: widget.snapshot.selectedTrackId,
-                          displayPlayhead: _presetPreviewLoopEnabled,
+                          playheadBeat: _presetScrubBeat,
+                          accent: accent,
+                          loopEnabled: _presetPreviewLoopEnabled,
+                          previewPlaying: _previewActive,
+                          onLoopToggled: (enabled) {
+                            setState(() => _presetPreviewLoopEnabled = enabled);
+                            if (_previewActive && _selectedItemId != null) {
+                              final items =
+                                  LibraryCatalog.presetItems(_manifest);
+                              try {
+                                final item = items.firstWhere(
+                                    (i) => i.id == _selectedItemId);
+                                _onPresetPreviewTap(item,
+                                    startBeat: _presetScrubBeat,
+                                    loop: enabled);
+                              } catch (_) {}
+                            }
+                          },
+                          onStop: () {
+                            _stopPreviewAnimation();
+                            setState(() {});
+                            widget.onStopPreview?.call();
+                          },
+                          onScrub: (beat) {
+                            final items = LibraryCatalog.presetItems(_manifest);
+                            try {
+                              final item = items
+                                  .firstWhere((i) => i.id == _selectedItemId);
+                              _onPresetPreviewTap(item, startBeat: beat);
+                            } catch (_) {}
+                          },
                           onClipTap: (clip) {
                             final items = LibraryCatalog.presetItems(_manifest);
                             try {

@@ -19,7 +19,7 @@ class ArrangementTimelineMetrics {
   static const double timelineBeats = 32;
   static const double minClipDisplayWidthPx = 16;
   static const double gridBeats = 1.0;
-  static const double defaultMidiClipLengthBeats = 4.0;
+  static const double defaultMidiClipLengthBeats = 16.0; // 4 bars @ 4/4
 
   /// Furthest beat occupied by any clip (or loop length when enabled).
   static double contentEndBeat(ProjectSnapshot snapshot) {

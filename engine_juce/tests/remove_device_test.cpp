@@ -284,6 +284,7 @@ public:
             expect(audioapp::test::hasNonZeroSample(high), "high-pitch pad child renders");
             expect(meanAbsDifference(low, high) > 1.0e-4f,
                    "nested kick parameter changes generated audio");
+        }
         beginTest("move device within track preserves ids and order");
         {
             audioapp::EngineHost host;

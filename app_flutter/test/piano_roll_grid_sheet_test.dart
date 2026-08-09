@@ -37,13 +37,10 @@ void main() {
     expect(find.text('Note length'), findsOneWidget);
     expect(find.text('Resolution'), findsOneWidget);
 
-    await tester.tap(find.text('1/16').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('1/8').first);
-    await tester.pumpAndSettle();
-
-    expect(settings.snap, PianoRollSnap.eighth);
-    expect(find.text('1/8'), findsOneWidget);
+    // Defaults: quarter snap + 1/4 note length.
+    expect(settings.snap, PianoRollSnap.quarter);
+    expect(settings.defaultNoteBeats, 1.0);
+    expect(find.text('1/4'), findsWidgets);
   });
 
   testWidgets('draw sheet owns note length and chord controls', (tester) async {

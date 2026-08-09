@@ -7,5 +7,6 @@ void _onSurfaceModeChanged(PlaySurfaceMode mode) {
       _view = PlayContextView.perform;
       _highlightedPitches.clear();
     });
+    _notifyChrome();
   }
 }

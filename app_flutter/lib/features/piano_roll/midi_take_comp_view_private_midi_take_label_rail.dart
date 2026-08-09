@@ -32,7 +32,9 @@ class _MidiTakeLabelRail extends StatelessWidget {
                 top: (entry.$1 + 1) * (laneHeight + laneGap),
                 height: laneHeight,
                 text: entry.$2.name,
-                highlighted: compMode && entry.$2.id == activeTakeIdAtPlayhead,
+                accent: MidiTakeColor.forIndex(entry.$1),
+                highlighted:
+                    compMode && entry.$2.id == activeTakeIdAtPlayhead,
               ),
           ],
         ),
@@ -44,6 +46,7 @@ class _MidiTakeLabelRail extends StatelessWidget {
     required double top,
     required double height,
     required String text,
+    Color? accent,
     bool highlighted = false,
   }) {
     return Positioned(
@@ -55,19 +58,20 @@ class _MidiTakeLabelRail extends StatelessWidget {
         alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: highlighted
-              ? ArrangementLoopRegionTheme.color.withValues(alpha: 0.14)
-              : null,
+          color: accent == null
+              ? null
+              : MidiTakeColor.laneAccentFill(accent, highlighted: highlighted),
           border: Border(
             bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
-            left: highlighted
-                ? BorderSide(
-                    color: ArrangementLoopRegionTheme.color.withValues(
-                      alpha: 0.85,
+            left: accent == null
+                ? BorderSide.none
+                : BorderSide(
+                    color: MidiTakeColor.laneAccentBorder(
+                      accent,
+                      highlighted: highlighted,
                     ),
-                    width: 2,
-                  )
-                : BorderSide.none,
+                    width: highlighted ? 3 : 2,
+                  ),
           ),
         ),
         child: RotatedBox(

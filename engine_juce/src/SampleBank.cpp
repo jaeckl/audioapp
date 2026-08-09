@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 
 namespace audioapp {
@@ -35,8 +36,12 @@ std::vector<float> renderNoiseBurst(double sampleRate, double durationSec, float
     for (int i = 0; i < frames; ++i) {
         const double t = static_cast<double>(i) / sampleRate;
         const double envelope = std::exp(-t / 0.04);
-        const float noise = ((i * 1103515245 + 12345) & 0x7fffffff) / static_cast<float>(0x7fffffff) -
-                            0.5f;
+        // Unsigned so the LCG wraps instead of overflowing a signed int: the
+        // signed form is UB and -O3 miscompiles the loop into an out-of-bounds
+        // store. The masked low 31 bits are identical either way.
+        const uint32_t lcg = static_cast<uint32_t>(i) * 1103515245u + 12345u;
+        const float noise =
+            static_cast<float>(lcg & 0x7fffffffu) / static_cast<float>(0x7fffffff) - 0.5f;
         pcm[static_cast<size_t>(i)] = static_cast<float>(noise * envelope * gain);
     }
     return pcm;

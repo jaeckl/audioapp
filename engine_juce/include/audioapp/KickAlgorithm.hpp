@@ -55,4 +55,20 @@ void triggerKickVoice(KickVoiceRuntime& voice, int pitch, float velocity) noexce
 
 float normalizedToAmpDecaySec(float normalized) noexcept;
 
+struct InstrumentModulationContext;
+struct CommonControlBlock;
+
+void mixKickMidiNotesBlock(float* monoOut,
+                           int numFrames,
+                           double sampleRate,
+                           int bpm,
+                           double playheadStartBeat,
+                           const KickMidiNoteRegion* notes,
+                           int noteCount,
+                           const KickGeneratorParams& params,
+                           KickGeneratorRuntime& runtime,
+                           const InstrumentModulationContext* instMod = nullptr,
+                           const CommonControlBlock* commonControls = nullptr,
+                           uint16_t deviceIndex = 0) noexcept;
+
 } // namespace audioapp

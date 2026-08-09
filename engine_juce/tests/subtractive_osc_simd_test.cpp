@@ -45,6 +45,7 @@ public:
                 float incPerUnit[audioapp::kSubtractiveMaxUnison] = {
                     0.00012f, 0.00013f, 0.00011f, 0.00014f};
                 const float rootHz = 220.0f;
+                constexpr float kSampleRate = 48000.0f;
 
                 float simdPhases[audioapp::kSubtractiveMaxUnison];
                 float scalarPhases[audioapp::kSubtractiveMaxUnison];
@@ -55,7 +56,7 @@ public:
 
                 float simdSum = 0.0f;
                 const bool simdOk = audioapp::renderOscBankNoSyncSimd(
-                    shape, rootHz, incPerUnit, audioapp::kSubtractiveMaxUnison, 1.0f,
+                    shape, rootHz, kSampleRate, incPerUnit, audioapp::kSubtractiveMaxUnison, 1.0f,
                     simdPhases, simdWrapped, simdSum);
 
                 float scalarSum = 0.0f;
@@ -67,7 +68,8 @@ public:
                         scalarPhases[u] -= 6.28318530718f;
                         scalarWrapped[u] = true;
                     }
-                    scalarSum += audioapp::subtractiveMorphWaveSample(shape, scalarPhases[u]);
+                    scalarSum += audioapp::subtractiveMorphWaveSample(
+                        shape, scalarPhases[u], rootHz, kSampleRate);
                 }
                 scalarSum /= static_cast<float>(audioapp::kSubtractiveMaxUnison);
 

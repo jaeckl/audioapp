@@ -16,7 +16,8 @@ extension DeviceStripSlotStateInitialtabindexOperation
       return widget.pmTab.index;
     }
     if (widget.device.type == 'wavetable_synth') {
-      return widget.wtTab.index;
+      return widget.wtTab.index
+          .clamp(0, WavetableSynthDeviceTab.values.length - 1);
     }
     return 0;
   }

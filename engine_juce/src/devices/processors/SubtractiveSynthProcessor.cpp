@@ -370,7 +370,10 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
 
     const bool needsHeldParams = useAutomation || useModulation;
 
-    auto renderFrame = [&](int frame, const SubtractiveSynthParams& heldParams, int activeMonoPitch) {
+    auto renderFrame = [&](int frame,
+                           const SubtractiveSynthParams& heldParams,
+                           int activeMonoPitch,
+                           bool refreshControlRate) {
         const double beat = beatAtFrame(blockStartBeat, frame, sampleRate, bpm);
         float mix = 0.0f;
         int renderedCount = 0;
@@ -454,7 +457,8 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
             mix += subtractiveVoiceSample(voice, voiceParams,
                                           ampGain * velGain,
                                           filterGain,
-                                          sampleRate, glideCoeff) *
+                                          sampleRate, glideCoeff,
+                                          refreshControlRate) *
                    voiceParams.gain * panelGain * kInstrumentOutputGain;
 
             if (inRelease && elapsedSec >= noteDurSec + static_cast<double>(ampReleaseSec)) {
@@ -469,41 +473,32 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         monoOut[frame] += mix;
     };
 
-    if (!needsHeldParams) {
-        for (int frame = 0; frame < numFrames; ++frame) {
-            int activeMonoPitch = -1;
-            if (params.synthMono >= 0.5f) {
-                activeMonoPitch = activeMonoPitchAtBeat(
-                    notes, noteCount, beatAtFrame(blockStartBeat, frame, sampleRate, bpm),
-                    bpm, ampReleaseSec);
-            }
-            renderFrame(frame, params, activeMonoPitch);
-        }
-        return;
-    }
-
+    // Always walk control-rate sub-blocks so filter cook + osc Hz S&H even without
+    // global automation/LFO (those already used this path).
     for (int sub = 0; sub < numFrames; sub += kSubtractiveControlSubBlockFrames) {
         const int subLen = std::min(kSubtractiveControlSubBlockFrames, numFrames - sub);
-        const SubtractiveSynthParams heldParams = heldSubtractiveParamsAtFrame(
-            params,
-            sub,
-            blockStartBeat,
-            sampleRate,
-            bpm,
-            useAutomation,
-            automationClips,
-            automationClipCount,
-            automationDeviceIndex,
-            automationTargetNodeId,
-            useModulation,
-            lfoValues,
-            lfoCount,
-            lfoStride,
-            modEdges,
-            modEdgeCount,
-            modulationDeviceIndex,
-            modulationTargetNodeId,
-            instMod);
+        const SubtractiveSynthParams heldParams = needsHeldParams
+            ? heldSubtractiveParamsAtFrame(
+                  params,
+                  sub,
+                  blockStartBeat,
+                  sampleRate,
+                  bpm,
+                  useAutomation,
+                  automationClips,
+                  automationClipCount,
+                  automationDeviceIndex,
+                  automationTargetNodeId,
+                  useModulation,
+                  lfoValues,
+                  lfoCount,
+                  lfoStride,
+                  modEdges,
+                  modEdgeCount,
+                  modulationDeviceIndex,
+                  modulationTargetNodeId,
+                  instMod)
+            : params;
 
         int activeMonoPitch = -1;
         if (heldParams.synthMono >= 0.5f) {
@@ -513,7 +508,7 @@ void mixSubtractiveMidiNotesBlock(float* monoOut,
         }
 
         for (int frame = sub; frame < sub + subLen; ++frame) {
-            renderFrame(frame, heldParams, activeMonoPitch);
+            renderFrame(frame, heldParams, activeMonoPitch, frame == sub);
         }
     }
 }
@@ -554,9 +549,14 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         deviceHasPerNoteModEdges(nodeId, di, ctx.modEdges, ctx.modEdgeCount,
                                  ctx.modulators, ctx.lfoCount);
 
+    auto params = std::get<SubtractiveSynthParams>(*ctx.modulatedParams);
+    int voiceLimit =
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices;
+    applySubtractiveRealtimeCaps(params, block.numSamples, voiceLimit);
+
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
-        std::get<SubtractiveSynthParams>(*ctx.modulatedParams), runtime,
+        params, runtime,
         hasAuto ? ctx.automationClips : nullptr, hasAuto ? ctx.automationClipCount : 0,
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
@@ -564,7 +564,7 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         hasMod ? &di : nullptr,
         nullptr,
         instModPtr,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices,
+        voiceLimit,
         ctx.voicePolicy.retriggerReplacesVoice,
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId,
@@ -610,9 +610,20 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         deviceHasPerNoteModEdges(nodeId, di, ctx.modEdges, ctx.modEdgeCount,
                                  ctx.modulators, ctx.lfoCount);
 
+    // Bass native polyphony is mono; treat unset policy as 1 replacing voice.
+    auto params = std::get<SubtractiveSynthParams>(*ctx.modulatedParams);
+    int voiceLimit = ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : 1;
+    const bool retrigger =
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.retriggerReplacesVoice : true;
+    // Keep bass mono lean; still kill filter-FM / excess unison on small callbacks.
+    applySubtractiveRealtimeCaps(params, block.numSamples, voiceLimit);
+    if (ctx.voicePolicy.maxVoices <= 0 && voiceLimit > 1) {
+        voiceLimit = 1;
+    }
+
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
-        std::get<SubtractiveSynthParams>(*ctx.modulatedParams), runtime,
+        params, runtime,
         hasAuto ? ctx.automationClips : nullptr, hasAuto ? ctx.automationClipCount : 0,
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
@@ -620,8 +631,8 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         hasMod ? &di : nullptr,
         nullptr,
         instModPtr,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices,
-        ctx.voicePolicy.retriggerReplacesVoice,
+        voiceLimit,
+        retrigger,
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId,
         nodeId);

@@ -13,6 +13,12 @@ abstract class ClipRenderer {
 
   Color get clipContentBackgroundColor;
 
+  Color get clipBorderColor => ArrangementClipTheme.midiClipBorder;
+
+  Color get highlightBorderColor => ArrangementClipTheme.highlightBorder;
+
+  Color get highlightShadowColor => ArrangementClipTheme.highlightShadow;
+
   /// Paints notes, waveform, or other condensed content inside [contentRect].
   void paintContent(Canvas canvas, Rect contentRect);
 

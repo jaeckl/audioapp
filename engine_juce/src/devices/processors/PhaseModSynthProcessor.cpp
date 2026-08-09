@@ -200,8 +200,8 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
                                int voiceLimit,
                                bool retriggerReplacesVoice,
                                const CommonControlBlock* commonControls,
-                               uint64_t automationTargetNodeId = 0,
-                               uint64_t modulationTargetNodeId = 0) noexcept {
+                               uint64_t automationTargetNodeId,
+                               uint64_t modulationTargetNodeId) noexcept {
     if (monoOut == nullptr || numFrames <= 0 || notes == nullptr || noteCount <= 0 || bpm <= 0) {
         return;
     }
@@ -436,7 +436,7 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             automationClips,
             automationClipCount,
             automationDeviceIndex,
-            nodeId,
+            automationTargetNodeId,
             useModulation,
             lfoValues,
             lfoCount,
@@ -444,7 +444,7 @@ void mixPhaseModMidiNotesBlock(float* monoOut,
             modEdges,
             modEdgeCount,
             modulationDeviceIndex,
-            nodeId,
+            modulationTargetNodeId,
             instMod);
 
         const int subLen = std::min(kPhaseModControlSubBlockFrames, numFrames - sub);

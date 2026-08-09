@@ -51,12 +51,15 @@ struct DeviceMeterState {
 struct TrackFreezeState {
     bool enabled = false;
     bool stale = false;
+    TrackFreezeMode mode = TrackFreezeMode::Off;
+    uint64_t bakeGeneration = 0;
     std::string assetId;
     double startBeat = 0.0;
     double lengthBeats = 0.0;
     double sampleRate = 48000.0;
     int bpmAtFreeze = 120;
     uint64_t contentSignature = 0;
+    int bakeEndDeviceIndex = 0;
     std::vector<float> waveformPeaks;
 };
 
@@ -303,6 +306,21 @@ public:
     bool unfreezeTrack(const std::string& trackId, TrackFreezeAssetStore& assets);
     bool refreshTrackFreeze(const std::string& trackId, TrackFreezeAssetStore& assets);
     void ensureFrozenAssets(TrackFreezeAssetStore& assets);
+    /// Bakes a track without holding the project lock across the render.
+    ///
+    /// The caller's thread does the work, but only the short prepare and commit
+    /// steps take the write lock, so the audio callback and UI keep running and
+    /// the transport does not need to be stopped. The render works from a private
+    /// copy of the playback state; if the project changed while it ran, the
+    /// commit is rejected rather than publishing audio that no longer matches.
+    /// Returns false when cancelled or superseded.
+    bool freezeTrackWithoutBlocking(const std::string& trackId,
+                                    TrackFreezeAssetStore& assets);
+    /// Asks an in-flight `freezeTrackWithoutBlocking` to stop at the next block.
+    void cancelFreezeRender() noexcept;
+    bool isFreezeRenderActive() const noexcept {
+        return freezeRenderActive_.load(std::memory_order_acquire);
+    }
     bool isTrackFrozen(const std::string& trackId) const;
 
     bool setRecordArmed(bool armed);
@@ -473,12 +491,17 @@ private:
         ProcessorArena arena;  // processors + runtime state
         struct FreezePlayback {
             bool active = false;
+            // Keeps the baked PCM alive for as long as this snapshot slot can be
+            // read by the audio thread; pcmL/pcmR point into it.
+            FreezeAssetRef assetRef;
             const float* pcmL = nullptr;
             const float* pcmR = nullptr;
             int frameCount = 0;
             double pcmSampleRate = 48000.0;
             double startBeat = 0.0;
             double lengthBeats = 0.0;
+            // Live chain resumes here; devices below this index are baked in.
+            int bakeEndDeviceIndex = 0;
         } freeze;
         int trackGainDeviceIndex = -1;
     };
@@ -751,7 +774,8 @@ private:
                                         int lfoCount,
                                         IModulator* const* modulators,
                                         uint32_t retriggerGeneration,
-                                        DeviceChainScratch* scratchOverride = nullptr) noexcept;
+                                        DeviceChainScratch* scratchOverride = nullptr,
+                                        int endDeviceIndexOverride = -1) noexcept;
     bool trackHasActiveSampleAtPlayhead(const TrackPlaybackSnapshot& track, double playheadBeat) const noexcept;
     int selectedTrackPlaybackIndex() const noexcept;
     void syncActiveFrequencyLocked();
@@ -764,12 +788,41 @@ private:
                                      LiveInstrumentSnapshot& out) const;
     double sampleTimeToCaptureBeat(uint64_t sampleTime) const;
     bool freezeTrackLocked(Track& track, int trackIndex, TrackFreezeAssetStore& assets);
+    /// Everything the bake reads, copied so the render can run off the lock.
+    struct FreezeRenderJob;
+    bool prepareFreezeJobLocked(Track& track,
+                                int trackIndex,
+                                FreezeRenderJob& job);
+    /// Renders `job` into `outAsset`. Takes no lock; safe to call from any
+    /// non-audio thread. Returns false if cancelled.
+    bool renderFreezeJob(FreezeRenderJob& job, FreezeAsset& outAsset);
+    bool commitFreezeJobLocked(const FreezeRenderJob& job,
+                               FreezeAsset&& asset,
+                               TrackFreezeAssetStore& assets);
+    /// Folds everything the bake depends on that does not live on `Track` into a
+    /// single hash: full device configs, modulator params and edges, automation
+    /// clips targeting baked devices, and — when a per-note modulator is
+    /// involved — the note data of every track feeding the shared per-note clock.
+    uint64_t freezeExternalDependencyHashLocked(const Track& track,
+                                                int bakeEndDeviceIndex) const;
+    uint64_t trackFreezeSignatureLocked(const Track& track,
+                                        int bakeEndDeviceIndex) const;
+    bool trackUsesPerNoteModulatorLocked(const Track& track,
+                                         int bakeEndDeviceIndex) const;
 
     void reconcileTrackFreezeStaleLocked();
     void markDeviceOwnerFreezeStaleLocked(const std::string& deviceId);
     SampleBank* sampleBank_ = nullptr;
     const WavetableBank* wavetableBank_ = nullptr;
     const TrackFreezeAssetStore* freezeAssetStore_ = nullptr;
+    // Observed output format, published by the render callback. Freeze bakes at
+    // this rate and block size: the rate so playback never resamples the asset,
+    // the block size because block-rate modulation resolution follows it, and a
+    // 4096-frame bake would otherwise sound coarser than live playback.
+    std::atomic<double> outputSampleRate_{48000.0};
+    std::atomic<int> outputBlockFrames_{512};
+    std::atomic<bool> freezeRenderActive_{false};
+    std::atomic<bool> freezeCancelRequested_{false};
 
     // ── ValueTree::Listener overrides ─────────────────────────
     void valueTreePropertyChanged(juce::ValueTree& tree,

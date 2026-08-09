@@ -39,7 +39,28 @@ void main() {
     final renderer = const MidiClipRenderer(clip);
     expect(
       renderer.clipContentBackgroundColor,
-      ArrangementClipTheme.contentBackground(ArrangementClipTheme.midiClipBackground),
+      ArrangementClipTheme.contentBackground(
+          ArrangementClipTheme.midiClipBackground),
+    );
+  });
+
+  testWidgets('MidiClipRenderer uses track accent when provided',
+      (tester) async {
+    const clip = MidiClipSnapshot(
+      id: 'clip-1',
+      startBeat: 0,
+      lengthBeats: 4,
+      notes: [],
+    );
+    const accent = Color(0xFF5B8DEF);
+    final renderer = MidiClipRenderer(clip, trackAccent: accent);
+    expect(
+      renderer.clipBackgroundColor,
+      ArrangementClipTheme.clipBackgroundFromAccent(accent),
+    );
+    expect(
+      renderer.clipBorderColor,
+      ArrangementClipTheme.clipBorderFromAccent(accent),
     );
   });
 

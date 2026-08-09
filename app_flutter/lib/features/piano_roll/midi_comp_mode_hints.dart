@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../bridge/project_snapshot.dart';
 import 'midi_comp_tool.dart';
+import 'midi_take_color.dart';
 import 'piano_roll_theme.dart';
 
 part 'midi_comp_mode_hints_midi_comp_region_bar.dart';

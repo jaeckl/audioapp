@@ -7,6 +7,7 @@ class _RailButton extends StatelessWidget {
     required this.active,
     required this.enabled,
     required this.onTap,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -14,6 +15,7 @@ class _RailButton extends StatelessWidget {
   final bool active;
   final bool enabled;
   final VoidCallback onTap;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -27,17 +29,20 @@ class _RailButton extends StatelessWidget {
       child: InkWell(
         onTap: enabled ? onTap : null,
         child: SizedBox(
-          height: 56,
+          width: compact ? 48 : null,
+          height: compact ? 48 : 56,
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, size: 20, color: color),
+                Icon(icon, size: compact ? 18 : 20, color: color),
                 const SizedBox(height: 2),
                 Text(
                   label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: compact ? 9 : 10,
                     color: color,
                     fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                   ),

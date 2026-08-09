@@ -3,29 +3,52 @@
   "name": "Ambient Wash",
   "bpm": 78,
   "selectedTrackId": "tpl-pad",
-  "loopEnabled": true,
+  "loopEnabled": false,
   "loopRegionStartBeat": 0.0,
   "loopRegionEndBeat": 8.0,
-  "master": {"id": "master", "name": "Master", "gain": 0.8},
+  "master": {
+    "id": "master",
+    "name": "Master",
+    "gain": 0.8
+  },
   "samples": [],
   "tracks": [
     {
       "id": "tpl-pad",
       "name": "Pad",
       "devices": [
-        {"id": "tpl-pad-synth", "type": "subtractive_synth", "parameters": {"gain": 0.7, "filterCutoff": 0.62, "filterResonance": 0.18, "attack": 0.35, "release": 0.72, "bypass": 0.0}},
-        {"id": "tpl-pad-reverb", "type": "reverb", "parameters": {"decay": 0.72, "size": 0.78, "diffusion": 0.7, "bypass": 0.0}},
-        {"id": "tpl-pad-gain", "type": "track_gain", "parameters": {"gain": 0.76, "bypass": 0.0}}
+        {
+          "id": "tpl-pad-synth",
+          "type": "subtractive_synth",
+          "parameters": {
+            "gain": 0.7,
+            "filterCutoff": 0.62,
+            "filterResonance": 0.18,
+            "attack": 0.35,
+            "release": 0.72,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-pad-reverb",
+          "type": "reverb",
+          "parameters": {
+            "decay": 0.72,
+            "size": 0.78,
+            "diffusion": 0.7,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-pad-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.76,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-pad-clip", "startBeat": 0.0, "lengthBeats": 8.0, "naturalLengthBeats": 8.0, "loopContent": true,
-        "notes": [
-          {"pitch": 57, "startBeat": 0.0, "durationBeats": 7.5, "velocity": 78.0},
-          {"pitch": 60, "startBeat": 0.0, "durationBeats": 7.5, "velocity": 74.0},
-          {"pitch": 64, "startBeat": 0.0, "durationBeats": 7.5, "velocity": 72.0},
-          {"pitch": 67, "startBeat": 0.0, "durationBeats": 7.5, "velocity": 70.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     }
   ]

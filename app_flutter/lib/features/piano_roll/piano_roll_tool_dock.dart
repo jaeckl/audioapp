@@ -23,6 +23,7 @@ class PianoRollToolDock extends StatelessWidget {
     required this.onEditorModeChanged,
     required this.onDrawSettings,
     this.hideNoteTools = false,
+    this.leading,
   });
 
   final PianoRollTool tool;
@@ -42,6 +43,9 @@ class PianoRollToolDock extends StatelessWidget {
   /// When true (Harmonic / Progression), hide Select/Draw/Edit.
   final bool hideNoteTools;
 
+  /// Optional leading strip (e.g. PlayDeck rail in landscape).
+  final Widget? leading;
+
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
@@ -50,6 +54,10 @@ class PianoRollToolDock extends StatelessWidget {
         height: PianoRollMetrics.toolDockHeight,
         child: Row(
           children: [
+            if (leading != null) ...[
+              leading!,
+              Container(width: 1, color: PianoRollTheme.labelMuted.withValues(alpha: 0.25)),
+            ],
             if (!hideNoteTools) ...[
               _DockButton(
                 icon: Icons.pan_tool_alt_outlined,

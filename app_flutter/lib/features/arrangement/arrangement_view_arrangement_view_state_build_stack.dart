@@ -179,6 +179,7 @@ extension ArrangementViewStateBuildStackOperation on ArrangementViewState {
           _ClipDragPreview(
             stackKey: _arrangementStackKey,
             session: clipDrag,
+            trackAccent: _trackAccentForId(clipDrag.sourceTrackId),
             visibleTrackIndex: clipDragVisibleIndex,
             pixelsPerBeat: _pixelsPerBeat,
             scrollOffset: scrollOffset,

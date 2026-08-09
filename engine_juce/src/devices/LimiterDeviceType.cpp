@@ -46,7 +46,12 @@ DeviceParameterResult LimiterDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<LimiterParam>(id)) {
-    case LimiterParam::InputGain: instance.inputGain = clamped; break;
+    case LimiterParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case LimiterParam::Ceiling: instance.limitCeiling = clamped; break;
     case LimiterParam::Attack: instance.limitAttack = clamped; break;
     case LimiterParam::Release: instance.limitRelease = clamped; break;
@@ -165,9 +170,10 @@ DeviceSlot LimiterDeviceType::varToSlot(const juce::var& obj) const {
 
         }
 
-        // Input panel: new format or legacy fallback
-        const auto inputPanelVar = object->getProperty("inputPanel");
-        if (const auto* ip = inputPanelVar.getDynamicObject()) {
+        // Input panel: new format or legacy fallback. Always install
+        // DynamicsInputPanel — empty/missing panels used to leave EmptyPanel
+        // and abort later via std::get<DynamicsInputPanel>.
+        {
             auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
                 if (!src) return fallback;
                 const auto v = src->getProperty(key);
@@ -175,22 +181,28 @@ DeviceSlot LimiterDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            const std::string type = ip->getProperty("type").toString().toStdString();
-            if (type == "dynamics") {
-                slot.config.inputPanel = DynamicsInputPanel{readFloat(ip, "trim", 1.0f)};
+            float trim = 1.0f;
+            bool set = false;
+            const auto inputPanelVar = object->getProperty("inputPanel");
+            if (const auto* ip = inputPanelVar.getDynamicObject()) {
+                const std::string type = ip->getProperty("type").toString().toStdString();
+                if (type == "dynamics") {
+                    trim = readFloat(ip, "trim", 1.0f);
+                    set = true;
+                }
             }
-        } else if (p) {
-            auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
-                if (!src) return fallback;
-                const auto v = src->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-            const float ig = readFloat(p, "inputGain", -1.0f);
-            if (ig >= 0.0f) {
-                slot.config.inputPanel = DynamicsInputPanel{ig};
+            if (!set && p) {
+                const float ig = readFloat(p, "inputGain", -1.0f);
+                if (ig >= 0.0f) {
+                    trim = ig;
+                    set = true;
+                }
             }
+            slot.config.inputPanel = DynamicsInputPanel{trim};
+        }
+
+        if (!std::holds_alternative<StereoOutputPanel>(slot.config.outputPanel)) {
+            slot.config.outputPanel = StereoOutputPanel{};
         }
 
         // Bypass from root
@@ -239,6 +251,7 @@ uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexc
     auto l = [&](std::string_view n, LimiterParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = l("inputGain", LimiterParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitInputGain", LimiterParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitCeiling", LimiterParam::Ceiling); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = l("limitAttack", LimiterParam::Attack); v != static_cast<uint16_t>(-1)) return v;
@@ -251,7 +264,7 @@ uint16_t LimiterDeviceType::paramIdFromString(std::string_view name) const noexc
 
 std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<LimiterParam>(localId)) {
-    case LimiterParam::InputGain: return "limitInputGain";
+    case LimiterParam::InputGain: return "inputGain";
     case LimiterParam::Ceiling: return "limitCeiling";
     case LimiterParam::Attack: return "limitAttack";
     case LimiterParam::Release: return "limitRelease";
@@ -264,7 +277,7 @@ std::string_view LimiterDeviceType::paramIdToString(uint16_t localId) const noex
 
 std::span<const ParamDescriptor> LimiterDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(LimiterParam::InputGain), "limitInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(LimiterParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Ceiling), "limitCeiling", "Ceiling", 0.85f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Attack), "limitAttack", "Attack", 0.10f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(LimiterParam::Release), "limitRelease", "Release", 0.40f, 0.0f, 1.0f, true, true},

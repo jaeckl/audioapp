@@ -1085,10 +1085,13 @@ juce::var trackToVarPersistence(const TrackState& track,
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
-    if (track.freeze.enabled || !track.freeze.assetId.empty()) {
+    // Persist Manual freezes only — Auto is a session CPU cache.
+    if ((track.freeze.enabled || !track.freeze.assetId.empty()) &&
+        track.freeze.mode != TrackFreezeMode::Auto) {
         auto* freezeObj = new juce::DynamicObject();
         freezeObj->setProperty("enabled", track.freeze.enabled);
         freezeObj->setProperty("stale", track.freeze.stale);
+        freezeObj->setProperty("mode", static_cast<int>(track.freeze.mode));
         freezeObj->setProperty("assetId", toJuceString(track.freeze.assetId));
         freezeObj->setProperty("startBeat", track.freeze.startBeat);
         freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
@@ -1096,6 +1099,7 @@ juce::var trackToVarPersistence(const TrackState& track,
         freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
         freezeObj->setProperty("contentSignature",
                                juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        freezeObj->setProperty("bakeEndDeviceIndex", track.freeze.bakeEndDeviceIndex);
         if (!track.freeze.assetId.empty()) {
             freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
         }
@@ -1150,21 +1154,40 @@ TrackState trackFromVarPersistence(const juce::var& value,
             if (freezeVar->hasProperty("stale")) {
                 track.freeze.stale = static_cast<bool>(freezeVar->getProperty("stale"));
             }
-            track.freeze.assetId = varToString(freezeVar->getProperty("assetId"));
-            track.freeze.startBeat = static_cast<double>(freezeVar->getProperty("startBeat"));
-            track.freeze.lengthBeats = static_cast<double>(freezeVar->getProperty("lengthBeats"));
-            track.freeze.sampleRate = static_cast<double>(freezeVar->getProperty("sampleRate"));
-            if (freezeVar->hasProperty("bpmAtFreeze")) {
-                track.freeze.bpmAtFreeze =
-                    static_cast<int>(static_cast<double>(freezeVar->getProperty("bpmAtFreeze")));
+            if (freezeVar->hasProperty("mode")) {
+                const int mode = static_cast<int>(static_cast<double>(freezeVar->getProperty("mode")));
+                if (mode == static_cast<int>(TrackFreezeMode::Auto) ||
+                    mode == static_cast<int>(TrackFreezeMode::Manual) ||
+                    mode == static_cast<int>(TrackFreezeMode::Off)) {
+                    track.freeze.mode = static_cast<TrackFreezeMode>(mode);
+                }
+            } else if (track.freeze.enabled) {
+                track.freeze.mode = TrackFreezeMode::Manual;
             }
-            if (freezeVar->hasProperty("contentSignature")) {
-                track.freeze.contentSignature = static_cast<uint64_t>(static_cast<juce::int64>(
-                    freezeVar->getProperty("contentSignature")));
-            }
-            if (const auto* peaks = varArray(freezeVar->getProperty("waveformPeaks"))) {
-                for (const auto& peakVar : *peaks) {
-                    track.freeze.waveformPeaks.push_back(static_cast<float>(static_cast<double>(peakVar)));
+            // Auto must not survive project files.
+            if (track.freeze.mode == TrackFreezeMode::Auto) {
+                track.freeze = {};
+            } else {
+                track.freeze.assetId = varToString(freezeVar->getProperty("assetId"));
+                track.freeze.startBeat = static_cast<double>(freezeVar->getProperty("startBeat"));
+                track.freeze.lengthBeats = static_cast<double>(freezeVar->getProperty("lengthBeats"));
+                track.freeze.sampleRate = static_cast<double>(freezeVar->getProperty("sampleRate"));
+                if (freezeVar->hasProperty("bpmAtFreeze")) {
+                    track.freeze.bpmAtFreeze =
+                        static_cast<int>(static_cast<double>(freezeVar->getProperty("bpmAtFreeze")));
+                }
+                if (freezeVar->hasProperty("contentSignature")) {
+                    track.freeze.contentSignature = static_cast<uint64_t>(static_cast<juce::int64>(
+                        freezeVar->getProperty("contentSignature")));
+                }
+                if (freezeVar->hasProperty("bakeEndDeviceIndex")) {
+                    track.freeze.bakeEndDeviceIndex = static_cast<int>(
+                        static_cast<double>(freezeVar->getProperty("bakeEndDeviceIndex")));
+                }
+                if (const auto* peaks = varArray(freezeVar->getProperty("waveformPeaks"))) {
+                    for (const auto& peakVar : *peaks) {
+                        track.freeze.waveformPeaks.push_back(static_cast<float>(static_cast<double>(peakVar)));
+                    }
                 }
             }
         }
@@ -1222,10 +1245,13 @@ juce::var trackToVarSnapshot(const TrackState& track,
     object->setProperty("devices", devices);
     object->setProperty("midiClips", clips);
     object->setProperty("sampleClips", sampleClips);
-    if (track.freeze.enabled || !track.freeze.waveformPeaks.empty()) {
+    // Runtime snapshot includes Auto so Flutter can suppress freeze chrome.
+    if (track.freeze.enabled || !track.freeze.waveformPeaks.empty() ||
+        track.freeze.mode != TrackFreezeMode::Off) {
         auto* freezeObj = new juce::DynamicObject();
         freezeObj->setProperty("enabled", track.freeze.enabled);
         freezeObj->setProperty("stale", track.freeze.stale);
+        freezeObj->setProperty("mode", static_cast<int>(track.freeze.mode));
         freezeObj->setProperty("assetId", toJuceString(track.freeze.assetId));
         freezeObj->setProperty("startBeat", track.freeze.startBeat);
         freezeObj->setProperty("lengthBeats", track.freeze.lengthBeats);
@@ -1233,6 +1259,7 @@ juce::var trackToVarSnapshot(const TrackState& track,
         freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
         freezeObj->setProperty("contentSignature",
                                juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        freezeObj->setProperty("bakeEndDeviceIndex", track.freeze.bakeEndDeviceIndex);
         if (!track.freeze.assetId.empty()) {
             freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
         }

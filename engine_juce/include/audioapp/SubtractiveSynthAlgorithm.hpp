@@ -75,15 +75,38 @@ struct SubtractiveVoiceRuntime {
     float osc1Phases[kSubtractiveMaxUnison]{};
     float osc2Phases[kSubtractiveMaxUnison]{};
     float osc2FreePhases[kSubtractiveMaxUnison]{};
-    // Precomputed oscillator phase increment scale per unison voice.
-    // phaseInc[u] = kTwoPi * pow(2.0f, cents / 1200.0f) / sampleRate
-    // Then per-sample: inc = rootHz * phaseIncPerUnit[u]  (no pow per sample)
-    float osc1PhaseIncPerUnit[kSubtractiveMaxUnison]{};
-    float osc2PhaseIncPerUnit[kSubtractiveMaxUnison]{};
+    // Precomputed unison spread phase-inc scale (shared by osc1+osc2).
+    // Osc pitch diff lives in heldOsc1Hz / heldOsc2Hz:
+    //   inc = heldOscXHz * phaseIncPerUnit[u]
+    float phaseIncPerUnit[kSubtractiveMaxUnison]{};
     int cachedUnisonCount = 0;
     float cachedUnisonSpreadCents = -1.0f;
-    // Cached key-track ratio (recomputed on note-on or param change)
+    // Cached key-track ratio (recomputed on note-on or keyTrack param change)
     float cachedKeyTrackRatio = 1.0f;
+    float cachedKeyTrackAmount = -1.0f;
+    // Pitch / global-pitch → Hz caches (invalid while pitchCacheValid == 0)
+    uint8_t pitchCacheValid = 0;
+    int cachedEffectivePitch = -999;
+    float cachedGlobalPitchParam = -1.0f;
+    float cachedRefHz = 440.0f;
+    float cachedOsc1Octave = -1.0f;
+    float cachedOsc1Semi = -1.0f;
+    float cachedOsc1Detune = -1.0f;
+    float cachedOsc2Octave = -1.0f;
+    float cachedOsc2Semi = -1.0f;
+    float cachedOsc2Detune = -1.0f;
+    float cachedOsc1RootHz = 440.0f;
+    float cachedOsc2RootHz = 440.0f;
+    // Live/control cached ADSR times + glide (seconds / coeff)
+    float cachedAmpAttackSec = 0.02f;
+    float cachedAmpDecaySec = 0.25f;
+    float cachedAmpReleaseSec = 0.35f;
+    float cachedAmpSustain = 0.75f;
+    float cachedFilterAttackSec = 0.05f;
+    float cachedFilterDecaySec = 0.35f;
+    float cachedFilterReleaseSec = 0.45f;
+    float cachedFilterSustain = 0.4f;
+    float cachedGlideCoeff = 1.0f;
     // Cached filter coefficients to avoid per-sample cookSamplerBiquad
     BiquadCoeffs cachedFilterCoeffs{};
     float cachedFilterCutoffHz = -1.0f;
@@ -95,6 +118,11 @@ struct SubtractiveVoiceRuntime {
     float cachedPreHpQ = -1.0f;
     float currentHz = 440.0f;
     float targetHz = 440.0f;
+    // Control-rate held oscillator frequencies (refreshed every
+    // kSubtractiveControlSubBlockFrames when glide is off).
+    float heldOsc1Hz = 440.0f;
+    float heldOsc2Hz = 440.0f;
+    bool controlPitchValid = false;
     float noiseSeed = 0.123f;
     BiquadState filterState{};
     BiquadState filterState2{};
@@ -157,6 +185,12 @@ float subtractiveWaveSample(int wave, float phase) noexcept;
 /// Continuous shape 0..1 morphs sine -> tri -> saw -> square -> pulse.
 float subtractiveMorphWaveSample(float shape, float phase) noexcept;
 
+/// Morph via mipmapped wavetable (preferred). Falls back to mip 0 when sr/hz invalid.
+float subtractiveMorphWaveSample(float shape,
+                                 float phase,
+                                 float rootHz,
+                                 float sampleRate) noexcept;
+
 int subtractiveUnisonCount(float normalized) noexcept;
 
 float subtractiveOscPitchHz(int rootPitch,
@@ -166,12 +200,26 @@ float subtractiveOscPitchHz(int rootPitch,
 
 float subtractiveMixOscPair(float osc1, float osc2, int mixMode, float osc2Level) noexcept;
 
+/// Per-sample voice render. When refreshControlRate is true, recompute held
+/// oscillator Hz (if not gliding) and cook filter/preHP coeffs from filterGain.
+/// Amp env stays sample-rate; set refreshControlRate on control-rate boundaries
+/// (live keyboard path must gate this — do not leave default true every sample).
 float subtractiveVoiceSample(SubtractiveVoiceRuntime& voice,
                              const SubtractiveSynthParams& params,
                              float ampGain,
                              float filterGain,
                              double sampleRate,
-                             float glideCoeff) noexcept;
+                             float glideCoeff,
+                             bool refreshControlRate = true) noexcept;
+
+/// Clamp unison / polyphony / filter-FM for small realtime callbacks (≤512).
+void applySubtractiveRealtimeCaps(SubtractiveSynthParams& params,
+                                  int callbackFrames,
+                                  int& voiceLimit) noexcept;
+
+void refreshSubtractiveControlCaches(SubtractiveVoiceRuntime& voice,
+                                     const SubtractiveSynthParams& params,
+                                     double sampleRate) noexcept;
 
 void renderSubtractiveLiveVoice(float& mix,
                                 SubtractiveVoiceRuntime& voice,

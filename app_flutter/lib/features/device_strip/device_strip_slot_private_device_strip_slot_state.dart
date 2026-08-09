@@ -8,6 +8,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   int? _selectedLfoId;
   int? _connectModeLfoId;
   bool _showTargetsPanel = false;
+  final GlobalKey _dragRepaintKey = GlobalKey(debugLabel: 'device-drag-repaint');
 
   /// Resolved param descriptors for the current device (lazy, cached).
   List<DeviceParamDescriptor>? _cachedParams;
@@ -126,7 +127,8 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
     }
     if (widget.device.type == 'wavetable_synth' &&
         widget.wtTab != oldWidget.wtTab) {
-      _selectedTabIndex = widget.wtTab.index;
+      _selectedTabIndex = widget.wtTab.index
+          .clamp(0, WavetableSynthDeviceTab.values.length - 1);
     }
     if (widget.device.id != oldWidget.device.id) {
       _selectedTabIndex = _initialTabIndex();

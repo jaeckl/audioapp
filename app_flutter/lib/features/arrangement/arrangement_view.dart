@@ -114,6 +114,7 @@ part 'arrangement_view_arrangement_view_state_show_track_popup_menu.dart';
 part 'arrangement_view_arrangement_view_state_show_add_track_menu.dart';
 part 'arrangement_view_arrangement_view_state_visible_tracks.dart';
 part 'arrangement_view_arrangement_view_state_track_snapshot_by_id.dart';
+part 'arrangement_view_arrangement_view_state_track_accent_for_id.dart';
 part 'arrangement_view_arrangement_view_state_next_track_id_in_scope.dart';
 part 'arrangement_view_arrangement_view_state_track_drop_intent.dart';
 part 'arrangement_view_arrangement_view_state_commit_track_drop.dart';

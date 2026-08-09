@@ -4,7 +4,7 @@ extension EngineBridgeCreatemidiclipOperation on EngineBridge {
   Future<ProjectSnapshot> createMidiClip({
     required String trackId,
     double startBeat = 0,
-    double lengthBeats = 4,
+    double lengthBeats = ArrangementTimelineMetrics.defaultMidiClipLengthBeats,
   }) async {
     return _invokeForSnapshot('createMidiClip', {
       'trackId': trackId,

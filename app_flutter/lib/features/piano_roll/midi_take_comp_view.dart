@@ -9,6 +9,7 @@ import '../editor/editor_pinch_zoom.dart';
 import '../editor/editor_virtual_playhead.dart';
 import 'editor_view_range.dart';
 import 'midi_comp_tool.dart';
+import 'midi_take_color.dart';
 import 'piano_roll_metrics.dart';
 import 'piano_roll_ruler.dart';
 import 'piano_roll_theme.dart';

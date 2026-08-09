@@ -115,7 +115,7 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                         widget.snapshot.recordArmed,
                     onToggleRecordArmed: widget.onSetTrackRecordArmed == null ||
                             visibleTracks[i].isGroup ||
-                            visibleTracks[i].freeze.enabled
+                            visibleTracks[i].freeze.isManual
                         ? null
                         : () => widget.onSetTrackRecordArmed!(
                               trackId: visibleTracks[i].id,
@@ -128,7 +128,7 @@ extension ArrangementViewStateBuildcontentOperation on ArrangementViewState {
                         ? null
                         : () => widget.onToggleTrackFreeze!(
                               trackId: visibleTracks[i].id,
-                              enabled: visibleTracks[i].freeze.enabled,
+                              enabled: visibleTracks[i].freeze.showFreezeChrome,
                               stale: visibleTracks[i].freeze.stale,
                             ),
                     enableDrag: !widget.compact &&

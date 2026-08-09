@@ -3,6 +3,7 @@ part of 'arrangement_view.dart';
 class _AutomationClipBlock extends StatelessWidget {
   const _AutomationClipBlock({
     required this.clip,
+    required this.trackAccent,
     required this.highlighted,
     required this.selected,
     required this.linkActive,
@@ -16,6 +17,7 @@ class _AutomationClipBlock extends StatelessWidget {
   });
 
   final AutomationClipSnapshot clip;
+  final Color trackAccent;
   final bool highlighted;
   final bool selected;
   final bool linkActive;
@@ -44,7 +46,8 @@ class _AutomationClipBlock extends StatelessWidget {
             child: Opacity(
               opacity: highlighted ? 0.35 : 1,
               child: ArrangementClipChrome(
-                renderer: AutomationClipRenderer(clip),
+                renderer:
+                    AutomationClipRenderer(clip, trackAccent: trackAccent),
                 highlighted: highlighted || selected || linkActive,
               ),
             ),

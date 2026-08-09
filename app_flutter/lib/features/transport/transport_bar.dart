@@ -108,13 +108,19 @@ class TransportBar extends StatelessWidget {
         : (followPlayheadEnabled
             ? 'Follow on — tap to disable'
             : 'Follow off — tap to enable');
+    final flushTop = ShellInsets.transportFlushesTop(context);
+    const radius =
+        BorderRadius.all(Radius.circular(TransportBarTheme.panelRadius));
+    const flushTopRadius = BorderRadius.vertical(
+      bottom: Radius.circular(TransportBarTheme.panelRadius),
+    );
     return Container(
       key: const ValueKey('transport-chrome'),
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: TransportBarTheme.background,
-        borderRadius: BorderRadius.circular(TransportBarTheme.panelRadius),
+        borderRadius: flushTop ? flushTopRadius : radius,
         border: Border.all(color: TransportBarTheme.panelBorder),
       ),
       child: SizedBox(

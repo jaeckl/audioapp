@@ -45,7 +45,12 @@ DeviceParameterResult GateDeviceType::setParameter(DeviceSlot& slot,
             return result;
     }
     switch (static_cast<GateParam>(id)) {
-    case GateParam::InputGain: instance.inputGain = clamped; break;
+    case GateParam::InputGain:
+        instance.inputGain = clamped;
+        if (auto* panel = std::get_if<DynamicsInputPanel>(&slot.config.inputPanel)) {
+            panel->trim = clamped;
+        }
+        break;
     case GateParam::Threshold: instance.gateThreshold = clamped; break;
     case GateParam::Attack: instance.gateAttack = clamped; break;
     case GateParam::Release: instance.gateRelease = clamped; break;
@@ -163,9 +168,10 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
 
         }
 
-        // Input panel: new format or legacy fallback
-        const auto inputPanelVar = object->getProperty("inputPanel");
-        if (const auto* ip = inputPanelVar.getDynamicObject()) {
+        // Input panel: new format or legacy fallback. Always install
+        // DynamicsInputPanel — empty/missing panels used to leave EmptyPanel
+        // and abort later via std::get<DynamicsInputPanel>.
+        {
             auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
                 if (!src) return fallback;
                 const auto v = src->getProperty(key);
@@ -173,22 +179,28 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            const std::string type = ip->getProperty("type").toString().toStdString();
-            if (type == "dynamics") {
-                slot.config.inputPanel = DynamicsInputPanel{readFloat(ip, "trim", 1.0f)};
+            float trim = 1.0f;
+            bool set = false;
+            const auto inputPanelVar = object->getProperty("inputPanel");
+            if (const auto* ip = inputPanelVar.getDynamicObject()) {
+                const std::string type = ip->getProperty("type").toString().toStdString();
+                if (type == "dynamics") {
+                    trim = readFloat(ip, "trim", 1.0f);
+                    set = true;
+                }
             }
-        } else if (p) {
-            auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
-                if (!src) return fallback;
-                const auto v = src->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-            const float ig = readFloat(p, "inputGain", -1.0f);
-            if (ig >= 0.0f) {
-                slot.config.inputPanel = DynamicsInputPanel{ig};
+            if (!set && p) {
+                const float ig = readFloat(p, "inputGain", -1.0f);
+                if (ig >= 0.0f) {
+                    trim = ig;
+                    set = true;
+                }
             }
+            slot.config.inputPanel = DynamicsInputPanel{trim};
+        }
+
+        if (!std::holds_alternative<StereoOutputPanel>(slot.config.outputPanel)) {
+            slot.config.outputPanel = StereoOutputPanel{};
         }
 
         // Bypass from root
@@ -215,11 +227,11 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
             };
             GateParams inst;
             inst.inputGain = readFloat(p, "inputGain", 1.0f);
-            inst.gateThreshold = readFloat(p, "gateThreshold", 0.45f);
+            inst.gateThreshold = readFloat(p, "gateThreshold", 0.28f);
             inst.gateAttack = readFloat(p, "gateAttack", 0.25f);
             inst.gateRelease = readFloat(p, "gateRelease", 0.50f);
             inst.gateHold = readFloat(p, "gateHold", 0.20f);
-            inst.gateRange = readFloat(p, "gateRange", 0.0f);
+            inst.gateRange = readFloat(p, "gateRange", 0.30f);
             slot.config.instance = inst;
         }
     }
@@ -236,6 +248,7 @@ uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept
     auto g = [&](std::string_view n, GateParam pid) -> uint16_t {
         return name == n ? static_cast<uint16_t>(pid) : static_cast<uint16_t>(-1);
     };
+    if (auto v = g("inputGain", GateParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateInputGain", GateParam::InputGain); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateThreshold", GateParam::Threshold); v != static_cast<uint16_t>(-1)) return v;
     if (auto v = g("gateAttack", GateParam::Attack); v != static_cast<uint16_t>(-1)) return v;
@@ -247,7 +260,7 @@ uint16_t GateDeviceType::paramIdFromString(std::string_view name) const noexcept
 
 std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcept {
     switch (static_cast<GateParam>(localId)) {
-    case GateParam::InputGain: return "gateInputGain";
+    case GateParam::InputGain: return "inputGain";
     case GateParam::Threshold: return "gateThreshold";
     case GateParam::Attack: return "gateAttack";
     case GateParam::Release: return "gateRelease";
@@ -259,12 +272,12 @@ std::string_view GateDeviceType::paramIdToString(uint16_t localId) const noexcep
 
 std::span<const ParamDescriptor> GateDeviceType::paramDescriptors() const noexcept {
     static constexpr ParamDescriptor kParams[] = {
-        {static_cast<uint16_t>(GateParam::InputGain), "gateInputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.45f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::InputGain), "inputGain", "Input Gain", 1.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Threshold), "gateThreshold", "Threshold", 0.28f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Attack), "gateAttack", "Attack", 0.25f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Release), "gateRelease", "Release", 0.50f, 0.0f, 1.0f, true, true},
         {static_cast<uint16_t>(GateParam::Hold), "gateHold", "Hold", 0.20f, 0.0f, 1.0f, true, true},
-        {static_cast<uint16_t>(GateParam::Range), "gateRange", "Range", 0.0f, 0.0f, 1.0f, true, true},
+        {static_cast<uint16_t>(GateParam::Range), "gateRange", "Range", 0.30f, 0.0f, 1.0f, true, true},
     };
     return kParams;
 }

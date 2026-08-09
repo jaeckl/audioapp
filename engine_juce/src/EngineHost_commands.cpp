@@ -90,15 +90,18 @@ bool EngineHost::setTrackOutput(const std::string& trackId,
 }
 
 bool EngineHost::freezeTrack(const std::string& trackId) {
-    const bool wasPlaying = isPlaying();
-    if (wasPlaying) {
-        setPlaying(false);
-    }
-    const bool ok = project_->freezeTrack(trackId, freezeAssetStore_);
-    if (wasPlaying && ok) {
-        setPlaying(true);
-    }
-    return ok;
+    // The bake renders into its own processor arena, so playback no longer has
+    // to stop for it: the transport keeps running and the render only takes the
+    // project lock for the short prepare and commit steps.
+    return project_->freezeTrackWithoutBlocking(trackId, freezeAssetStore_);
+}
+
+void EngineHost::cancelTrackFreezeRender() {
+    project_->cancelFreezeRender();
+}
+
+bool EngineHost::isTrackFreezeRenderActive() const {
+    return project_->isFreezeRenderActive();
 }
 
 bool EngineHost::unfreezeTrack(const std::string& trackId) {
@@ -106,15 +109,10 @@ bool EngineHost::unfreezeTrack(const std::string& trackId) {
 }
 
 bool EngineHost::refreshTrackFreeze(const std::string& trackId) {
-    const bool wasPlaying = isPlaying();
-    if (wasPlaying) {
-        setPlaying(false);
+    if (!project_->isTrackFrozen(trackId)) {
+        return false;
     }
-    const bool ok = project_->refreshTrackFreeze(trackId, freezeAssetStore_);
-    if (wasPlaying && ok) {
-        setPlaying(true);
-    }
-    return ok;
+    return project_->freezeTrackWithoutBlocking(trackId, freezeAssetStore_);
 }
 
 bool EngineHost::isTrackFrozen(const std::string& trackId) const {
@@ -441,12 +439,15 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
                 wrappedNewPh = std::fmod(newPh, previewMidi_.lengthBeats);
             }
 
-            if (previewMidi_.isPresetPreview) {
+            if (previewMidi_.isPresetPreview ||
+                previewMidi_.renderKind.load(std::memory_order_acquire) !=
+                    PreviewMidiState::PresetRenderKind::None) {
                 // Direct-renderer path. Mirrors how the arrangement playback calls
                 // mix*MidiNotesBlock for the selected device kind, but driven by the
                 // preview playhead instead of the arrangement playhead. No voice
                 // allocator + noteOn/noteOff — the playhead position is the source
                 // of truth and notes are audible iff they straddle the playhead.
+                // Library MIDI clips use SoftSine (never the selected track instrument).
                 const auto kind = previewMidi_.renderKind.load(std::memory_order_acquire);
                 const int noteCount = static_cast<int>(previewMidi_.playbackNotes.size());
                 const MidiPlaybackNote* notes = previewMidi_.playbackNotes.data();
@@ -454,39 +455,11 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
                 const double beatsPerFrame = beatsPerBlock / static_cast<double>(numFrames);
 
                 switch (kind) {
-                    case PreviewMidiState::PresetRenderKind::SubtractiveSynth: {
-                        // Convert MidiPlaybackNote → SubtractiveMidiNoteRegion
-                        // (SubtractiveMidiNoteRegion has an extra noteKey field).
-                        const int n = noteCount > kSubtractiveMaxVoices
-                                      ? kSubtractiveMaxVoices : noteCount;
-                        SubtractiveMidiNoteRegion regions[kSubtractiveMaxVoices];
-                        for (int i = 0; i < n; ++i) {
-                            regions[i] = SubtractiveMidiNoteRegion{
-                                notes[i].pitch,
-                                /* noteKey */         i,
-                                notes[i].clipStartBeat, notes[i].clipLengthBeats,
-                                notes[i].noteStartBeat, notes[i].noteDurationBeats,
-                                notes[i].velocity,
-                            };
-                        }
-                        // Preview-mode params: clamp release tails so a chord
-                        // at the end of the loop doesn't bleed into the first
-                        // chord of the next iteration. The actual arrangement
-                        // playback keeps the long release (it's how synths
-                        // sound), but for a loop preview we want the chords
-                        // to clearly end before the loop wraps.
-                        SubtractiveSynthParams previewParams = previewMidi_.subtractiveParams;
-                        previewParams.ampRelease = std::min(previewParams.ampRelease, 0.10f);
-                        previewParams.filterRelease = std::min(previewParams.filterRelease, 0.10f);
-                        mixSubtractiveMidiNotesBlock(monoOut, numFrames, sampleRate,
-                                                     previewMidi_.bpm, playheadStartBeat,
-                                                     regions, n,
-                                                     previewParams,
-                                                     previewMidi_.subtractiveRuntime);
-                        break;
-                    }
+                    case PreviewMidiState::PresetRenderKind::SoftSine:
                     case PreviewMidiState::PresetRenderKind::Oscillator: {
-                        const float gain = previewMidi_.instrument.gain * kInstrumentOutputGain;
+                        const float gain = kind == PreviewMidiState::PresetRenderKind::SoftSine
+                            ? 0.18f
+                            : (previewMidi_.instrument.gain * kInstrumentOutputGain);
                         for (int frame = 0; frame < numFrames; ++frame) {
                             const double beat = playheadStartBeat
                                               + static_cast<double>(frame) * beatsPerFrame;
@@ -513,6 +486,89 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
                         }
                         break;
                     }
+                    case PreviewMidiState::PresetRenderKind::SubtractiveSynth: {
+                        // Region list = all phrase notes (up to kMaxInstrumentRegions).
+                        // Concurrent voice cap stays inside mixSubtractiveMidiNotesBlock.
+                        const int n = noteCount > kMaxInstrumentRegions
+                                      ? kMaxInstrumentRegions : noteCount;
+                        SubtractiveMidiNoteRegion regions[kMaxInstrumentRegions];
+                        for (int i = 0; i < n; ++i) {
+                            const double contentLen = notes[i].contentLengthBeats > 0.0
+                                ? notes[i].contentLengthBeats
+                                : notes[i].clipLengthBeats;
+                            regions[i] = SubtractiveMidiNoteRegion{
+                                notes[i].pitch,
+                                /* noteKey */         i,
+                                notes[i].clipStartBeat, notes[i].clipLengthBeats,
+                                notes[i].noteStartBeat, notes[i].noteDurationBeats,
+                                notes[i].velocity,
+                                notes[i].loopContent,
+                                contentLen,
+                            };
+                        }
+                        SubtractiveSynthParams previewParams = previewMidi_.subtractiveParams;
+                        previewParams.ampRelease = std::min(previewParams.ampRelease, 0.10f);
+                        previewParams.filterRelease = std::min(previewParams.filterRelease, 0.10f);
+                        mixSubtractiveMidiNotesBlock(monoOut, numFrames, sampleRate,
+                                                     previewMidi_.bpm, playheadStartBeat,
+                                                     regions, n,
+                                                     previewParams,
+                                                     previewMidi_.subtractiveRuntime);
+                        break;
+                    }
+                    case PreviewMidiState::PresetRenderKind::PhaseModSynth: {
+                        const int n = noteCount > kMaxInstrumentRegions
+                                      ? kMaxInstrumentRegions : noteCount;
+                        PhaseModSynthMidiNoteRegion regions[kMaxInstrumentRegions];
+                        for (int i = 0; i < n; ++i) {
+                            const double contentLen = notes[i].contentLengthBeats > 0.0
+                                ? notes[i].contentLengthBeats
+                                : notes[i].clipLengthBeats;
+                            regions[i] = PhaseModSynthMidiNoteRegion{
+                                notes[i].pitch,
+                                /* noteKey */ i,
+                                notes[i].clipStartBeat, notes[i].clipLengthBeats,
+                                notes[i].noteStartBeat, notes[i].noteDurationBeats,
+                                notes[i].velocity,
+                                notes[i].loopContent,
+                                contentLen,
+                            };
+                        }
+                        PhaseModSynthParams previewParams = previewMidi_.phaseModParams;
+                        previewParams.ampRelease = std::min(previewParams.ampRelease, 0.10f);
+                        previewParams.filterRelease = std::min(previewParams.filterRelease, 0.10f);
+                        mixPhaseModMidiNotesBlock(monoOut, numFrames, sampleRate,
+                                                  previewMidi_.bpm, playheadStartBeat,
+                                                  regions, n,
+                                                  previewParams,
+                                                  previewMidi_.phaseModRuntime);
+                        break;
+                    }
+                    case PreviewMidiState::PresetRenderKind::KickGenerator: {
+                        const int n = noteCount > kMaxInstrumentRegions
+                                      ? kMaxInstrumentRegions : noteCount;
+                        KickMidiNoteRegion regions[kMaxInstrumentRegions];
+                        for (int i = 0; i < n; ++i) {
+                            const double contentLen = notes[i].contentLengthBeats > 0.0
+                                ? notes[i].contentLengthBeats
+                                : notes[i].clipLengthBeats;
+                            regions[i] = KickMidiNoteRegion{
+                                notes[i].pitch,
+                                /* noteKey */ i,
+                                notes[i].clipStartBeat, notes[i].clipLengthBeats,
+                                notes[i].noteStartBeat, notes[i].noteDurationBeats,
+                                notes[i].velocity,
+                                notes[i].loopContent,
+                                contentLen,
+                            };
+                        }
+                        mixKickMidiNotesBlock(monoOut, numFrames, sampleRate,
+                                              previewMidi_.bpm, playheadStartBeat,
+                                              regions, n,
+                                              previewMidi_.kickParams,
+                                              previewMidi_.kickRuntime);
+                        break;
+                    }
                     case PreviewMidiState::PresetRenderKind::Sampler: {
                         if (previewMidi_.samplerHasPcm) {
                             const int regionCount = noteCount > kMaxInstrumentRegions
@@ -520,11 +576,16 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
                             SamplerMidiNoteRegion regions[kMaxInstrumentRegions];
                             for (int i = 0; i < regionCount; ++i) {
                                 const auto& src = notes[i];
+                                const double contentLen = src.contentLengthBeats > 0.0
+                                    ? src.contentLengthBeats
+                                    : src.clipLengthBeats;
                                 regions[i] = SamplerMidiNoteRegion{
                                     src.pitch,
                                     src.clipStartBeat, src.clipLengthBeats,
                                     src.noteStartBeat, src.noteDurationBeats,
                                     src.velocity,
+                                    src.loopContent,
+                                    contentLen,
                                 };
                             }
                             mixSamplerMidiNotesBlock(monoOut, numFrames, sampleRate,
@@ -538,93 +599,13 @@ void EngineHost::readPreviewMix(float* leftOut, float* rightOut, int numFrames, 
                     default:
                         break;
                 }
-            } else {
-                // Live-keyboard MIDI preview: drive the existing mixer/fallback
-                // path (voice allocator with noteOn/noteOff triggers). The
-                // fallback oscillator writes directly to L/R with per-voice
-                // panning so chords have actual stereo width.
-                for (size_t i = 0; i < previewMidi_.notes.size(); ++i) {
-                    const auto& note = previewMidi_.notes[i];
-                    const double endBeat = note.startBeat + note.durationBeats;
-
-                    bool startTriggered = false;
-                    if (!didWrap) {
-                        if (note.startBeat >= ph && note.startBeat < newPh) {
-                            startTriggered = true;
-                        }
-                    } else {
-                        if ((note.startBeat >= ph && note.startBeat < previewMidi_.lengthBeats) ||
-                            (note.startBeat >= 0.0 && note.startBeat < wrappedNewPh)) {
-                            startTriggered = true;
-                        }
-                    }
-
-                    if (startTriggered) {
-                        bool playedOnInstrument = project_->noteOn(note.pitch, note.velocity);
-                        if (i < previewMidi_.noteUsingInstrument.size()) {
-                            previewMidi_.noteUsingInstrument[i] = playedOnInstrument;
-                        }
-                        if (!playedOnInstrument) {
-                            fallbackOsc_.noteOn(note.pitch, note.velocity,
-                                                note.startBeat, note.durationBeats);
-                        }
-                    }
-
-                    bool endTriggered = false;
-                    if (!didWrap) {
-                        if (endBeat >= ph && endBeat < newPh) {
-                            endTriggered = true;
-                        }
-                    } else {
-                        // The block spans the loop boundary. A note ending
-                        // anywhere in [ph, lengthBeats) has its endBeat
-                        // crossed by the block (the block reaches the end of
-                        // the loop). Notes ending in [0, wrappedNewPh) also
-                        // have their endBeat crossed (the block reaches
-                        // them after wrapping).
-                        //
-                        // Critically: a note whose endBeat equals lengthBeats
-                        // exactly (the last beat of the loop) must fire
-                        // noteOff here too — otherwise the chord bleeds into
-                        // the next iteration. The previous condition missed
-                        // this because (endBeat < wrappedNewPh) is false when
-                        // endBeat == lengthBeats and wrappedNewPh is small.
-                        if ((endBeat >= ph && endBeat <= previewMidi_.lengthBeats) ||
-                            (endBeat >= 0.0 && endBeat < wrappedNewPh)) {
-                            endTriggered = true;
-                        }
-                    }
-
-                    if (endTriggered) {
-                        bool wasOnInstrument = false;
-                        if (i < previewMidi_.noteUsingInstrument.size()) {
-                            wasOnInstrument = previewMidi_.noteUsingInstrument[i];
-                        }
-                        if (wasOnInstrument) {
-                            project_->noteOff(note.pitch);
-                        } else {
-                            fallbackOsc_.noteOff(note.pitch);
-                        }
-                    }
-                }
-
-                previewMixer_.advanceSampleClock(numFrames);
-                // Write the fallback oscillator directly to L/R with per-voice
-                // panning, bypassing the mono scratch.
-                fallbackOsc_.processBlockStereo(leftOut, rightOut, numFrames, sampleRate, ph);
-                // CRITICAL: still advance the playhead so the next block's
-                // noteOn/noteOff triggers don't refire the same notes (which
-                // would cause a stutter fest).
-                const double wrappedPhLive = previewMidi_.lengthBeats > 0.0
-                    ? std::fmod(newPh, previewMidi_.lengthBeats) : newPh;
-                previewMidi_.playheadBeats.store(wrappedPhLive, std::memory_order_release);
-                // Skip the mono-to-stereo duplication (we already wrote L/R).
-                return;
             }
 
             const double wrappedPh = previewMidi_.lengthBeats > 0.0
                 ? std::fmod(newPh, previewMidi_.lengthBeats) : newPh;
             previewMidi_.playheadBeats.store(wrappedPh, std::memory_order_release);
+            (void)didWrap;
+            (void)wrappedNewPh;
         }
     }
 
@@ -1100,11 +1081,10 @@ void EngineHost::previewSampleRegion(const std::string& sampleId, float start,
 }
 
 void EngineHost::previewMidi(const std::vector<MidiNoteState>& notes, double lengthBeats, int bpm, double startBeat, bool loop) {
-    // Stop any previous preview
+    // Soft-sine audition of clip notes — never hijacks the selected track instrument.
     allNotesOff();
     fallbackOsc_.allNotesOff();
 
-    // Store MIDI state
     previewMidi_.notes = notes;
     previewMidi_.noteUsingInstrument.assign(notes.size(), false);
     previewMidi_.lengthBeats = lengthBeats;
@@ -1112,6 +1092,27 @@ void EngineHost::previewMidi(const std::vector<MidiNoteState>& notes, double len
     previewMidi_.playheadBeats.store(startBeat, std::memory_order_release);
     previewMidi_.isPresetPreview = false;
     previewMidi_.loop = loop;
+
+    previewMidi_.playbackNotes.clear();
+    previewMidi_.playbackNotes.reserve(notes.size());
+    for (const auto& n : notes) {
+        // contentLengthBeats must match the virtual clip length. Leaving the
+        // struct default (4.0) mutes any note after beat 4 while the playhead
+        // keeps walking — classic "first bar only" preset-preview bug.
+        previewMidi_.playbackNotes.push_back(MidiPlaybackNote{
+            n.pitch,
+            /* clipStartBeat */ 0.0,
+            /* clipLengthBeats */ lengthBeats,
+            n.startBeat,
+            n.durationBeats,
+            n.velocity,
+            /* loopContent */ false,
+            /* contentLengthBeats */ lengthBeats,
+        });
+    }
+    previewMidi_.oscillatorPhase = 0.0f;
+    previewMidi_.renderKind.store(PreviewMidiState::PresetRenderKind::SoftSine,
+                                  std::memory_order_release);
     previewMidi_.active.store(true, std::memory_order_release);
 
     ensureAudioOutput();
@@ -1162,6 +1163,8 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
             /* noteStartBeat */    n.startBeat,
             /* noteDurationBeats*/ n.durationBeats,
             /* velocity */         n.velocity,
+            /* loopContent */      false,
+            /* contentLengthBeats */ lengthBeats,
         });
     }
 
@@ -1169,6 +1172,11 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
     std::memset(previewMidi_.subtractiveRuntime.voices, 0, sizeof(previewMidi_.subtractiveRuntime.voices));
     previewMidi_.subtractiveRuntime.stealIndex = 0;
     previewMidi_.subtractiveParams = SubtractiveSynthParams{};
+    std::memset(previewMidi_.phaseModRuntime.voices, 0, sizeof(previewMidi_.phaseModRuntime.voices));
+    previewMidi_.phaseModRuntime.stealIndex = 0;
+    previewMidi_.phaseModParams = PhaseModSynthParams{};
+    previewMidi_.kickRuntime = KickGeneratorRuntime{};
+    previewMidi_.kickParams = KickGeneratorParams{};
     previewMidi_.oscillatorPhase = 0.0f;
     std::memset(previewMidi_.samplerFilterStates, 0, sizeof(previewMidi_.samplerFilterStates));
     previewMidi_.samplerParams = SamplerInstrumentPlayback{};
@@ -1186,12 +1194,29 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
             "previewPreset[ctrl] -> SubtractiveSynth outputGain=%.3f inst.gain=%.3f "
             "ampSustain=%.3f ampRelease=%.3f filterCutoff=%.3f",
             std::get<StereoOutputPanel>(slot.config.outputPanel).gain, inst.gain, inst.ampSustain, inst.ampRelease, inst.filterCutoff);
+    } else if (kind == DeviceNodeKind::BassSynth) {
+        const auto& inst = std::get<BassSynthModel>(slot.config.instance);
+        previewMidi_.subtractiveParams = inst.toPlaybackParams();
+        previewMidi_.subtractiveParams.gain =
+            std::get<StereoOutputPanel>(slot.config.outputPanel).gain;
+        previewMidi_.renderKind.store(Kind::SubtractiveSynth, std::memory_order_release);
+        AUDIOAPP_LOG(
+            "previewPreset[ctrl] -> BassSynth (via subtractive renderer) outputGain=%.3f "
+            "filterCutoff=%.3f",
+            previewMidi_.subtractiveParams.gain,
+            previewMidi_.subtractiveParams.filterCutoff);
+    } else if (kind == DeviceNodeKind::PhaseModSynth) {
+        const auto& inst = std::get<PhaseModSynthModel>(slot.config.instance);
+        previewMidi_.phaseModParams = inst.toPlaybackParams();
+        previewMidi_.renderKind.store(Kind::PhaseModSynth, std::memory_order_release);
+        AUDIOAPP_LOG("previewPreset[ctrl] -> PhaseModSynth");
+    } else if (kind == DeviceNodeKind::KickGenerator) {
+        previewMidi_.kickParams = std::get<KickGeneratorParams>(slot.config.instance);
+        previewMidi_.renderKind.store(Kind::KickGenerator, std::memory_order_release);
+        AUDIOAPP_LOG("previewPreset[ctrl] -> KickGenerator");
     } else if (kind == DeviceNodeKind::Oscillator) {
         const auto& inst = std::get<OscillatorParams>(slot.config.instance);
-        // Mirror the oscillator arrangement path: a sine at the active note's pitch,
-        // gain = output-panel gain. The OscillatorParams.frequencyHz is overridden per-frame
-        // by midiActiveFrequencyHz(notes, noteCount, playhead, idleHz).
-        (void)inst; // oscillator is a single-voice sine — no per-param shape to apply.
+        (void)inst;
         previewMidi_.renderKind.store(Kind::Oscillator, std::memory_order_release);
         AUDIOAPP_LOG("previewPreset[ctrl] -> Oscillator outputGain=%.3f",
                      std::get<StereoOutputPanel>(slot.config.outputPanel).gain);
@@ -1237,8 +1262,7 @@ void EngineHost::previewPreset(const std::string& deviceType, const std::vector<
             previewMidi_.samplerParams.rootPitch,
             std::get<StereoOutputPanel>(slot.config.outputPanel).gain);
     } else {
-        // Effects (delay, reverb, …) and unknown devices don't have an instrument
-        // renderer — silent is the correct fallback for preset preview.
+        // Effects / unknown — silent (no fake sine for device presets).
         previewMidi_.renderKind.store(Kind::None, std::memory_order_release);
         AUDIOAPP_LOG("previewPreset[ctrl] -> None (no instrument renderer for %s)",
                      deviceType.c_str());

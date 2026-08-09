@@ -8,6 +8,10 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
   final Map<String, Set<int>> _splitBranchExpanded = {};
   final Map<String, Set<int>> _mbBandExpanded = {};
   final Map<String, Set<int>> _slBandExpanded = {};
+  /// Updated without setState — slot opacity listens via ValueNotifier.
+  final ValueNotifier<String?> _draggingDeviceId = ValueNotifier<String?>(null);
+  Timer? _dragAutoScrollTimer;
+  Offset? _dragAutoScrollPos;
 
   bool _isSynth(String type) =>
       DeviceCapabilities.virtualStripHosts.contains(type) ||
@@ -91,6 +95,8 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
 
   @override
   void dispose() {
+    _stopDragAutoScroll();
+    _draggingDeviceId.dispose();
     _ownedScrollController?.dispose();
     widget.scrollController?.removeListener(_scheduleMeterReport);
     super.dispose();
@@ -148,12 +154,20 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
 
   DeviceDragData? _reorderDragData(DeviceSnapshot device, int visibleIndex) {
     if (!_deviceReorderEnabled) return null;
+    final type = device.type;
+    final width = DeviceStripMetrics.toolRailWidth +
+        DeviceStripMetrics.inputPanelWidthFor(type) +
+        DeviceStripMetrics.designWidthFor(type) +
+        DeviceStripMetrics.outputPanelWidthFor(type);
     return DeviceDragData(
       trackId: widget.track.id,
       deviceId: device.id,
-      deviceName: DeviceStripTheme.labelForDeviceType(device.type),
-      accentColor: DeviceStripTheme.accentForDeviceType(device.type),
+      deviceName: DeviceStripTheme.labelForDeviceType(type),
+      deviceType: type,
+      accentColor: DeviceStripTheme.accentForDeviceType(type),
       visibleIndex: visibleIndex,
+      feedbackWidth: width,
+      feedbackHeight: _rowHeight - 12,
     );
   }
 
@@ -170,9 +184,17 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
     return DeviceReorderDropTarget(
       track: widget.track,
       visibleInsertAfterIndex: visibleIndex,
-      onMove: widget.onMoveDevice!,
+      onMove: _onReorderMove,
       child: separator,
     );
+  }
+
+  /// Clear gray-out before parent rebuild — drop can dispose Draggable and
+  /// skip [onDragEnd], leaving [_draggingDeviceId] stuck.
+  Future<void> _onReorderMove(String deviceId, int toIndex) async {
+    _stopDragAutoScroll();
+    _draggingDeviceId.value = null;
+    await widget.onMoveDevice!(deviceId, toIndex);
   }
 
   SampleLibraryEntrySnapshot? _sampleFor(DeviceSnapshot device) {
@@ -217,8 +239,8 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
               DeviceReorderDropTarget(
                 track: widget.track,
                 visibleInsertAfterIndex: -1,
-                onMove: widget.onMoveDevice!,
-                child: const SizedBox(width: 8),
+                onMove: _onReorderMove,
+                child: const SizedBox(width: 24),
               ),
             if (devices.isEmpty)
               _sampleDropTarget(
@@ -394,6 +416,15 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                             devices[i] as DrumMachineDeviceSnapshot, note);
                       },
                       reorderDragData: _reorderDragData(devices[i], i),
+                      draggingDeviceIdListenable: _draggingDeviceId,
+                      onReorderDragStarted: () {
+                        _draggingDeviceId.value = devices[i].id;
+                      },
+                      onReorderDragUpdate: _onReorderDragPointer,
+                      onReorderDragEnded: () {
+                        _stopDragAutoScroll();
+                        _draggingDeviceId.value = null;
+                      },
                     ),
                   ),
                 ),
@@ -409,9 +440,10 @@ class _DeviceChainRowState extends State<DeviceChainRow> {
                   child: _deviceSeparator(i, devices[i]),
                 ),
               ],
-          ],
+            ],
+          ),
         ),
-      ),
     );
   }
 }
+

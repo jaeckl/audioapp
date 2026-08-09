@@ -1,14 +1,37 @@
 part 'phase_mod_synth_presets_phase_mod_presets_group_1.dart';
 part 'phase_mod_synth_presets_phase_mod_presets_group_2.dart';
 part 'phase_mod_synth_presets_phase_mod_presets_group_3.dart';
+part 'phase_mod_synth_presets_phase_mod_presets_group_4.dart';
+part 'phase_mod_synth_presets_phase_mod_presets_group_5.dart';
 
 /// Factory preset bundles for phase_mod_synth devices.
 ///
-/// Each preset is a map of parameter_id → value.
-/// Only values that differ from defaults are included.
+/// Each preset is a map of parameter_id → value (full patch over defaults).
 abstract final class PhaseModSynthPresets {
   static Map<String, dynamic> _patch(Map<String, dynamic> overrides) {
     return {..._defaults, ...overrides};
+  }
+
+  /// Full `applyDevicePreset` document, or null if unknown.
+  static Map<String, dynamic>? documentFor(String presetId) {
+    final params = presets[presetId];
+    if (params == null) return null;
+    return {
+      'presetVersion': 2,
+      'device': {
+        'id': 'factory',
+        'type': 'phase_mod_synth',
+        'bypass': false,
+        'parameters': Map<String, dynamic>.from(params),
+        'outputPanel': {'type': 'stereo', 'gain': 1.0, 'pan': 0.5},
+        'inputPanel': {'type': 'empty'},
+        'audioFxDevices': <dynamic>[],
+        'noteFxDevices': <dynamic>[],
+      },
+      'automationClips': <dynamic>[],
+      'modulators': <dynamic>[],
+      'modEdges': <dynamic>[],
+    };
   }
 
   static const Map<String, dynamic> _defaults = {
@@ -93,5 +116,7 @@ abstract final class PhaseModSynthPresets {
     ..._phase_mod_presetsGroup1,
     ..._phase_mod_presetsGroup2,
     ..._phase_mod_presetsGroup3,
+    ..._phase_mod_presetsGroup4,
+    ..._phase_mod_presetsGroup5,
   };
 }

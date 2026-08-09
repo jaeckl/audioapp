@@ -315,6 +315,19 @@ enum class WavetableParam : uint16_t {
     AmpDecay     = 15,
     AmpSustain   = 16,
     AmpRelease   = 17,
+    WtSubLevel   = 18,
+    WtSubOctave  = 19,
+    WtNoiseLevel = 20,
+    WtNoiseColor = 21,
+    WtWarp       = 22,
+    WtWarpMode   = 23, // 0=Bend+ 1=Bend- 2=Sync 3=PWM 4=Mirror
+    WtPhase      = 24,
+    WtPhaseRandom = 25,
+    WtSubShape   = 26, // 0=sine 1=tri 2=square
+    FilterDrive  = 27,
+    WtFeedback   = 28,
+    WtStereoSpread = 29,
+    WtGlide      = 30,
 };
 
 // ─── Frequency FX suite (added for Filter / 4-Band EQ / Ring Mod) ────────────

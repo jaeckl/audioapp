@@ -9,7 +9,8 @@
 #include "audioapp/WavetableBank.hpp"
 #include "audioapp/SamplePlaybackAlgorithm.hpp"
 #include "audioapp/SubtractiveSynthAlgorithm.hpp"
-#include "audioapp/SamplePlaybackAlgorithm.hpp"
+#include "audioapp/PhaseModSynthAlgorithm.hpp"
+#include "audioapp/KickAlgorithm.hpp"
 #include "audioapp/SamplerFilter.hpp"
 #include "audioapp/commands/CommandRegistry.hpp"
 
@@ -57,9 +58,14 @@ public:
     bool setTrackMuted(const std::string& trackId, bool muted);
     bool setTrackSoloed(const std::string& trackId, bool soloed);
     bool setTrackOutput(const std::string& trackId, const std::string& outputTarget);
+    /// Bakes a track on the calling thread without stopping playback. Returns
+    /// false if cancelled or if the project changed while the render ran.
     bool freezeTrack(const std::string& trackId);
     bool unfreezeTrack(const std::string& trackId);
     bool refreshTrackFreeze(const std::string& trackId);
+    /// Asks an in-flight bake to stop, so an edit is never queued behind it.
+    void cancelTrackFreezeRender();
+    bool isTrackFreezeRenderActive() const;
     bool isTrackFrozen(const std::string& trackId) const;
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,
@@ -369,20 +375,31 @@ private:
         //  midiActiveFrequencyHz + addSineBlock). All runtimes are written on the
         // control thread (previewPreset) and read on the audio thread (readPreviewMix).
 
-        /// Which direct renderer the preset preview should use.
+        /// Which direct renderer the preset / MIDI-clip preview should use.
         enum class PresetRenderKind : uint8_t {
             None = 0,
+            SoftSine,          ///< Library MIDI clips — timbre-agnostic audition
             Oscillator,
             Sampler,
             SubtractiveSynth,
+            PhaseModSynth,
+            KickGenerator,
         };
         std::atomic<PresetRenderKind> renderKind{PresetRenderKind::None};
 
-        /// SubtractiveSynth preset params (built from DeviceRegistry + preset params).
+        /// SubtractiveSynth / BassSynth preset params.
         SubtractiveSynthParams subtractiveParams{};
         SubtractiveSynthRuntime subtractiveRuntime{};
 
-        /// Oscillator: only frequency + phase continuity.
+        /// Phase-mod synth preview.
+        PhaseModSynthParams phaseModParams{};
+        PhaseModSynthRuntime phaseModRuntime{};
+
+        /// Kick generator preview.
+        KickGeneratorParams kickParams{};
+        KickGeneratorRuntime kickRuntime{};
+
+        /// Oscillator / SoftSine: phase continuity.
         float oscillatorPhase = 0.0f;
 
         /// Sampler preset params + filter state.
@@ -390,9 +407,8 @@ private:
         BiquadState samplerFilterStates[kMaxInstrumentRegions]{};
         bool samplerHasPcm = false;
 
-        /// All preset-preview notes are projected onto a single "virtual clip" that
-        /// starts at beat 0 and loops over lengthBeats. This matches how the arrangement
-        /// renderer expects note regions (clipStartBeat / clipLengthBeats / noteStartBeat).
+        /// All playhead-straddle notes are projected onto a single "virtual clip"
+        /// that starts at beat 0 and loops over lengthBeats.
         std::vector<MidiPlaybackNote> playbackNotes;
     };
 

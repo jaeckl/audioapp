@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 #include "audioapp/AutomationTypes.hpp"
 #include "audioapp/SamplerFilter.hpp"
@@ -22,6 +23,15 @@ struct WavetableSynthParams {
     float wtFine = 0.5f;
     float wtUnison = 0.0f;
     float wtDetune = 0.0f;
+    float wtSubLevel = 0.0f;
+    int wtSubOctave = 1; // 0=-2oct, 1=-1oct, 2=0oct
+    float wtNoiseLevel = 0.0f;
+    float wtNoiseColor = 0.5f;
+    float wtWarp = 0.0f;
+    int wtWarpMode = 0; // 0=Bend+ 1=Bend- 2=Sync 3=PWM 4=Mirror
+    float wtPhase = 0.0f;
+    float wtPhaseRandom = 0.0f;
+    int wtSubShape = 0; // 0=sine 1=tri 2=square
     int filterMode = 0;
     float filterCutoff = 1.0f;
     float filterResonance = 0.0f;
@@ -30,10 +40,14 @@ struct WavetableSynthParams {
     float filterDecay = 0.3f;
     float filterSustain = 0.5f;
     float filterRelease = 0.5f;
+    float filterDrive = 0.0f;
     float ampAttack = 0.01f;
     float ampDecay = 0.2f;
     float ampSustain = 0.8f;
     float ampRelease = 0.3f;
+    float wtFeedback = 0.0f;
+    float wtStereoSpread = 0.0f;
+    float wtGlide = 0.0f;
 };
 
 struct WavetableSynthParamsPlayback {
@@ -45,6 +59,15 @@ struct WavetableSynthParamsPlayback {
     float wtFine = 0.5f;
     float wtUnison = 0.0f;
     float wtDetune = 0.0f;
+    float wtSubLevel = 0.0f;
+    int wtSubOctave = 1;
+    float wtNoiseLevel = 0.0f;
+    float wtNoiseColor = 0.5f;
+    float wtWarp = 0.0f;
+    int wtWarpMode = 0;
+    float wtPhase = 0.0f;
+    float wtPhaseRandom = 0.0f;
+    int wtSubShape = 0;
     int filterMode = 0;
     float filterCutoff = 1.0f;
     float filterResonance = 0.0f;
@@ -53,10 +76,14 @@ struct WavetableSynthParamsPlayback {
     float filterDecay = 0.3f;
     float filterSustain = 0.5f;
     float filterRelease = 0.5f;
+    float filterDrive = 0.0f;
     float ampAttack = 0.01f;
     float ampDecay = 0.2f;
     float ampSustain = 0.8f;
     float ampRelease = 0.3f;
+    float wtFeedback = 0.0f;
+    float wtStereoSpread = 0.0f;
+    float wtGlide = 0.0f;
 };
 
 /// Strip control-thread asset identity when copying parameters in realtime.
@@ -73,6 +100,15 @@ inline WavetableSynthParamsPlayback wavetableRealtimeParams(
     out.wtFine = source.wtFine;
     out.wtUnison = source.wtUnison;
     out.wtDetune = source.wtDetune;
+    out.wtSubLevel = source.wtSubLevel;
+    out.wtSubOctave = source.wtSubOctave;
+    out.wtNoiseLevel = source.wtNoiseLevel;
+    out.wtNoiseColor = source.wtNoiseColor;
+    out.wtWarp = source.wtWarp;
+    out.wtWarpMode = source.wtWarpMode;
+    out.wtPhase = source.wtPhase;
+    out.wtPhaseRandom = source.wtPhaseRandom;
+    out.wtSubShape = source.wtSubShape;
     out.filterMode = source.filterMode;
     out.filterCutoff = source.filterCutoff;
     out.filterResonance = source.filterResonance;
@@ -81,10 +117,14 @@ inline WavetableSynthParamsPlayback wavetableRealtimeParams(
     out.filterDecay = source.filterDecay;
     out.filterSustain = source.filterSustain;
     out.filterRelease = source.filterRelease;
+    out.filterDrive = source.filterDrive;
     out.ampAttack = source.ampAttack;
     out.ampDecay = source.ampDecay;
     out.ampSustain = source.ampSustain;
     out.ampRelease = source.ampRelease;
+    out.wtFeedback = source.wtFeedback;
+    out.wtStereoSpread = source.wtStereoSpread;
+    out.wtGlide = source.wtGlide;
     return out;
 }
 
@@ -116,6 +156,10 @@ struct WavetableVoiceRuntime {
     float smoothCutoffHz = -1.0f;
     BiquadState filterState{};
     BiquadState filterState2{};
+    float subPhase = 0.0f;
+    uint32_t noiseSeed = 0xA341316Cu;
+    float noiseLp = 0.0f;
+    float feedbackSample = 0.0f;
 };
 
 struct WavetableSynthRuntime {
@@ -127,6 +171,10 @@ struct WavetableSynthRuntime {
     uint8_t wtPositionSmoothingInitialized = 0;
     /// Index into WavetableBank (-1 = default)
     int wavetableIndex = -1;
+    /// Haas delay for stereo-spread post-mix (~0.7 ms @ 48 kHz → 34 samples).
+    static constexpr int kSpreadDelayLen = 48;
+    float spreadDelay[kSpreadDelayLen]{};
+    int spreadWrite = 0;
 };
 
 struct InstrumentModulationContext;

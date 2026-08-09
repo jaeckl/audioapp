@@ -16,6 +16,8 @@ import 'package:integration_test/integration_test.dart';
 ///   LAB_SCENARIO=light|parallel|serial_chain|subtractive|wavetable|phasemod|granular
 ///   LAB_PLAY_SECONDS=20
 ///   LAB_SETTLE_SECONDS=2
+///   LAB_SAMPLE_MS=500
+///   LAB_RUNS=1  (repeat each profile N times; emit one result row per run)
 const _reportPrefix = '@@AUDIO_PROFILE_LAB@@';
 
 const _labChordNotes = [
@@ -220,6 +222,7 @@ void main() {
         int.fromEnvironment('LAB_SETTLE_SECONDS', defaultValue: 2);
     const sampleIntervalMs =
         int.fromEnvironment('LAB_SAMPLE_MS', defaultValue: 500);
+    const runs = int.fromEnvironment('LAB_RUNS', defaultValue: 1);
 
     final bridge = EngineBridge();
     final ping = await bridge.ping();
@@ -236,61 +239,65 @@ void main() {
 
     final startedAt = DateTime.now().toUtc().toIso8601String();
     final results = <Map<String, dynamic>>[];
+    final runCount = runs < 1 ? 1 : runs;
 
     for (final profile in profiles) {
-      final configured = await bridge.configureAudioEngine(profile, custom);
-      await Future<void>.delayed(Duration(seconds: settleSeconds));
+      for (var runIndex = 0; runIndex < runCount; runIndex++) {
+        final configured = await bridge.configureAudioEngine(profile, custom);
+        await Future<void>.delayed(Duration(seconds: settleSeconds));
 
-      await bridge.play();
-      final playStarted = DateTime.now();
-      final samples = <Map<String, dynamic>>[];
+        await bridge.play();
+        final playStarted = DateTime.now();
+        final samples = <Map<String, dynamic>>[];
 
-      while (DateTime.now().difference(playStarted).inSeconds < playSeconds) {
-        await Future<void>.delayed(Duration(milliseconds: sampleIntervalMs));
-        final status = await bridge.getAudioEngineStatus();
-        final deadline = _deadlineMicros(status);
-        samples.add({
-          'elapsedMs': DateTime.now().difference(playStarted).inMilliseconds,
-          'xRunCount': status.xRunCount,
-          'callbackOverruns': status.callbackOverruns,
-          'maxCallbackMicros': status.maxCallbackMicros,
-          'deadlineMicros': deadline,
-          'headroomMicros': deadline - status.maxCallbackMicros,
-          'headroomRatio': deadline > 0
-              ? (deadline - status.maxCallbackMicros) / deadline
-              : 0.0,
+        while (DateTime.now().difference(playStarted).inSeconds < playSeconds) {
+          await Future<void>.delayed(Duration(milliseconds: sampleIntervalMs));
+          final status = await bridge.getAudioEngineStatus();
+          final deadline = _deadlineMicros(status);
+          samples.add({
+            'elapsedMs': DateTime.now().difference(playStarted).inMilliseconds,
+            'xRunCount': status.xRunCount,
+            'callbackOverruns': status.callbackOverruns,
+            'maxCallbackMicros': status.maxCallbackMicros,
+            'deadlineMicros': deadline,
+            'headroomMicros': deadline - status.maxCallbackMicros,
+            'headroomRatio': deadline > 0
+                ? (deadline - status.maxCallbackMicros) / deadline
+                : 0.0,
+          });
+        }
+
+        await bridge.stop();
+        final finalStatus = await bridge.getAudioEngineStatus();
+        final deadline = _deadlineMicros(finalStatus);
+
+        results.add({
+          'profile': profile.storageValue,
+          'runIndex': runIndex,
+          'configured': {
+            'sampleRate': configured.sampleRate,
+            'framesPerCallback': configured.framesPerCallback,
+            'bufferSizeFrames': configured.bufferSizeFrames,
+            'bufferCapacityFrames': configured.bufferCapacityFrames,
+            'framesPerBurst': configured.framesPerBurst,
+            'performanceMode': configured.performanceMode,
+            'sharingMode': configured.sharingMode,
+          },
+          'playSeconds': playSeconds,
+          'samples': samples,
+          'final': {
+            'xRunCount': finalStatus.xRunCount,
+            'callbackOverruns': finalStatus.callbackOverruns,
+            'maxCallbackMicros': finalStatus.maxCallbackMicros,
+            'deadlineMicros': deadline,
+            'headroomMicros': deadline - finalStatus.maxCallbackMicros,
+            'headroomRatio': deadline > 0
+                ? (deadline - finalStatus.maxCallbackMicros) / deadline
+                : 0.0,
+            'streamOpen': finalStatus.streamOpen,
+          },
         });
       }
-
-      await bridge.stop();
-      final finalStatus = await bridge.getAudioEngineStatus();
-      final deadline = _deadlineMicros(finalStatus);
-
-      results.add({
-        'profile': profile.storageValue,
-        'configured': {
-          'sampleRate': configured.sampleRate,
-          'framesPerCallback': configured.framesPerCallback,
-          'bufferSizeFrames': configured.bufferSizeFrames,
-          'bufferCapacityFrames': configured.bufferCapacityFrames,
-          'framesPerBurst': configured.framesPerBurst,
-          'performanceMode': configured.performanceMode,
-          'sharingMode': configured.sharingMode,
-        },
-        'playSeconds': playSeconds,
-        'samples': samples,
-        'final': {
-          'xRunCount': finalStatus.xRunCount,
-          'callbackOverruns': finalStatus.callbackOverruns,
-          'maxCallbackMicros': finalStatus.maxCallbackMicros,
-          'deadlineMicros': deadline,
-          'headroomMicros': deadline - finalStatus.maxCallbackMicros,
-          'headroomRatio': deadline > 0
-              ? (deadline - finalStatus.maxCallbackMicros) / deadline
-              : 0.0,
-          'streamOpen': finalStatus.streamOpen,
-        },
-      });
     }
 
     final report = {
@@ -300,10 +307,12 @@ void main() {
       'scenario': scenario,
       'playSeconds': playSeconds,
       'sampleIntervalMs': sampleIntervalMs,
+      'runs': runCount,
       'results': results,
     };
 
     // Host-side scripts scrape this sentinel from flutter test output.
+    // ignore: avoid_print
     print('$_reportPrefix${jsonEncode(report)}');
-  }, timeout: const Timeout(Duration(minutes: 10)));
+  }, timeout: const Timeout(Duration(minutes: 90)));
 }
