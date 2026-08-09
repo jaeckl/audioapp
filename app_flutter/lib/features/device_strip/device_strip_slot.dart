@@ -211,6 +211,10 @@ class DeviceStripSlot extends StatefulWidget {
     this.spectralLoudExpandedBands = const {},
     this.onToggleSpectralLoudBand,
     this.reorderDragData,
+    this.draggingDeviceIdListenable,
+    this.onReorderDragStarted,
+    this.onReorderDragUpdate,
+    this.onReorderDragEnded,
   });
 
   final TrackSnapshot track;
@@ -282,6 +286,10 @@ class DeviceStripSlot extends StatefulWidget {
   final Set<int> spectralLoudExpandedBands;
   final void Function(int bandIndex)? onToggleSpectralLoudBand;
   final DeviceDragData? reorderDragData;
+  final ValueListenable<String?>? draggingDeviceIdListenable;
+  final VoidCallback? onReorderDragStarted;
+  final ValueChanged<Offset>? onReorderDragUpdate;
+  final VoidCallback? onReorderDragEnded;
 
   @override
   State<DeviceStripSlot> createState() => _DeviceStripSlotState();

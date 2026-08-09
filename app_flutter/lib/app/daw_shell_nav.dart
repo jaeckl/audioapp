@@ -104,21 +104,12 @@ class DawShellNav extends StatelessWidget {
 
 int _effectiveRotation(BuildContext context) {
   final orientation = MediaQuery.orientationOf(context);
-  final viewPadding = MediaQuery.viewPaddingOf(context);
 
   if (orientation == Orientation.portrait) {
-    // Portrait always uses the logical bottom bar. Do not infer rotation from
-    // viewPadding — status bar/notch makes top larger than bottom on most devices.
+    // Portrait always uses the logical bottom bar.
     return 0;
   }
 
-  // In landscape the portrait-bottom home/gesture inset moves to left or right.
-  if (viewPadding.left > viewPadding.right + 4) {
-    return 1;
-  }
-  if (viewPadding.right > viewPadding.left + 4) {
-    return 3;
-  }
-  // Tests and devices without side insets: default to bottom → left (clockwise).
-  return 1;
+  // Landscape: pin the shell nav to the right edge.
+  return 3;
 }

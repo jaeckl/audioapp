@@ -549,9 +549,14 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         deviceHasPerNoteModEdges(nodeId, di, ctx.modEdges, ctx.modEdgeCount,
                                  ctx.modulators, ctx.lfoCount);
 
+    auto params = std::get<SubtractiveSynthParams>(*ctx.modulatedParams);
+    int voiceLimit =
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices;
+    applySubtractiveRealtimeCaps(params, block.numSamples, voiceLimit);
+
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
-        std::get<SubtractiveSynthParams>(*ctx.modulatedParams), runtime,
+        params, runtime,
         hasAuto ? ctx.automationClips : nullptr, hasAuto ? ctx.automationClipCount : 0,
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
@@ -559,7 +564,7 @@ void SubtractiveSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) 
         hasMod ? &di : nullptr,
         nullptr,
         instModPtr,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : kSubtractiveMaxVoices,
+        voiceLimit,
         ctx.voicePolicy.retriggerReplacesVoice,
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId,
@@ -606,9 +611,19 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
                                  ctx.modulators, ctx.lfoCount);
 
     // Bass native polyphony is mono; treat unset policy as 1 replacing voice.
+    auto params = std::get<SubtractiveSynthParams>(*ctx.modulatedParams);
+    int voiceLimit = ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : 1;
+    const bool retrigger =
+        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.retriggerReplacesVoice : true;
+    // Keep bass mono lean; still kill filter-FM / excess unison on small callbacks.
+    applySubtractiveRealtimeCaps(params, block.numSamples, voiceLimit);
+    if (ctx.voicePolicy.maxVoices <= 0 && voiceLimit > 1) {
+        voiceLimit = 1;
+    }
+
     mixSubtractiveMidiNotesBlock(ctx.scratch.scratch, block.numSamples, ctx.sampleRate, ctx.bpm, ctx.playheadBeat,
         ctx.scratch.subtractiveRegions, regionCount,
-        std::get<SubtractiveSynthParams>(*ctx.modulatedParams), runtime,
+        params, runtime,
         hasAuto ? ctx.automationClips : nullptr, hasAuto ? ctx.automationClipCount : 0,
         hasAuto ? &di : nullptr,
         hasMod ? ctx.lfoValues : nullptr, hasMod ? ctx.lfoCount : 0, hasMod ? block.numSamples : 0,
@@ -616,8 +631,8 @@ void BassSynthProcessor::process(AudioBlock& block, ProcessContext& ctx) noexcep
         hasMod ? &di : nullptr,
         nullptr,
         instModPtr,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.maxVoices : 1,
-        ctx.voicePolicy.maxVoices > 0 ? ctx.voicePolicy.retriggerReplacesVoice : true,
+        voiceLimit,
+        retrigger,
         bakePanelGain ? &ctx.commonControls : nullptr,
         nodeId,
         nodeId);

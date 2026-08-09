@@ -168,9 +168,10 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
 
         }
 
-        // Input panel: new format or legacy fallback
-        const auto inputPanelVar = object->getProperty("inputPanel");
-        if (const auto* ip = inputPanelVar.getDynamicObject()) {
+        // Input panel: new format or legacy fallback. Always install
+        // DynamicsInputPanel — empty/missing panels used to leave EmptyPanel
+        // and abort later via std::get<DynamicsInputPanel>.
+        {
             auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
                 if (!src) return fallback;
                 const auto v = src->getProperty(key);
@@ -178,22 +179,28 @@ DeviceSlot GateDeviceType::varToSlot(const juce::var& obj) const {
                     return static_cast<float>(static_cast<double>(v));
                 return fallback;
             };
-            const std::string type = ip->getProperty("type").toString().toStdString();
-            if (type == "dynamics") {
-                slot.config.inputPanel = DynamicsInputPanel{readFloat(ip, "trim", 1.0f)};
+            float trim = 1.0f;
+            bool set = false;
+            const auto inputPanelVar = object->getProperty("inputPanel");
+            if (const auto* ip = inputPanelVar.getDynamicObject()) {
+                const std::string type = ip->getProperty("type").toString().toStdString();
+                if (type == "dynamics") {
+                    trim = readFloat(ip, "trim", 1.0f);
+                    set = true;
+                }
             }
-        } else if (p) {
-            auto readFloat = [](const juce::DynamicObject* src, const char* key, float fallback) -> float {
-                if (!src) return fallback;
-                const auto v = src->getProperty(key);
-                if (v.isDouble() || v.isInt() || v.isInt64())
-                    return static_cast<float>(static_cast<double>(v));
-                return fallback;
-            };
-            const float ig = readFloat(p, "inputGain", -1.0f);
-            if (ig >= 0.0f) {
-                slot.config.inputPanel = DynamicsInputPanel{ig};
+            if (!set && p) {
+                const float ig = readFloat(p, "inputGain", -1.0f);
+                if (ig >= 0.0f) {
+                    trim = ig;
+                    set = true;
+                }
             }
+            slot.config.inputPanel = DynamicsInputPanel{trim};
+        }
+
+        if (!std::holds_alternative<StereoOutputPanel>(slot.config.outputPanel)) {
+            slot.config.outputPanel = StereoOutputPanel{};
         }
 
         // Bypass from root

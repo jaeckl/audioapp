@@ -8,7 +8,10 @@ part 'piano_roll_context_strip_segment_tab.dart';
 part 'piano_roll_context_strip_context_chip.dart';
 part 'piano_roll_context_strip_mode_chip.dart';
 
-/// Secondary chrome row: mode segment + context chips (+ optional trailing).
+/// Top chrome for the MIDI editor.
+///
+/// Portrait: compact Notes|Comp + cutout-height band.
+/// Landscape: full mode segment (Notes/Harmonic/…/Comp) at fixed strip height.
 class PianoRollContextStrip extends StatelessWidget {
   const PianoRollContextStrip({
     super.key,
@@ -20,11 +23,19 @@ class PianoRollContextStrip extends StatelessWidget {
     required this.snapLabel,
     this.scaleLabel,
     required this.onViewTap,
-    this.modeChip,
+    required this.onClose,
+    this.landscape = false,
     this.trailing,
   });
 
-  static const height = 44.0;
+  static const double minHeight = 40.0;
+  static const double landscapeHeight = 44.0;
+
+  static double heightFor(BuildContext context, {required bool landscape}) {
+    if (landscape) return landscapeHeight;
+    final top = MediaQuery.viewPaddingOf(context).top;
+    return top > minHeight ? top : minHeight;
+  }
 
   final PianoRollCenterMode centerMode;
   final ValueChanged<PianoRollCenterMode> onCenterModeChanged;
@@ -34,57 +45,55 @@ class PianoRollContextStrip extends StatelessWidget {
   final String snapLabel;
   final String? scaleLabel;
   final VoidCallback onViewTap;
+  final VoidCallback onClose;
+  final bool landscape;
 
-  /// `COMP` or `EDIT` when the clip has a multi-take comp workflow.
-  final String? modeChip;
-
-  /// Optional trailing control (view / overflow).
+  /// Optional trailing control (overflow).
   final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
+    final height = heightFor(context, landscape: landscape);
     return ColoredBox(
       color: PianoRollTheme.dockBackground,
       child: SizedBox(
         height: height,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(44, 0, 8, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
-              _ModeSegment(
-                centerMode: centerMode,
-                showCompTab: showCompTab,
-                showHarmonicTab: showHarmonicTab,
-                showDrumTab: showDrumTab,
-                onChanged: onCenterModeChanged,
-              ),
-              const SizedBox(width: 8),
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  reverse: true,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (modeChip != null) ...[
-                        _ModeChip(label: modeChip!),
-                        const SizedBox(width: 6),
-                      ],
-                      if (scaleLabel != null) ...[
-                        _ContextChip(
-                          label: scaleLabel!,
-                          onTap: onViewTap,
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      _ContextChip(
-                        label: snapLabel,
-                        onTap: onViewTap,
-                      ),
-                    ],
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: _ModeSegment(
+                      centerMode: centerMode,
+                      showCompTab: showCompTab,
+                      showHarmonicTab: showHarmonicTab,
+                      showDrumTab: showDrumTab,
+                      compactPortrait: !landscape,
+                      onChanged: onCenterModeChanged,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(width: 8),
+              if (scaleLabel != null) ...[
+                _ContextLabel(
+                  label: scaleLabel!,
+                  color: const Color(0xFF7EB8FF),
+                  onTap: onViewTap,
+                ),
+                const SizedBox(width: 8),
+              ],
+              _ContextLabel(
+                label: snapLabel,
+                color: const Color(0xFFB8A0FF),
+                onTap: onViewTap,
+              ),
+              const SizedBox(width: 4),
+              _FlatCloseLabel(onTap: onClose),
               if (trailing != null) ...[
                 const SizedBox(width: 4),
                 trailing!,

@@ -55,38 +55,124 @@ int freezeWaveformBinCount(int frameCount, double lengthBeats) noexcept {
                       kMaxFreezeWaveformBins);
 }
 
-uint64_t computeTrackFreezeSignature(const Track& track, int bpm) noexcept {
+uint64_t freezeHashBytes(uint64_t seed, const void* data, size_t size) noexcept {
+    const auto* bytes = static_cast<const unsigned char*>(data);
+    uint64_t hash = seed;
+    for (size_t i = 0; i < size; ++i) {
+        hash = fnvMix(hash, static_cast<uint64_t>(bytes[i]));
+    }
+    return hash;
+}
+
+uint64_t freezeHashString(uint64_t seed, std::string_view text) noexcept {
+    return freezeHashBytes(seed, text.data(), text.size());
+}
+
+uint64_t computeTrackFreezeSignature(const Track& track,
+                                     int bpm,
+                                     double renderSampleRate,
+                                     int bakeEndDeviceIndex,
+                                     uint64_t externalDependencyHash) noexcept {
     uint64_t hash = 14695981039346656037ull;
     hash = fnvMix(hash, static_cast<uint64_t>(std::max(bpm, 1)));
-    const int gainIdx = findTrackGainDeviceIndex(track.devices);
-    const int preGainCount = gainIdx < 0 ? static_cast<int>(track.devices.size()) : gainIdx;
-    hash = fnvMix(hash, static_cast<uint64_t>(preGainCount));
-    for (int i = 0; i < preGainCount; ++i) {
+    hash = fnvMix(hash, static_cast<uint64_t>(renderSampleRate));
+    hash = fnvMix(hash, static_cast<uint64_t>(bakeEndDeviceIndex));
+    hash = fnvMix(hash, externalDependencyHash);
+    const int bakedCount = std::clamp(bakeEndDeviceIndex,
+                                      0,
+                                      static_cast<int>(track.devices.size()));
+    hash = fnvMix(hash, static_cast<uint64_t>(bakedCount));
+    for (int i = 0; i < bakedCount; ++i) {
         const auto& device = track.devices[static_cast<size_t>(i)];
-        for (unsigned char c : device.config.typeId) {
-            hash = fnvMix(hash, static_cast<uint64_t>(c));
-        }
+        hash = freezeHashString(hash, device.id);
+        hash = freezeHashString(hash, device.config.typeId);
         hash = fnvMix(hash, device.config.bypassed ? 1ull : 0ull);
         hashOutputPanel(hash, device.config.outputPanel);
     }
     for (const auto& clip : track.midiClips) {
+        hash = freezeHashString(hash, clip.id);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.startBeat * 1000.0));
         hash = fnvMix(hash, static_cast<uint64_t>(clip.lengthBeats * 1000.0));
+        hash = fnvMix(hash, static_cast<uint64_t>(clip.naturalLengthBeats * 1000.0));
+        hash = fnvMix(hash, clip.loopContent ? 1ull : 0ull);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.notes.size()));
         for (const auto& note : clip.notes) {
             hash = fnvMix(hash, static_cast<uint64_t>(note.pitch));
             hash = fnvMix(hash, static_cast<uint64_t>(note.startBeat * 1000.0));
             hash = fnvMix(hash, static_cast<uint64_t>(note.durationBeats * 1000.0));
+            hash = fnvMix(hash, floatBits(note.velocity));
         }
     }
     for (const auto& clip : track.sampleClips) {
+        hash = freezeHashString(hash, clip.id);
+        hash = freezeHashString(hash, clip.sampleId);
         hash = fnvMix(hash, static_cast<uint64_t>(clip.startBeat * 1000.0));
         hash = fnvMix(hash, static_cast<uint64_t>(clip.lengthBeats * 1000.0));
-        for (unsigned char c : clip.sampleId) {
-            hash = fnvMix(hash, static_cast<uint64_t>(c));
-        }
+        hash = fnvMix(hash, static_cast<uint64_t>(clip.naturalLengthBeats * 1000.0));
+        hash = fnvMix(hash, clip.loopContent ? 1ull : 0ull);
+        hash = fnvMix(hash, floatBits(clip.sourceStart));
+        hash = fnvMix(hash, floatBits(clip.sourceEnd));
+        hash = fnvMix(hash, floatBits(clip.gain));
+        hash = fnvMix(hash, floatBits(clip.fadeIn));
+        hash = fnvMix(hash, floatBits(clip.fadeOut));
+        hash = fnvMix(hash, floatBits(clip.fadeInCurve));
+        hash = fnvMix(hash, floatBits(clip.fadeOutCurve));
+        hash = fnvMix(hash, clip.reversed ? 1ull : 0ull);
+        hash = fnvMix(hash, clip.warpRepitch ? 1ull : 0ull);
     }
     return hash;
+}
+
+int computeFreezeBakeEndIndex(const Track& track,
+                              const std::vector<Track>& allTracks) noexcept {
+    const int gainIndex = findTrackGainDeviceIndex(track.devices);
+    if (gainIndex <= 0) {
+        return 0;
+    }
+
+    // A device that another track reads from must keep running live, otherwise
+    // its intermediate output is never published to the routing graph.
+    const auto isTappedSource = [&](const std::string& deviceId) noexcept {
+        if (deviceId.empty()) {
+            return false;
+        }
+        for (const auto& candidate : allTracks) {
+            for (const auto& device : candidate.devices) {
+                if (device.config.bypassed) {
+                    continue;
+                }
+                if (const auto* routing = std::get_if<RoutingModel>(&device.config.instance)) {
+                    if (routing->sourceId == deviceId) {
+                        return true;
+                    }
+                } else if (const auto* ducker =
+                               std::get_if<DuckerModel>(&device.config.instance)) {
+                    if (ducker->sidechainSourceId == deviceId) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    };
+
+    for (int i = 0; i < gainIndex; ++i) {
+        const auto& device = track.devices[static_cast<size_t>(i)];
+        const auto kind = deviceNodeKindFromTypeId(device.config.typeId);
+        if (kind == DeviceNodeKind::AudioReceiver || kind == DeviceNodeKind::MidiReceiver) {
+            return i;
+        }
+        if (!device.config.bypassed) {
+            const auto* ducker = std::get_if<DuckerModel>(&device.config.instance);
+            if (ducker != nullptr && !ducker->sidechainSourceId.empty()) {
+                return i;
+            }
+        }
+        if (isTappedSource(device.id)) {
+            return i;
+        }
+    }
+    return gainIndex;
 }
 
 double trackContentEndBeat(const Track& track) noexcept {

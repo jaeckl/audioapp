@@ -90,15 +90,18 @@ bool EngineHost::setTrackOutput(const std::string& trackId,
 }
 
 bool EngineHost::freezeTrack(const std::string& trackId) {
-    const bool wasPlaying = isPlaying();
-    if (wasPlaying) {
-        setPlaying(false);
-    }
-    const bool ok = project_->freezeTrack(trackId, freezeAssetStore_);
-    if (wasPlaying && ok) {
-        setPlaying(true);
-    }
-    return ok;
+    // The bake renders into its own processor arena, so playback no longer has
+    // to stop for it: the transport keeps running and the render only takes the
+    // project lock for the short prepare and commit steps.
+    return project_->freezeTrackWithoutBlocking(trackId, freezeAssetStore_);
+}
+
+void EngineHost::cancelTrackFreezeRender() {
+    project_->cancelFreezeRender();
+}
+
+bool EngineHost::isTrackFreezeRenderActive() const {
+    return project_->isFreezeRenderActive();
 }
 
 bool EngineHost::unfreezeTrack(const std::string& trackId) {
@@ -106,15 +109,10 @@ bool EngineHost::unfreezeTrack(const std::string& trackId) {
 }
 
 bool EngineHost::refreshTrackFreeze(const std::string& trackId) {
-    const bool wasPlaying = isPlaying();
-    if (wasPlaying) {
-        setPlaying(false);
+    if (!project_->isTrackFrozen(trackId)) {
+        return false;
     }
-    const bool ok = project_->refreshTrackFreeze(trackId, freezeAssetStore_);
-    if (wasPlaying && ok) {
-        setPlaying(true);
-    }
-    return ok;
+    return project_->freezeTrackWithoutBlocking(trackId, freezeAssetStore_);
 }
 
 bool EngineHost::isTrackFrozen(const std::string& trackId) const {

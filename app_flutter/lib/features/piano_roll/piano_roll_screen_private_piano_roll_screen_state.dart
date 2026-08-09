@@ -130,11 +130,6 @@ class _PianoRollScreenState extends State<PianoRollScreen> with TickerProviderSt
     return '${_scale.rootLabel} $scale';
   }
 
-  String? get _modeChip {
-    if (_takes.length <= 1) return null;
-    return _compFlattened ? 'EDIT' : 'COMP';
-  }
-
   bool get _needsCompFlatten => !_compFlattened && _takes.length > 1;
 
   List<double> get _takeMarkerBeats => _takeRegions.skip(1).map((region) => region.startBeat).toList();

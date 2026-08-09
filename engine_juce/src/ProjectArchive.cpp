@@ -283,12 +283,15 @@ std::vector<ZipEntry> buildProjectArchiveEntries(const std::string& projectJson,
     }
 
     for (const auto& asset : freezeAssets.listAssets()) {
-        const auto wavBytes = encodeFreezeAssetWav(asset);
+        if (asset == nullptr) {
+            continue;
+        }
+        const auto wavBytes = encodeFreezeAssetWav(*asset);
         if (wavBytes.empty()) {
             continue;
         }
         ZipEntry entry;
-        entry.name = freezeWavArchivePath(asset.id);
+        entry.name = freezeWavArchivePath(asset->id);
         entry.data.assign(reinterpret_cast<const char*>(wavBytes.data()),
                           reinterpret_cast<const char*>(wavBytes.data() + wavBytes.size()));
         entries.push_back(std::move(entry));

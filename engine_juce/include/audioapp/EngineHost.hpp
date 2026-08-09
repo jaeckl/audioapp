@@ -58,9 +58,14 @@ public:
     bool setTrackMuted(const std::string& trackId, bool muted);
     bool setTrackSoloed(const std::string& trackId, bool soloed);
     bool setTrackOutput(const std::string& trackId, const std::string& outputTarget);
+    /// Bakes a track on the calling thread without stopping playback. Returns
+    /// false if cancelled or if the project changed while the render ran.
     bool freezeTrack(const std::string& trackId);
     bool unfreezeTrack(const std::string& trackId);
     bool refreshTrackFreeze(const std::string& trackId);
+    /// Asks an in-flight bake to stop, so an edit is never queued behind it.
+    void cancelTrackFreezeRender();
+    bool isTrackFreezeRenderActive() const;
     bool isTrackFrozen(const std::string& trackId) const;
     bool selectTrack(const std::string& trackId);
     std::string addDeviceToTrack(const std::string& trackId,

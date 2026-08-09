@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ import '../features/content_library/library_category.dart';
 import '../features/content_library/library_device_family.dart';
 import '../features/content_library/library_filter.dart';
 import '../features/content_library/library_fly_in_panel.dart';
+import '../features/content_library/library_preset_preview_notes.dart';
 import '../features/device_strip/device_strip.dart';
 import '../features/device_strip/device_strip_device_kind.dart';
 import '../features/device_strip/device_strip_theme.dart';

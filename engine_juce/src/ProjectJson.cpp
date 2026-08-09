@@ -1096,6 +1096,7 @@ juce::var trackToVarPersistence(const TrackState& track,
         freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
         freezeObj->setProperty("contentSignature",
                                juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        freezeObj->setProperty("bakeEndDeviceIndex", track.freeze.bakeEndDeviceIndex);
         if (!track.freeze.assetId.empty()) {
             freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
         }
@@ -1161,6 +1162,10 @@ TrackState trackFromVarPersistence(const juce::var& value,
             if (freezeVar->hasProperty("contentSignature")) {
                 track.freeze.contentSignature = static_cast<uint64_t>(static_cast<juce::int64>(
                     freezeVar->getProperty("contentSignature")));
+            }
+            if (freezeVar->hasProperty("bakeEndDeviceIndex")) {
+                track.freeze.bakeEndDeviceIndex = static_cast<int>(
+                    static_cast<double>(freezeVar->getProperty("bakeEndDeviceIndex")));
             }
             if (const auto* peaks = varArray(freezeVar->getProperty("waveformPeaks"))) {
                 for (const auto& peakVar : *peaks) {
@@ -1233,6 +1238,7 @@ juce::var trackToVarSnapshot(const TrackState& track,
         freezeObj->setProperty("bpmAtFreeze", track.freeze.bpmAtFreeze);
         freezeObj->setProperty("contentSignature",
                                juce::String(static_cast<juce::int64>(track.freeze.contentSignature)));
+        freezeObj->setProperty("bakeEndDeviceIndex", track.freeze.bakeEndDeviceIndex);
         if (!track.freeze.assetId.empty()) {
             freezeObj->setProperty("wavPath", toJuceString(freezeWavArchivePath(track.freeze.assetId)));
         }

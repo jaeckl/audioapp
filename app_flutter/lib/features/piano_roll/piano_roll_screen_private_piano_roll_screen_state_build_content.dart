@@ -14,12 +14,12 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: PianoRollTheme.background,
-        body: SafeArea(
-          bottom: false,
-          child: MediaQuery.removePadding(
-            context: context,
-            removeBottom: true,
-            child: Stack(
+        body: Builder(
+          builder: (context) {
+            Widget body = MediaQuery.removePadding(
+              context: context,
+              removeBottom: true,
+              child: Stack(
               children: [
                 Column(
                   children: [
@@ -32,42 +32,19 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
                       snapLabel: _snapChipLabel,
                       scaleLabel: _scaleChipLabel,
                       onViewTap: _openViewSheet,
-                      modeChip: _modeChip,
-                      // Snap/scale chips open View — no duplicate grid icon.
-                      trailing: _takes.length > 1
-                          ? PopupMenuButton<String>(
-                              tooltip: 'More',
-                              padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.more_vert,
-                                  color: Colors.white70, size: 20),
-                              color: const Color(0xFF1A1A22),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                side: const BorderSide(color: Color(0xFF343442)),
-                              ),
-                              onSelected: (value) {
-                                switch (value) {
-                                  case 'flatten':
-                                    unawaited(_flattenMidiComp());
-                                  case 'reopen':
-                                    unawaited(_reopenMidiComp());
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                if (!_compFlattened)
-                                  const PopupMenuItem(
-                                    value: 'flatten',
-                                    child: Text('Flatten comp'),
-                                  ),
-                                if (_compFlattened)
-                                  const PopupMenuItem(
-                                    value: 'reopen',
-                                    child: Text('Re-open comp'),
-                                  ),
-                              ],
-                            )
-                          : null,
+                      onClose: () => unawaited(_closeEditor()),
+                      landscape: landscape,
                     ),
+                    // Portrait only — landscape keeps full modes in the top segment.
+                    if (!landscape &&
+                        !_showTakes &&
+                        (_editorMode == MidiEditorMode.piano ||
+                            _editorMode == MidiEditorMode.drums))
+                      _NotesSubtoolStrip(
+                        editorMode: _editorMode,
+                        toolMode: _toolMode,
+                        onModeSelected: _onCenterModeChanged,
+                      ),
               if (_toolMode == PianoRollCenterMode.harmonic && !_showTakes)
                 HarmonicToolPanel(
                   scale: _scale.scale,
@@ -367,11 +344,66 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
               ),
                   ],
                 ),
-                Positioned(
-                  top: 6,
-                  left: 6,
-                  child: _FloatingCloseButton(onPressed: _closeEditor),
-                ),
+              ],
+            ),
+            );
+            // No SafeArea — strip owns viewPadding.top; sides/bottom full bleed.
+            return body;
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _NotesSubtoolStrip extends StatelessWidget {
+  const _NotesSubtoolStrip({
+    required this.editorMode,
+    required this.toolMode,
+    required this.onModeSelected,
+  });
+
+  final MidiEditorMode editorMode;
+  final PianoRollCenterMode toolMode;
+  final ValueChanged<PianoRollCenterMode> onModeSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = editorMode == MidiEditorMode.piano
+        ? const <(String, PianoRollCenterMode)>[
+            ('Notes', PianoRollCenterMode.notes),
+            ('Harmonic', PianoRollCenterMode.harmonic),
+            ('Progression', PianoRollCenterMode.progression),
+            ('Rhythm', PianoRollCenterMode.rhythm),
+          ]
+        : const <(String, PianoRollCenterMode)>[
+            ('Notes', PianoRollCenterMode.notes),
+            ('Pattern', PianoRollCenterMode.pattern),
+            ('Groove', PianoRollCenterMode.groove),
+            ('Fill', PianoRollCenterMode.fill),
+          ];
+    return ColoredBox(
+      color: PianoRollTheme.dockBackground,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(8, 2, 8, 6),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Container(
+            height: 30,
+            decoration: BoxDecoration(
+              color: PianoRollTheme.background,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF3B3B49)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final entry in entries)
+                  _SubtoolSegmentTab(
+                    label: entry.$1,
+                    active: toolMode == entry.$2,
+                    onTap: () => onModeSelected(entry.$2),
+                  ),
               ],
             ),
           ),
@@ -381,26 +413,36 @@ extension PianoRollScreenStateBuildcontentOperation on _PianoRollScreenState {
   }
 }
 
-class _FloatingCloseButton extends StatelessWidget {
-  const _FloatingCloseButton({required this.onPressed});
+class _SubtoolSegmentTab extends StatelessWidget {
+  const _SubtoolSegmentTab({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
-  final VoidCallback onPressed;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xCC1A1A22),
-      shape: const CircleBorder(
-        side: BorderSide(color: Color(0xFF3A3A48)),
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: active ? PianoRollTheme.dockActive : Colors.transparent,
+      borderRadius: BorderRadius.circular(7),
       child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: const SizedBox(
-          width: 36,
-          height: 36,
-          child: Icon(Icons.close, size: 18, color: Colors.white),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(7),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: active ? Colors.white : PianoRollTheme.labelMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
+            ),
+          ),
         ),
       ),
     );

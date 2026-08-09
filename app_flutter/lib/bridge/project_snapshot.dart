@@ -9,6 +9,7 @@ import 'bridge_parsing.dart';
 import 'clip_snapshots.dart';
 import 'device_snapshot.dart';
 import 'live_meters_dto.dart';
+import 'track_nest_order.dart';
 
 part 'master_track_snapshot.dart';
 part 'track_freeze_snapshot.dart';
@@ -119,6 +120,19 @@ class ProjectSnapshot {
       }
     }
     return null;
+  }
+
+  /// Tracks ordered for UI: group, then its children (not all groups first).
+  List<TrackSnapshot> nestedTracksForDisplay({
+    bool Function(String groupId)? isCollapsed,
+  }) {
+    return nestTracksUnderGroups<TrackSnapshot>(
+      tracks: tracks,
+      idOf: (track) => track.id,
+      isGroupOf: (track) => track.isGroup,
+      parentGroupIdOf: (track) => track.parentGroupId,
+      isCollapsed: isCollapsed,
+    );
   }
 
   Iterable<AutomationClipSnapshot> get allAutomationClips sync* {

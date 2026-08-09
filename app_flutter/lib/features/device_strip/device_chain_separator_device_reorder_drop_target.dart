@@ -20,7 +20,14 @@ class DeviceReorderDropTarget extends StatefulWidget {
 }
 
 class _DeviceReorderDropTargetState extends State<DeviceReorderDropTarget> {
-  bool _active = false;
+  /// Avoid setState during drag — rebuilding DragTarget can drop the accept.
+  final ValueNotifier<bool> _active = ValueNotifier(false);
+
+  @override
+  void dispose() {
+    _active.dispose();
+    super.dispose();
+  }
 
   bool _canAccept(DeviceDragData data) {
     if (data.trackId != widget.track.id) return false;
@@ -36,16 +43,14 @@ class _DeviceReorderDropTargetState extends State<DeviceReorderDropTarget> {
     return DragTarget<DeviceDragData>(
       onWillAcceptWithDetails: (details) {
         final accept = _canAccept(details.data);
-        if (_active != accept) {
-          setState(() => _active = accept);
-        }
+        if (_active.value != accept) _active.value = accept;
         return accept;
       },
       onLeave: (_) {
-        if (_active) setState(() => _active = false);
+        if (_active.value) _active.value = false;
       },
       onAcceptWithDetails: (details) {
-        setState(() => _active = false);
+        _active.value = false;
         if (!_canAccept(details.data)) return;
         final toIndex = deviceMoveTargetIndex(
           widget.track,
@@ -58,23 +63,24 @@ class _DeviceReorderDropTargetState extends State<DeviceReorderDropTarget> {
           clipBehavior: Clip.none,
           children: [
             widget.child,
-            if (_active)
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: IgnorePointer(
-                  child: Center(
-                    child: Container(
-                      width: 3,
-                      height: double.infinity,
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                      color: accent,
+            ValueListenableBuilder<bool>(
+              valueListenable: _active,
+              builder: (context, active, _) {
+                if (!active) return const SizedBox.shrink();
+                return Positioned.fill(
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 3,
+                        height: double.infinity,
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        color: accent,
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
+            ),
           ],
         );
       },

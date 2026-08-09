@@ -21,23 +21,10 @@ extension DawShellStateOnlibrarypresetpreviewtapOperation on _DawShellState {
       return;
     }
 
-    final track = _snapshot?.selectedTrack;
     final loopEnd = _snapshot?.loopRegionEndBeat ?? 16.0;
-    // Arrangement MIDI first (scrub bar UX); demo arpeggio only if empty.
-    final notes = track == null
-        ? List<MidiNoteSnapshot>.from(libraryPresetDemoArpeggio)
-        : libraryPresetPreviewNotesFromClips(track.midiClips);
-    final arrangementLen = track == null
-        ? math.max(loopEnd, 4.0)
-        : libraryPresetPreviewLengthBeats(
-            track.midiClips,
-            loopRegionEndBeat: loopEnd,
-          );
-    final previewNotes =
-        notes.isEmpty ? libraryPresetDemoArpeggio : notes;
-    // Empty track: still run the arrangement/loop window (demo notes in bar 1).
-    final lengthBeats =
-        notes.isEmpty ? math.max(loopEnd, 4.0) : arrangementLen;
+    // Preset preview always uses the short factory demo phrase — never arrangement clips.
+    final previewNotes = libraryPresetDemoArpeggio;
+    final lengthBeats = math.max(loopEnd, 4.0);
 
     final bpm = _snapshot?.bpm ?? 120;
     try {

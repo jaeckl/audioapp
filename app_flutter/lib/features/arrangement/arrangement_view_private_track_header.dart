@@ -220,7 +220,7 @@ class _TrackHeader extends StatelessWidget {
                       ),
                     Padding(
                       padding: EdgeInsets.only(
-                        left: track.parentGroupId.isNotEmpty ? 6 : 0,
+                        left: track.parentGroupId.isNotEmpty ? 14 : 0,
                       ),
                       child: Icon(icon, size: 22, color: iconColor),
                     ),

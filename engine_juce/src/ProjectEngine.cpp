@@ -2558,6 +2558,7 @@ ProjectSnapshot ProjectEngine::snapshot() const {
         ts.freeze.sampleRate = track.freeze.sampleRate;
         ts.freeze.bpmAtFreeze = track.freeze.bpmAtFreeze;
         ts.freeze.contentSignature = track.freeze.contentSignature;
+        ts.freeze.bakeEndDeviceIndex = track.freeze.bakeEndDeviceIndex;
         ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         snap.tracks.push_back(std::move(ts));
     }
@@ -2956,6 +2957,11 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
     if (masterLeft == nullptr || masterRight == nullptr || numFrames <= 0) {
         return;
     }
+    if (sampleRate > 0.0) {
+        outputSampleRate_.store(sampleRate, std::memory_order_relaxed);
+    }
+    outputBlockFrames_.store(std::min(numFrames, kScratchFrames),
+                             std::memory_order_relaxed);
     // Structural publishers are rare. Avoid touching the platform recursive
     // mutex on every callback when there is no snapshot waiting to commit.
     if (trackPlayback_.pending.load(std::memory_order_acquire) >= 0) {
@@ -3234,10 +3240,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             routedMidiCount[trackIndex] = 0;
             continue;
         }
-        if (track.freeze.active) {
-            continue;
-        }
-        if (track.regionCount > 0) {
+        // Frozen tracks skip region mixing only — the asset already holds that
+        // audio — but still route notes for MIDI graph edges and for devices
+        // past the bake split.
+        if (track.regionCount > 0 && !track.freeze.active) {
             for (int i = 0; i < track.regionCount; ++i) {
                 const SampleRegion& source = track.regions[i];
                 regions[i] = SampleClipPlaybackRegion{
@@ -3345,6 +3351,10 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             continue;
         }
 
+        // A frozen track feeds its baked audio into the live remainder of the
+        // chain. Everything else — graph publishing, sidechain, feedback, MIDI
+        // edges, meters, automation — is identical to an unfrozen track, so both
+        // cases share one context below.
         if (track.freeze.active) {
             FreezePlaybackRegion region{
                 track.freeze.startBeat,
@@ -3361,40 +3371,13 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
                                  transport_.bpm(),
                                  playheadStartBeat,
                                  region);
-            if (track.trackGainDeviceIndex >= 0) {
-                DeviceChainOrchestrator::Context ctx(trackPlayback_[trackIndex].arena,
-                                                       gProjectScratch);
-                ctx.trackLeft = trackLeft[trackIndex];
-                ctx.trackRight = trackRight[trackIndex];
-                ctx.numFrames = framesToProcess;
-                ctx.sampleRate = sampleRate;
-                ctx.bpm = transport_.bpm();
-                ctx.playheadStartBeat = playheadStartBeat;
-                ctx.notes = nullptr;
-                ctx.noteCount = 0;
-                ctx.deviceMeters = deviceMeters_;
-                ctx.maxDeviceMeters = kMaxDeviceMeters;
-                ctx.meterSlotSubscribed = meterSlotSubscribed_.data();
-                ctx.tapGraph = useGraph ? &graph : nullptr;
-                ctx.graphTapRuntimes = graphTapRuntimes_.get();
-                ctx.graphTapRuntimeCount = kMaxProcessorGraphTaps;
-                ctx.lfoValues = lfoCount > 0 ? modulationScratch.values.data() : nullptr;
-                ctx.lfoCount = lfoCount;
-                ctx.modulators = lfoCount > 0 ? modulationScratch.modulators.data() : nullptr;
-                ctx.retriggerGeneration = retriggerGeneration;
-                ctx.modEdges = track.modEdgeCount > 0 ? track.modEdges : nullptr;
-                ctx.modEdgeCount = track.modEdgeCount;
-                ctx.automationClips = track.automationClipCount > 0 ? track.automationClips : nullptr;
-                ctx.automationClipCount = track.automationClipCount;
-                ctx.wavetableBank = wavetableBank_;
-                DeviceChainOrchestrator::processChain(
-                    ctx, track.trackGainDeviceIndex, track.trackGainDeviceIndex + 1);
-            }
-        } else {
+        }
+
+        {
         const bool suppressInstruments = trackHasActiveSampleAtPlayhead(track, playheadStartBeat);
         const int noteCount = routedMidiCount[trackIndex];
 
-        if (noteCount == 0 && track.regionCount == 0) {
+        if (!track.freeze.active && noteCount == 0 && track.regionCount == 0) {
             bool onlyPassthroughGain = track.deviceCount > 0;
             for (int deviceIndex = 0; deviceIndex < track.deviceCount; ++deviceIndex) {
                 if (track.devices[deviceIndex].kind != DeviceNodeKind::TrackGain) {
@@ -3464,9 +3447,12 @@ void ProjectEngine::mixAtPlayheadBeatStereo(float* masterLeft,
             ctx.compiledDeviceOrderCount = track.deviceExecutionOrder.count;
         }
 
-        DeviceChainOrchestrator::processChain(ctx);
+        DeviceChainOrchestrator::processChain(
+            ctx,
+            track.freeze.active ? track.freeze.bakeEndDeviceIndex : 0,
+            -1);
 
-        } // !track.freeze.active
+        }
 
         // A track and a group share the same explicit bus-output contract.
         // Group capture happens after all children have been accumulated and
@@ -3758,6 +3744,7 @@ ProjectFileData ProjectEngine::toProjectFileData() const {
         ts.freeze.sampleRate = track.freeze.sampleRate;
         ts.freeze.bpmAtFreeze = track.freeze.bpmAtFreeze;
         ts.freeze.contentSignature = track.freeze.contentSignature;
+        ts.freeze.bakeEndDeviceIndex = track.freeze.bakeEndDeviceIndex;
         ts.freeze.waveformPeaks = track.freeze.waveformPeaks;
         file.tracks.push_back(std::move(ts));
     }
@@ -3912,6 +3899,7 @@ bool ProjectEngine::loadFromProjectFileData(const ProjectFileData& data) {
         track.freeze.sampleRate = trackState.freeze.sampleRate;
         track.freeze.bpmAtFreeze = trackState.freeze.bpmAtFreeze;
         track.freeze.contentSignature = trackState.freeze.contentSignature;
+        track.freeze.bakeEndDeviceIndex = trackState.freeze.bakeEndDeviceIndex;
         track.freeze.waveformPeaks = trackState.freeze.waveformPeaks;
         trackRepo_.tracks().push_back(std::move(track));
     }
@@ -4838,18 +4826,24 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
 
         snap.freeze = {};
         if (sourceTrack.freeze.enabled && freezeAssetStore_ != nullptr) {
-            if (const FreezeAsset* asset = freezeAssetStore_->find(sourceTrack.freeze.assetId)) {
+            if (FreezeAssetRef asset = freezeAssetStore_->find(sourceTrack.freeze.assetId)) {
                 snap.freeze.active = true;
+                snap.freeze.assetRef = asset;
                 snap.freeze.pcmL = asset->pcmL.data();
                 snap.freeze.pcmR = asset->pcmR.data();
                 snap.freeze.frameCount = static_cast<int>(asset->pcmL.size());
                 snap.freeze.pcmSampleRate = asset->sampleRate;
                 snap.freeze.startBeat = sourceTrack.freeze.startBeat;
                 snap.freeze.lengthBeats = sourceTrack.freeze.lengthBeats;
+                snap.freeze.bakeEndDeviceIndex = std::clamp(
+                    sourceTrack.freeze.bakeEndDeviceIndex, 0, snap.deviceCount);
             }
         }
 
-        if (!sourceTrack.freeze.enabled) {
+        // Clip data is published even when frozen. Notes feed devices past the
+        // bake split and MIDI graph taps on other tracks; regions are not mixed
+        // (the asset already contains them) but are still what decides whether
+        // instruments are suppressed at the playhead.
         for (const auto& clip : sourceTrack.midiClips) {
             const double contentLengthBeats =
                 clip.loopContent
@@ -4947,7 +4941,6 @@ void ProjectEngine::rebuildTrackPlaybackLocked() {
                           clip.sourceEnd,
                           clip.loopContent);
             }
-        }
         }
 
         // Resolve per-track automation clips
@@ -5669,13 +5662,15 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
     int lfoCount,
     IModulator* const* modulators,
     uint32_t retriggerGeneration,
-    DeviceChainScratch* scratchOverride) noexcept {
+    DeviceChainScratch* scratchOverride,
+    int endDeviceIndexOverride) noexcept {
     if (trackLeft == nullptr || trackRight == nullptr || numFrames <= 0) return;
 
     constexpr int kMaxFrames = 4096;
     const int framesToProcess = numFrames > kMaxFrames ? kMaxFrames : numFrames;
-    const int gainIndex = track.trackGainDeviceIndex;
-    if (gainIndex < 0) {
+    const int endIndex = endDeviceIndexOverride >= 0 ? endDeviceIndexOverride
+                                                     : track.trackGainDeviceIndex;
+    if (endIndex < 0) {
         return;
     }
 
@@ -5771,8 +5766,8 @@ void ProjectEngine::mixTrackPreGainStereoWithArena(
         ctx.compiledDeviceOrder = track.deviceExecutionOrder.deviceIndices.data();
         ctx.compiledDeviceOrderCount = track.deviceExecutionOrder.count;
     }
-    if (gainIndex > 0) {
-        DeviceChainOrchestrator::processChain(ctx, 0, gainIndex);
+    if (endIndex > 0) {
+        DeviceChainOrchestrator::processChain(ctx, 0, endIndex);
     }
 }
 

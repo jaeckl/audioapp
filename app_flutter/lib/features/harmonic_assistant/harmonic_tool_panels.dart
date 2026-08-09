@@ -208,39 +208,39 @@ class _DarkDropdown<T> extends StatelessWidget {
   final String Function(T) labelOf;
   final ValueChanged<T> onChanged;
 
+  // Match PianoRollGridSheet View dropdown chrome.
+  static const _fieldFill = Color(0xFF22222C);
+  static const _menuFill = Color(0xFF22222C);
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF25252C),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF3B3B49)),
+    return DropdownButtonFormField<T>(
+      value: value,
+      isDense: true,
+      isExpanded: true,
+      dropdownColor: _menuFill,
+      iconEnabledColor: PianoRollTheme.labelMuted,
+      decoration: const InputDecoration(
+        filled: true,
+        fillColor: _fieldFill,
+        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        border: OutlineInputBorder(borderSide: BorderSide.none),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          dropdownColor: const Color(0xFF1A1A22),
-          iconEnabledColor: PianoRollTheme.labelMuted,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+      items: [
+        for (final item in items)
+          DropdownMenuItem(
+            value: item,
+            child: Text(labelOf(item)),
           ),
-          items: [
-            for (final item in items)
-              DropdownMenuItem(
-                value: item,
-                child: Text(labelOf(item)),
-              ),
-          ],
-          onChanged: (v) {
-            if (v != null) onChanged(v);
-          },
-        ),
-      ),
+      ],
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
     );
   }
 }

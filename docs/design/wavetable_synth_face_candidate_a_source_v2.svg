@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Candidate A / SOURCE v2
+     Matrix: [WAVETABLE + PITCH] [WAVE SHAPE]
+             [SUB + NOISE]      [VOICING]
+     No wavetable combo box. Table identity is a quiet readout inside preview.
+     Card 420x320; header 40; face 420x280; tool rail 30; output rail 64. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="400"
+     viewBox="0 0 620 400" font-family="Inter,Arial,sans-serif">
+  <rect width="620" height="400" fill="#0E0E14"/>
+  <defs>
+    <symbol id="knob44" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 0 1 26 3.2" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="26" cy="3.2" r="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="knob44lo" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 0 1 7.5 16" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="7.5" cy="16" r="2" fill="currentColor"/>
+    </symbol>
+    <symbol id="knob44min" viewBox="0 0 52 60">
+      <circle cx="26" cy="23" r="15.6" fill="#14141C"/>
+      <path d="M12 37A19.8 19.8 0 1 1 40 37" fill="none" stroke="#2C2C36" stroke-width="2.8" stroke-linecap="round"/>
+      <path d="M12 37A19.8 19.8 0 0 1 10 32" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"/>
+      <circle cx="10" cy="32" r="2" fill="currentColor"/>
+    </symbol>
+    <linearGradient id="waveFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3B82F6" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#3B82F6" stop-opacity="0"/>
+    </linearGradient>
+    <pattern id="grid" width="25" height="20" patternUnits="userSpaceOnUse">
+      <path d="M25 0H0V20" fill="none" stroke="#FFFFFF" stroke-opacity=".035"/>
+    </pattern>
+  </defs>
+
+  <g transform="translate(48 42)">
+    <text y="-14" fill="#E8E8F0" font-size="14" font-weight="700">SOURCE v2 - waveform and controls share equal purpose</text>
+
+    <!-- universal chrome -->
+    <rect width="30" height="320" fill="#16161E"/>
+    <circle cx="15" cy="22" r="6" fill="none" stroke="#8A8A98" stroke-width="1.5"/>
+    <path d="M15 12v10" stroke="#3B82F6" stroke-width="1.5"/>
+    <path d="M9 60h12M9 64h12M9 68h12" stroke="#8A8A98" stroke-width="1.3"/>
+    <path d="M10 101h10v12H10zM13 98h4" fill="none" stroke="#8A8A98" stroke-width="1.3"/>
+    <text x="15" y="206" transform="rotate(-90 15 206)" text-anchor="middle"
+          fill="#8A8A98" font-size="9" font-weight="700" letter-spacing="1.2">WAVETABLE</text>
+    <rect x="30" width="4" height="320" fill="#3B82F6"/>
+    <rect x="34" width="420" height="320" fill="#1A1A24" stroke="#4A4A5C" stroke-width="1.5"/>
+    <rect x="34" width="420" height="40" fill="#22222E"/>
+    <g font-size="11" font-weight="700" text-anchor="middle">
+      <text x="104" y="25" fill="#FFFFFF">SOURCE</text>
+      <text x="244" y="25" fill="#8A8A98">TONE</text>
+      <text x="384" y="25" fill="#8A8A98">MIX</text>
+    </g>
+    <rect x="76" y="36" width="56" height="2.5" fill="#3B82F6"/>
+
+    <!-- Full-bleed wavetable screen is the entire face background. -->
+    <rect x="34" y="40" width="420" height="280" fill="#07070A"/>
+
+    <!-- TOP LEFT: waveform reads directly from the full-bleed screen. -->
+    <text x="50" y="58" fill="#8A8A98" font-size="8" font-weight="700">Basic Shapes / 27 of 64</text>
+    <rect x="48" y="64" width="234" height="82" rx="4" fill="url(#grid)"/>
+    <path d="M56 116C67 116 72 76 84 76S99 132 112 132s18-46 32-46 18 39 32 39 18-32 32-32 18 26 32 26 17-20 34-20 20 17 40 17 20-12 42-12"
+          fill="none" stroke="#3B82F6" stroke-width="1.8"/>
+    <path d="M56 116C67 116 72 76 84 76S99 132 112 132s18-46 32-46 18 39 32 39 18-32 32-32 18 26 32 26 17-20 34-20 20 17 40 17 20-12 42-12L274 140H56Z"
+          fill="url(#waveFill)"/>
+    <line x1="160" y1="68" x2="160" y2="140" stroke="#FFFFFF" stroke-opacity=".22" stroke-dasharray="2 3"/>
+    <circle cx="160" cy="104" r="3" fill="#3B82F6"/>
+
+    <!-- Pitch is visually attached to source preview, not another large panel. -->
+    <g font-weight="700">
+      <rect x="48" y="150" width="72" height="42" rx="4" fill="#14141C"/>
+      <text x="56" y="166" fill="#6A6A78" font-size="7">OCTAVE</text>
+      <text x="112" y="184" text-anchor="end" fill="#E8E8F0" font-size="11">+0</text>
+      <rect x="124" y="150" width="72" height="42" rx="4" fill="#14141C"/>
+      <text x="132" y="166" fill="#6A6A78" font-size="7">SEMI</text>
+      <text x="188" y="184" text-anchor="end" fill="#E8E8F0" font-size="11">0</text>
+      <rect x="200" y="150" width="82" height="42" rx="4" fill="#14141C"/>
+      <text x="208" y="166" fill="#6A6A78" font-size="7">FINE</text>
+      <text x="274" y="184" text-anchor="end" fill="#E8E8F0" font-size="10">0 ct</text>
+    </g>
+
+    <!-- TOP RIGHT: waveform controls; labels on controls make a group title redundant. -->
+    <rect x="296" y="46" width="152" height="154" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(304 54)">
+        <use href="#knob44" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">42%</text>
+        <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">POSITION</text>
+      </g>
+      <g transform="translate(362 54)">
+        <use href="#knob44lo" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">28%</text>
+        <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">WARP</text>
+      </g>
+    </g>
+    <rect x="304" y="122" width="72" height="44" rx="4" fill="#14141C"/>
+    <text x="312" y="138" fill="#6A6A78" font-size="7" font-weight="700">WARP MODE</text>
+    <text x="312" y="158" fill="#E8E8F0" font-size="10" font-weight="700">SYNC</text>
+    <path d="M362 139l7 0-3.5 4z" fill="#3B82F6"/>
+    <rect x="380" y="122" width="60" height="44" rx="4" fill="#14141C"/>
+    <text x="388" y="138" fill="#6A6A78" font-size="7" font-weight="700">PHASE / RND</text>
+    <text x="388" y="158" fill="#E8E8F0" font-size="9" font-weight="700">0 / 35%</text>
+
+    <!-- BOTTOM LEFT: SUB + NOISE 250x108 -->
+    <rect x="40" y="206" width="250" height="108" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(48 256)">
+        <use href="#knob44min" width="48" height="50"/>
+        <text x="24" y="25" fill="#E8E8F0" font-size="8" font-weight="700">0%</text>
+        <text x="24" y="55" fill="#8A8A98" font-size="7" font-weight="700">SUB</text>
+      </g>
+      <g transform="translate(170 228)">
+        <use href="#knob44min" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">0%</text>
+        <text x="26" y="60" fill="#8A8A98" font-size="7" font-weight="700">NOISE</text>
+      </g>
+      <g transform="translate(226 228)">
+        <use href="#knob44" width="52" height="60"/>
+        <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">0</text>
+        <text x="26" y="60" fill="#8A8A98" font-size="7" font-weight="700">COLOR</text>
+      </g>
+    </g>
+    <!-- Sub shape owns the row above its Level + Octave controls. -->
+    <rect x="48" y="212" width="108" height="40" rx="4" fill="#14141C"/>
+    <rect x="50" y="214" width="34" height="36" rx="3" fill="#3B82F6" fill-opacity=".12"/>
+    <path d="M56 232c6-10 13 10 22 0" fill="none" stroke="#3B82F6" stroke-width="1.5"/>
+    <path d="M91 244l12-24 12 24" fill="none" stroke="#8A8A98" stroke-width="1.5"/>
+    <path d="M122 244v-22h26v22" fill="none" stroke="#8A8A98" stroke-width="1.5"/>
+
+    <rect x="104" y="258" width="52" height="46" rx="4" fill="#14141C"/>
+    <text x="112" y="273" fill="#6A6A78" font-size="6.5" font-weight="700">OCTAVE</text>
+    <path d="M144 266l5 0-2.5 3z" fill="#8A8A98"/>
+    <text x="130" y="295" text-anchor="middle" fill="#E8E8F0" font-size="11" font-weight="700">-1</text>
+
+    <!-- BOTTOM RIGHT: voicing; control labels already identify the plate. -->
+    <rect x="296" y="206" width="152" height="108" rx="4" fill="#16161E"/>
+    <g color="#3B82F6" text-anchor="middle">
+      <g transform="translate(304 220)">
+        <use href="#knob44lo" width="58" height="68"/>
+        <text x="29" y="32" fill="#E8E8F0" font-size="9" font-weight="700">5</text>
+        <text x="29" y="66" fill="#8A8A98" font-size="7.5" font-weight="700">VOICES</text>
+      </g>
+      <g transform="translate(378 220)">
+        <use href="#knob44lo" width="58" height="68"/>
+        <text x="29" y="32" fill="#E8E8F0" font-size="9" font-weight="700">12%</text>
+        <text x="29" y="66" fill="#8A8A98" font-size="7.5" font-weight="700">DETUNE</text>
+      </g>
+    </g>
+
+    <!-- Stereo output chrome -->
+    <path d="M458 0H512a10 10 0 0 1 10 10v300a10 10 0 0 1-10 10h-54z"
+          fill="#16161E" stroke="#4A4A5C" stroke-width="1.5"/>
+    <text x="490" y="18" text-anchor="middle" fill="#6A6A78" font-size="8" font-weight="700">OUT</text>
+    <g transform="translate(464 42)" color="#3B82F6" text-anchor="middle">
+      <use href="#knob44" width="52" height="60"/>
+      <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">C</text>
+      <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">PAN</text>
+    </g>
+    <g transform="translate(464 132)" color="#3B82F6" text-anchor="middle">
+      <use href="#knob44" width="52" height="60"/>
+      <text x="26" y="27" fill="#E8E8F0" font-size="8" font-weight="700">0dB</text>
+      <text x="26" y="56" fill="#8A8A98" font-size="7.5" font-weight="700">GAIN</text>
+    </g>
+    <rect x="482" y="220" width="16" height="78" fill="#0A0A0F"/>
+    <rect x="484" y="252" width="5" height="42" fill="#3B82F6" opacity=".75"/>
+    <rect x="491" y="244" width="5" height="50" fill="#3B82F6"/>
+  </g>
+</svg>

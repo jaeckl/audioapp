@@ -8,6 +8,7 @@ class _DeviceStripSlotState extends State<DeviceStripSlot> {
   int? _selectedLfoId;
   int? _connectModeLfoId;
   bool _showTargetsPanel = false;
+  final GlobalKey _dragRepaintKey = GlobalKey(debugLabel: 'device-drag-repaint');
 
   /// Resolved param descriptors for the current device (lazy, cached).
   List<DeviceParamDescriptor>? _cachedParams;

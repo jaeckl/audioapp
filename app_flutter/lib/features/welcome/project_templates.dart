@@ -57,7 +57,7 @@ const List<ProjectTemplate> kProjectTemplates = [
     name: 'Beat Lab',
     subtitle: 'Hip-hop · 92 BPM · kick, snare, hats, bass',
     detail:
-        'Four drum lanes plus a subtractive bass synth with a 4-bar loop sketch.',
+        'Four drum lanes plus a subtractive bass synth — add your own MIDI clips.',
     category: ProjectTemplateCategory.genre,
     icon: Icons.album_outlined,
     assetPath: 'assets/project_templates/beat_lab.json',
@@ -69,7 +69,7 @@ const List<ProjectTemplate> kProjectTemplates = [
     name: 'House Floor',
     subtitle: 'House · 124 BPM · kick, clap, hats, chords',
     detail:
-        'Club-ready drum trio and a chord stab synth with a 4-bar house groove.',
+        'Club-ready drum trio and a chord stab synth — routing ready, no clips.',
     category: ProjectTemplateCategory.genre,
     icon: Icons.nightlife_outlined,
     assetPath: 'assets/project_templates/house_floor.json',
@@ -103,38 +103,38 @@ const List<ProjectTemplate> kProjectTemplates = [
   ProjectTemplate(
     id: 'template-session-mix',
     name: 'Session Mix Bus',
-    subtitle: 'Grouped drums & music · bus compressors',
+    subtitle: 'Drums & music groups · bus EQ + glue',
     detail:
-        'Drum and music group buses with glue compression plus child instrument tracks.',
+        'Empty lanes under drum and music buses (EQ/comp) plus master EQ/limiter — drop instruments yourself.',
     category: ProjectTemplateCategory.advanced,
     icon: Icons.layers_outlined,
     assetPath: 'assets/project_templates/session_mix_bus.json',
     bpm: 120,
-    trackCount: 6,
+    trackCount: 10,
   ),
   ProjectTemplate(
     id: 'template-ms-master',
     name: 'MS Mastering Chain',
-    subtitle: 'Master M/S split · mid & side FX',
+    subtitle: 'Session groups · master M/S chain',
     detail:
-        'Simple arrangement routed through a master mid/side split with separate mid compression and side EQ.',
+        'Drums and music buses into a master mid/side split (EQ/comp/limit) — empty lanes, no instruments.',
     category: ProjectTemplateCategory.advanced,
     icon: Icons.graphic_eq_outlined,
     assetPath: 'assets/project_templates/ms_mastering.json',
     bpm: 120,
-    trackCount: 3,
+    trackCount: 8,
   ),
   ProjectTemplate(
     id: 'template-stereo-synth-bus',
     name: 'Stereo Synth Bus',
-    subtitle: 'L/R split group · dual synth lanes',
+    subtitle: 'Drums + synths · L delay / R reverb',
     detail:
-        'Synth group with an L/R split (delay left, reverb right) and two ready synth child tracks.',
+        'Full skeleton: drum bus plus synth bus with L/R split FX and master EQ/limiter — empty lanes only.',
     category: ProjectTemplateCategory.advanced,
     icon: Icons.surround_sound_outlined,
     assetPath: 'assets/project_templates/stereo_synth_bus.json',
     bpm: 110,
-    trackCount: 3,
+    trackCount: 9,
   ),
 ];
 

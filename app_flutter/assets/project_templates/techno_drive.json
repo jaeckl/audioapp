@@ -3,71 +3,93 @@
   "name": "Techno Drive",
   "bpm": 130,
   "selectedTrackId": "tpl-kick",
-  "loopEnabled": true,
+  "loopEnabled": false,
   "loopRegionStartBeat": 0.0,
-  "loopRegionEndBeat": 4.0,
-  "master": {"id": "master", "name": "Master", "gain": 0.84},
+  "loopRegionEndBeat": 16.0,
+  "master": {
+    "id": "master",
+    "name": "Master",
+    "gain": 0.84
+  },
   "samples": [],
   "tracks": [
     {
       "id": "tpl-kick",
       "name": "Kick",
       "devices": [
-        {"id": "tpl-kick-dev", "type": "kick_generator", "parameters": {"kickPitch": 0.44, "kickPunch": 0.86, "kickDecay": 0.28, "gain": 0.98, "bypass": 0.0}},
-        {"id": "tpl-kick-gain", "type": "track_gain", "parameters": {"gain": 0.92, "bypass": 0.0}}
+        {
+          "id": "tpl-kick-dev",
+          "type": "kick_generator",
+          "parameters": {
+            "kickPitch": 0.44,
+            "kickPunch": 0.86,
+            "kickDecay": 0.28,
+            "gain": 0.98,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-kick-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.92,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-kick-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 36, "startBeat": 0.0, "durationBeats": 0.1, "velocity": 120.0},
-          {"pitch": 36, "startBeat": 1.0, "durationBeats": 0.1, "velocity": 112.0},
-          {"pitch": 36, "startBeat": 2.0, "durationBeats": 0.1, "velocity": 120.0},
-          {"pitch": 36, "startBeat": 3.0, "durationBeats": 0.1, "velocity": 112.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     },
     {
       "id": "tpl-hat",
       "name": "Hats",
       "devices": [
-        {"id": "tpl-hat-dev", "type": "hihat_generator", "parameters": {"hihatDecay": 0.14, "hihatColor": 0.68, "gain": 0.74, "bypass": 0.0}},
-        {"id": "tpl-hat-gain", "type": "track_gain", "parameters": {"gain": 0.72, "bypass": 0.0}}
+        {
+          "id": "tpl-hat-dev",
+          "type": "hihat_generator",
+          "parameters": {
+            "hihatDecay": 0.14,
+            "hihatColor": 0.68,
+            "gain": 0.74,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-hat-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.72,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-hat-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 42, "startBeat": 0.5, "durationBeats": 0.05, "velocity": 76.0},
-          {"pitch": 42, "startBeat": 1.0, "durationBeats": 0.05, "velocity": 68.0},
-          {"pitch": 42, "startBeat": 1.5, "durationBeats": 0.05, "velocity": 74.0},
-          {"pitch": 42, "startBeat": 2.0, "durationBeats": 0.05, "velocity": 70.0},
-          {"pitch": 42, "startBeat": 2.5, "durationBeats": 0.05, "velocity": 76.0},
-          {"pitch": 42, "startBeat": 3.0, "durationBeats": 0.05, "velocity": 68.0},
-          {"pitch": 42, "startBeat": 3.5, "durationBeats": 0.05, "velocity": 74.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     },
     {
       "id": "tpl-acid",
       "name": "Acid Bass",
       "devices": [
-        {"id": "tpl-acid-synth", "type": "subtractive_synth", "parameters": {"gain": 0.78, "filterCutoff": 0.42, "filterResonance": 0.78, "bypass": 0.0}},
-        {"id": "tpl-acid-gain", "type": "track_gain", "parameters": {"gain": 0.76, "bypass": 0.0}}
+        {
+          "id": "tpl-acid-synth",
+          "type": "subtractive_synth",
+          "parameters": {
+            "gain": 0.78,
+            "filterCutoff": 0.42,
+            "filterResonance": 0.78,
+            "bypass": 0.0
+          }
+        },
+        {
+          "id": "tpl-acid-gain",
+          "type": "track_gain",
+          "parameters": {
+            "gain": 0.76,
+            "bypass": 0.0
+          }
+        }
       ],
-      "midiClips": [{
-        "id": "tpl-acid-clip", "startBeat": 0.0, "lengthBeats": 4.0, "naturalLengthBeats": 4.0, "loopContent": true,
-        "notes": [
-          {"pitch": 45, "startBeat": 0.0, "durationBeats": 0.45, "velocity": 104.0},
-          {"pitch": 48, "startBeat": 0.5, "durationBeats": 0.35, "velocity": 96.0},
-          {"pitch": 50, "startBeat": 1.0, "durationBeats": 0.45, "velocity": 102.0},
-          {"pitch": 53, "startBeat": 1.5, "durationBeats": 0.35, "velocity": 94.0},
-          {"pitch": 45, "startBeat": 2.0, "durationBeats": 0.45, "velocity": 104.0},
-          {"pitch": 48, "startBeat": 2.5, "durationBeats": 0.35, "velocity": 96.0},
-          {"pitch": 50, "startBeat": 3.0, "durationBeats": 0.45, "velocity": 102.0},
-          {"pitch": 53, "startBeat": 3.5, "durationBeats": 0.35, "velocity": 94.0}
-        ]
-      }],
+      "midiClips": [],
       "sampleClips": []
     }
   ]

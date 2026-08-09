@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -25,6 +27,7 @@ import 'routing_device_panel.dart';
 import 'audio_source_picker.dart';
 
 part 'device_chain_row_private_device_chain_row_state.dart';
+part 'device_chain_row_private_device_chain_row_state_drag_auto_scroll.dart';
 part 'device_chain_row_private_virtual_chain_bracket_painter.dart';
 part 'device_chain_row_private_device_chain_row_state_sample_drop_target.dart';
 part 'device_chain_row_private_device_chain_row_state_automation_aware_device.dart';
