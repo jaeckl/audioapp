@@ -298,11 +298,14 @@ void mixFreezeStereoBlock(float* leftOut,
         if (!active) {
             continue;
         }
-        // Match sample-clip mixing: map progress onto [0, frameCount-1] so
-        // progress == 1.0 never indexes pcm[frameCount].
-        const double readPos = std::clamp(progress, 0.0, 1.0) *
-                               static_cast<double>(region.frameCount - 1);
-        const int index = static_cast<int>(readPos);
+        // The asset holds one frame per rendered frame, so frame N of the bake
+        // must be read at progress N/frameCount. Scaling by frameCount-1 instead
+        // would play the asset (frameCount-1)/frameCount too slow, which drifts
+        // a full sample by the end and destroys null-sum transparency. `index`
+        // is clamped below instead.
+        const double readPos =
+            std::clamp(progress, 0.0, 1.0) * static_cast<double>(region.frameCount);
+        const int index = std::min(static_cast<int>(readPos), region.frameCount - 1);
         const float frac = static_cast<float>(readPos - static_cast<double>(index));
         const int next = std::min(index + 1, region.frameCount - 1);
         const float l = region.pcmL[index] * (1.0f - frac) + region.pcmL[next] * frac;
